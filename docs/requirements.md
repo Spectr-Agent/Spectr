@@ -12,7 +12,7 @@ A judge texts their paired Mac, watches a real app respond, changes the instruct
 
 - A two-week diary study (24 people) found over 70% of captured phone-task suspensions were expected to finish on a PC. Validate with students: ask five attendees about the last task they postponed until they reached a computer, and record the task and what blocked it.
 - A follow-up study of 73 AI-agent users found more severe failures were perceived as harder to notice. This motivates live viewing and interruption.
-- Building blocks: Apple Screen Sharing (remote control), Sendblue (iMessage to webhook), LiveKit Cloud (signaling and media relay), Apple ScreenCaptureKit (window capture). Spectr combines a text instruction, a live view, and user correction in one task.
+- Building blocks: Apple Screen Sharing (remote control), Sendblue (iMessage to webhook), LiveKit Cloud (signaling and media relay), Apple ScreenCaptureKit (window capture), ElevenLabs (text-to-speech for Spectr's spoken replies). Spectr combines a text instruction, a live view, and user correction in one task.
 
 ## Scope
 
@@ -41,7 +41,7 @@ A judge texts their paired Mac, watches a real app respond, changes the instruct
 
 | ID | Requirement |
 | --- | --- |
-| R6 | Continuous voice: speak, hear Spectr answer, interrupt it, and give a second instruction hands-free. |
+| R6 | Continuous voice: speak, hear Spectr answer, interrupt it, and give a second instruction hands-free. Spectr's voice is an ElevenLabs British, JARVIS-like male voice. |
 | R7 | Call back for a decision: persist the question, ring the paired phone, accept one answer by voice or text. |
 | R8 | Take over an awake, locked Mac: validate owner-authenticated remote unlock on cellular before promising it in the demo. |
 
@@ -89,6 +89,7 @@ A judge texts their paired Mac, watches a real app respond, changes the instruct
 ### Platform
 
 - iPhone app and Mac helper in Swift/SwiftUI. Agent and backend in TypeScript.
+- Spoken replies use the ElevenLabs API with one fixed British, JARVIS-like male voice. The ElevenLabs key stays server-side.
 - Both Xcode targets pin the same stable LiveKit Swift SDK release.
 - Internet access is required (LiveKit Cloud). Plan a rehearsed hotspot if venue Wi-Fi blocks peer traffic.
 

@@ -11,12 +11,13 @@ Colby doesn't have a Mac, so he can't build or test Swift.
   - From Poorav: the LiveKit room-token endpoint, the `apple-app-site-association` file, and the diagnostic trail.
   - From Sweeya: the labeled utterance set, the deterministic fallback parser, and its Vitest suite.
   - New: a TypeScript mock Mac device, so the API and agent can be tested end to end without a Mac.
+  - New: Spectr's voice with the ElevenLabs API, using a British, JARVIS-like male voice.
 
 | Owner | Build area | First handoff |
 | --- | --- | --- |
 | Jared | iPhone + Mac · Swift/SwiftUI | Selected Keynote window streams to the Watch live screen. |
 | Poorav | Backend · TypeScript | One message creates one authenticated task. |
-| Colby | Backend + agent support · TypeScript | Room token issued for a task; mock Mac returns a receipt. |
+| Colby | Backend + agent support + voice · TypeScript | Room token issued for a task; mock Mac returns a receipt; first reply spoken in the Spectr voice. |
 | Sweeya | Agent · guardrails · brand | A correction selects the new target; logo goes to Jared. |
 
 Because Jared now carries both native targets, Swift work is on the critical path. Unblock him first: fixtures, tokens and a working link come before anything else on the TypeScript side.
@@ -25,7 +26,7 @@ Because Jared now carries both native targets, Swift work is on the critical pat
 
 - **Jared:** Swift/SwiftUI, Xcode, AVFoundation + Speech, ScreenCaptureKit, LiveKit Swift SDK (publisher and receiver), URLSession/Codable, Keychain, Keynote AppleScript automation.
 - **Poorav:** Node.js/TypeScript, Vercel, Sendblue, Supabase Auth/Postgres, Zod, Vitest.
-- **Colby:** Node.js/TypeScript, LiveKit Node server SDK, Zod, Vitest.
+- **Colby:** Node.js/TypeScript, LiveKit Node server SDK, ElevenLabs API, Zod, Vitest.
 - **Sweeya:** TypeScript, structured model outputs, Zod, Vitest, SVG/PNG brand assets.
 
 ## Feature owners
@@ -39,7 +40,7 @@ Because Jared now carries both native targets, Swift work is on the critical pat
 | 4 | Start the same task by iMessage, get the verified result in the thread | Poorav + Jared |
 | 5 | Change your mind or stop; report a lost connection | All four |
 | **P1** | | |
-| 6 | Continuous voice with interruption | Jared + Sweeya |
+| 6 | Continuous voice with interruption (ElevenLabs voice) | Jared + Sweeya + Colby |
 | 7 | Call back for a decision | Poorav + Jared |
 | 8 | Take over an awake, locked Mac (validate first) | Jared + Poorav |
 | **P2** | | |
@@ -97,6 +98,7 @@ Do the Mac helper's capture and stream first. The second milestone and every liv
 - [ ] Pair the iPhone; redeem a Watch live link only after authentication (Universal Links + Associated Domains; keep an in-app task opener for development).
 - [ ] Build connecting, live, interrupted, stopped and reconnecting states from the shared fixtures.
 - [ ] Push-to-talk (AVFoundation + Apple Speech), visible transcript and typed fallback. Send the final transcript once with `taskId` and expected revision; disable repeat sends while awaiting acknowledgement; keep the typed correction on network failure.
+- [ ] Play Spectr's spoken replies from Colby's speech endpoint; Stop or a new instruction interrupts playback.
 - [ ] Stop takes priority over pending actions. Tap Stop mid-action, reconnect, relaunch: show the last verified slide and the cancelled state.
 - [ ] Test touch targets, orientation and bad-network recovery on the real phone. Record a short on-device test for the team.
 
@@ -106,7 +108,7 @@ Do the Mac helper's capture and stream first. The second milestone and every liv
 
 ### Handoff and blockers
 
-Needs: session token/link fixture from Poorav, room URL and publisher/viewer tokens from Colby, action fixtures, transcript examples and the logo from Sweeya. If mic permission fails, a typed correction keeps the same task. If capture stalls while the process still responds, report stream unavailable. Done when both screens show the judge's chosen slide.
+Needs: session token/link fixture from Poorav, room URL, publisher/viewer tokens and the speech endpoint from Colby, action fixtures, transcript examples and the logo from Sweeya. If mic permission fails, a typed correction keeps the same task. If capture stalls while the process still responds, report stream unavailable. Done when both screens show the judge's chosen slide.
 
 ---
 
@@ -154,9 +156,19 @@ Outcome: the live session is authorized end to end, and the API and agent can be
 - [ ] Small TypeScript script that pairs as a device, claims commands, and posts receipts with a fake `observedSlide`. Support a "wrong slide" mode and a disconnect mode.
 - [ ] Use it to run the duplicate-webhook, stale-revision and Stop cases before Jared's helper is ready.
 
+### New · Spectr voice (ElevenLabs)
+
+- [ ] Pick a British, JARVIS-like male voice (calm, crisp, slightly formal) from the ElevenLabs voice library. Play two or three candidates for the team and lock one. Pin its voice ID, model and voice settings in config.
+- [ ] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` (names only). The key stays server-side.
+- [ ] Speech endpoint in `services/api/src/voice/`: takes a reply on a task the caller owns and streams back ElevenLabs audio. Reject other owners' tasks.
+- [ ] Only speak the agent's status/completion text (already derived from `observedSlide`). Don't store audio or transcripts by default.
+- [ ] Fallback: if ElevenLabs errors or times out, return quickly so the iPhone shows the reply as text.
+- [ ] Vitest with a mocked ElevenLabs client: ownership check, timeout fallback, and that the pinned voice ID is always used.
+- [ ] Give Jared the endpoint, audio format and a sample clip for playback.
+
 ### Handoff and blockers
 
-Agree on token and receipt payloads with Poorav and Jared. Give Jared room URLs and tokens as early as Friday; LiveKit tokens block the first live frame. Done when a second user's token request is rejected and the mock Mac passes the correction and Stop cases.
+Agree on token and receipt payloads with Poorav and Jared. Give Jared room URLs and tokens as early as Friday; LiveKit tokens block the first live frame. Done when a second user's token request is rejected, the mock Mac passes the correction and Stop cases, and a reply plays on the iPhone in the Spectr voice.
 
 ---
 

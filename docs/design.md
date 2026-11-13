@@ -19,7 +19,8 @@ Messages ──► Sendblue ──► TypeScript API (Vercel) ──► Agent pl
 - The **API** authorizes users, stores task state in Supabase, issues LiveKit room tokens, and returns receipts to the original iMessage thread.
 - The **agent** turns a natural request into one schema-validated action.
 - The **Mac helper** captures only the selected window, publishes it as a LiveKit screen-share track, runs Keynote actions, and reports the observed slide.
-- The **iPhone app** joins the authenticated live session, renders the stream, and sends corrections and Stop.
+- The **iPhone app** joins the authenticated live session, renders the stream, sends corrections and Stop, and plays Spectr's spoken replies.
+- **ElevenLabs** turns Spectr's reply text into speech, called from the API so the key never reaches a device.
 - **LiveKit Cloud** handles signaling and media relay. Video never goes through the HTTP API.
 
 ## Components
@@ -30,6 +31,7 @@ Messages ──► Sendblue ──► TypeScript API (Vercel) ──► Agent pl
 - Universal Links for Watch live (Associated Domains entitlement + `apple-app-site-association` served by the API). Keep an in-app task opener for development.
 - LiveKit Swift SDK (pinned) as a subscriber to the task room's screen-share track.
 - AVFoundation mic capture and Apple Speech for push-to-talk transcription; typed fallback uses the same endpoint.
+- Plays reply audio from the API's speech endpoint (AVFoundation). Stop or a new instruction interrupts playback.
 - Screen states: connecting, live, stalled, interrupted, reconnecting, stopped. Connecting until the first decoded frame; Stalled when frames stop arriving.
 - Stop takes priority over pending actions. Relaunch restores the right task and the last verified slide.
 
@@ -49,6 +51,14 @@ Messages ──► Sendblue ──► TypeScript API (Vercel) ──► Agent pl
 - Supabase Auth + Postgres with row-level security; migrations in `supabase/migrations/`.
 - LiveKit Node server SDK for room tokens: the Mac gets screen-share publish rights, the iPhone gets subscribe-only for the first test. Tokens are short-lived and scoped to the task room.
 - A worker that must stay alive needs an independent host or durable delivery (Vercel functions are not long-lived).
+
+### Voice — `services/api/src/voice/`
+
+- ElevenLabs text-to-speech, called server-side. `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` are server environment variables.
+- Voice: a British, JARVIS-like male voice (calm, crisp, slightly formal). Pick it from the ElevenLabs voice library at kickoff and pin its voice ID and voice settings so every reply sounds the same.
+- Use the streaming endpoint so playback starts before the whole clip is generated.
+- Input is only the agent's short status/completion text, which is already derived from `observedSlide`. No raw voice logs or stored audio by default.
+- If ElevenLabs fails or times out, the reply is still shown as text; the task never waits on audio.
 
 ### Agent — `services/api/src/agent/`
 
@@ -123,6 +133,7 @@ Clients replay events after the last `seq` they saw on reconnect.
 | Device claim | Next typed command |
 | Device result | Receipt |
 | Room token | LiveKit token scoped to the task room |
+| Speak reply | Streamed ElevenLabs audio for a reply on a task the caller owns |
 
 Fixtures to publish: create, command, event, correction, result, error; task examples for `accepted`, `waitingForUser`, `succeeded`, `cancelled`; a stale-revision error; an `observedSlide` receipt.
 
@@ -156,7 +167,7 @@ Fixtures to publish: create, command, event, correction, result, error; task exa
 - Verify Sendblue webhook authentication. Bind the sender to a paired owner.
 - Check ownership on every task, device and live session request.
 - Expiring pairing codes and viewer tokens; device revocation.
-- Provider secrets in server environment variables; device credentials in Keychain.
+- Provider secrets (Sendblue, LiveKit, ElevenLabs, model) in server environment variables; device credentials in Keychain.
 - Capture only the user-selected window. No arbitrary shell, stored Mac passwords, screen recordings or raw voice logs by default.
 
 ## Recovery states
@@ -180,6 +191,7 @@ spectr/
   services/api/src/              TypeScript API package
     index.ts
     agent/plan.ts                Typed intent boundary
+    voice/                       ElevenLabs text-to-speech
   contracts/task.example.json    Shared fixtures
   supabase/migrations/
   docs/                          requirements, design, tasks
