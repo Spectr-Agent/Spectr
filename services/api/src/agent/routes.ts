@@ -108,29 +108,32 @@ function notifier(
         })
       : undefined;
 
+  const sendText = async (
+    task: AgentTaskRecord,
+    text: string,
+    idempotencyKey: string,
+  ) => {
+    if (!task.replyHandle) {
+      return;
+    }
+    const replier =
+      task.replyProvider === "chert"
+        ? chert
+        : task.replyProvider === "sendblue"
+          ? sendblue
+          : undefined;
+    if (!replier) {
+      console.info(
+        `Skipping notification for provider ${task.replyProvider ?? "unknown"}`,
+      );
+      return;
+    }
+    await replier(task.replyHandle, text, idempotencyKey);
+  };
+
   return {
-    async sendQuestion(
-      task: AgentTaskRecord,
-      question: string,
-      idempotencyKey: string,
-    ) {
-      if (!task.replyHandle) {
-        return;
-      }
-      const replier =
-        task.replyProvider === "chert"
-          ? chert
-          : task.replyProvider === "sendblue"
-            ? sendblue
-            : undefined;
-      if (!replier) {
-        console.info(
-          `Skipping question notification for provider ${task.replyProvider ?? "unknown"}`,
-        );
-        return;
-      }
-      await replier(task.replyHandle, question, idempotencyKey);
-    },
+    sendQuestion: sendText,
+    sendProgress: sendText,
     async sendResult(
       task: AgentTaskRecord,
       text: string,
