@@ -4,6 +4,7 @@ import {
   type MacStepRequest,
 } from "../src/contracts.js";
 import {
+  anthropicRequest,
   createAnthropicCaller,
   type AnthropicRequest,
   type AnthropicResponse,
@@ -11,7 +12,7 @@ import {
 } from "../src/agent/anthropic.js";
 import { ApiErrorException } from "../src/agent/errors.js";
 import { SYSTEM_PROMPT } from "../src/agent/prompt.js";
-import { runAgentStep, type StepNotifier } from "../src/agent/step.js";
+import { CUT_OFF_SUMMARY, REFUSAL_SUMMARY, runAgentStep, type StepNotifier } from "../src/agent/step.js";
 import {
   ANTHROPIC_TOOLS,
   mapToolUse,
@@ -296,6 +297,7 @@ describe("Anthropic Messages caller", () => {
       system: SYSTEM_PROMPT,
       tools: ANTHROPIC_TOOLS,
       messages: [],
+      cache_control: { type: "ephemeral" },
     }, { timeoutMs: 12_345 });
 
     const [url, init] = fetcher.mock.calls[0]!;
@@ -312,6 +314,23 @@ describe("Anthropic Messages caller", () => {
     expect(init?.signal).toBe(timeoutSignal);
     expect(timeout).toHaveBeenCalledWith(12_345);
     expect(body.max_tokens).toBe(4096);
+    expect(body.cache_control).toEqual({ type: "ephemeral" });
+  });
+
+  it("passes stop_reason and the refusal category through, and nothing else from stop_details", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          content: [],
+          stop_reason: "refusal",
+          stop_details: { type: "refusal", category: "cyber", explanation: "not logged" },
+        }),
+        { status: 200 },
+      ),
+    );
+    const caller = createAnthropicCaller("test-api-key", fetcher as unknown as typeof fetch);
+    const response = await caller(anthropicRequest([]), { timeoutMs: 1_000 });
+    expect(response).toEqual({ content: [], stop_reason: "refusal", stop_details: { category: "cyber" } });
   });
 });
 
@@ -902,7 +921,7 @@ describe("runAgentStep", () => {
     );
   });
 
-  it("trims stored and sent conversations to the three newest images", async () => {
+  it("keeps the conversation append-only: earlier screenshots are never rewritten", async () => {
     const store = new InMemoryTaskStore();
     const taskId = await createTask(store);
     const task = store.tasks.get(taskId)!;
@@ -939,9 +958,104 @@ describe("runAgentStep", () => {
     const body = vi.mocked(callClaude).mock.calls[0]?.[0];
     const saved = store.tasks.get(taskId)?.agentMessages;
 
-    expect(countImages(body?.messages)).toBe(3);
-    expect(countImages(saved)).toBe(3);
-    expect(flattenText(saved)).toContain("[older screenshot removed]");
+    // Opus 5.5 ties its thinking blocks to the exact earlier turns, so they must
+    // be sent and stored byte-for-byte. Caching keeps the resend cheap.
+    const original = [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { data: "one" } },
+          { type: "image", source: { data: "two" } },
+          { type: "image", source: { data: "three" } },
+          { type: "image", source: { data: "four" } },
+          {
+            type: "tool_result",
+            tool_use_id: "screenshot-tool",
+            content: [{ type: "image", source: { data: "nested" } }],
+          },
+        ],
+      },
+    ];
+    expect(body?.messages.slice(0, 1)).toEqual(original);
+    expect(saved?.slice(0, 1)).toEqual(original);
+    expect(countImages(body?.messages)).toBeGreaterThanOrEqual(5);
+    expect(flattenText(saved)).not.toContain("[older screenshot removed]");
+    expect(body?.cache_control).toEqual({ type: "ephemeral" });
+  });
+
+  it("resends every earlier turn unchanged across many screenshot steps", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    const thinking = (n: number) => ({ type: "thinking", thinking: "", signature: `sig-${n}` });
+    const steps = 5;
+    const callClaude = fakeClaude(
+      ...Array.from({ length: steps }, (_, i) =>
+        claudeResponse(thinking(i), memberTool(`shot-${i}`, "screenshot", {})),
+      ),
+      claudeResponse(customTool("finish-1", "finish", { success: true, summary: "Done." })),
+    );
+    // Snapshot each request when it is sent; the step code appends to the same array afterwards.
+    const bodies: AnthropicRequest[] = [];
+    const recordingClaude: CallClaude = async (body, opts) => {
+      bodies.push(structuredClone(body));
+      return callClaude(body, opts);
+    };
+    for (let step = 0; step <= steps; step++) {
+      await runAgentStep({
+        store,
+        deviceId,
+        request: makeRequest(taskId, {
+          afterStep: step,
+          results: step === 0 ? [] : [{ actionId: `shot-${step - 1}`, ok: true }],
+        }),
+        callClaude: recordingClaude,
+      });
+    }
+    expect(bodies).toHaveLength(steps + 1);
+    for (let i = 1; i < bodies.length; i++) {
+      const previous = bodies[i - 1]!.messages;
+      // Each request starts with the previous one, then Claude's reply, byte for byte.
+      expect(bodies[i]!.messages.slice(0, previous.length)).toEqual(previous);
+      expect(bodies[i]!.messages[previous.length]).toMatchObject({ role: "assistant" });
+    }
+    const last = bodies.at(-1)!.messages;
+    expect(countImages(last)).toBeGreaterThan(3);
+    expect(JSON.stringify(last)).toContain("sig-0");
+    expect(flattenText(last)).not.toContain("[older screenshot removed]");
+  });
+
+  it("ends the task with a clear message when Claude declines, without asking again", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    const notifier = { sendResult: vi.fn(async () => {}) } as unknown as StepNotifier;
+    const callClaude = fakeClaude({ content: [], stop_reason: "refusal", stop_details: { category: "cyber" } });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await runAgentStep({ store, deviceId, request: makeRequest(taskId), callClaude, notifier, linkSecret: "link-secret" });
+    expect(response).toMatchObject({ kind: "finished", state: "failed", summary: REFUSAL_SUMMARY });
+    expect(vi.mocked(callClaude)).toHaveBeenCalledTimes(1);
+    expect(store.tasks.get(taskId)?.state).toBe("failed");
+    expect(warn).toHaveBeenCalledWith("Claude declined task", taskId, "cyber");
+    warn.mockRestore();
+  });
+
+  it("ends the task when Claude's reply is cut off with no action", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    const callClaude = fakeClaude({ content: [{ type: "text", text: "I will now" }], stop_reason: "max_tokens" });
+    const response = await runAgentStep({ store, deviceId, request: makeRequest(taskId), callClaude });
+    expect(response).toMatchObject({ kind: "finished", state: "failed", summary: CUT_OFF_SUMMARY });
+    expect(vi.mocked(callClaude)).toHaveBeenCalledTimes(1);
+  });
+
+  it("still runs the actions when a reply that hit max_tokens includes a tool call", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    const callClaude = fakeClaude({
+      content: [customTool("app-1", "open_app", { name: "Notes" })],
+      stop_reason: "max_tokens",
+    });
+    const response = await runAgentStep({ store, deviceId, request: makeRequest(taskId), callClaude });
+    expect(response).toMatchObject({ kind: "actions" });
   });
 
   it("enforces task ownership and leaves the step unchanged on Claude errors", async () => {

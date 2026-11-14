@@ -27,6 +27,13 @@ const REQUEST_DEADLINE_MS = 280_000;
 const CLAUDE_TIMEOUT_MS = 90_000;
 const CLAUDE_TIMEOUT_BUFFER_MS = 5_000;
 const MINIMUM_CALL_WINDOW_MS = 15_000;
+export const REFUSAL_SUMMARY = "Claude declined this task, so I stopped.";
+export const CUT_OFF_SUMMARY = "Claude's reply was cut off, so I stopped. Try again.";
+
+function hasToolUse(content: unknown[]): boolean {
+  return content.some((block) => isRecord(block) && block.type === "tool_use");
+}
+
 const NON_RETRYABLE_ANTHROPIC_STATUSES = new Set([
   400, 401, 403, 404, 413, 422,
 ]);
@@ -286,55 +293,6 @@ function buildPreviousTurnMessage(
   };
 }
 
-function cloneValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneValue(item)) as T;
-  }
-  if (isRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, cloneValue(item)]),
-    ) as T;
-  }
-  return value;
-}
-
-function trimImages(messages: AgentMessage[]): AgentMessage[] {
-  const copy = cloneValue(messages);
-  const imageNodes: Array<{ parent: unknown[] | Record<string, unknown>; key: number | string }> = [];
-
-  const visit = (
-    value: unknown,
-    parent?: unknown[] | Record<string, unknown>,
-    key?: number | string,
-  ): void => {
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => visit(item, value, index));
-      return;
-    }
-    if (!isRecord(value)) {
-      return;
-    }
-    if (value.type === "image" && parent && key !== undefined) {
-      imageNodes.push({ parent, key });
-      return;
-    }
-    for (const [childKey, child] of Object.entries(value)) {
-      visit(child, value, childKey);
-    }
-  };
-  copy.forEach((message) => visit(message.content));
-  const olderCount = Math.max(0, imageNodes.length - 3);
-  for (const { parent, key } of imageNodes.slice(0, olderCount)) {
-    const replacement = { type: "text", text: "[older screenshot removed]" };
-    if (Array.isArray(parent) && typeof key === "number") {
-      parent[key] = replacement;
-    } else if (!Array.isArray(parent) && typeof key === "string") {
-      parent[key] = replacement;
-    }
-  }
-  return copy;
-}
-
 function terminalResponse(
   task: AgentTaskRecord,
   summary = task.summary ?? "",
@@ -411,7 +369,9 @@ async function persist(
     stepCount: number;
   },
 ): Promise<MacStepResponse> {
-  const savedMessages = trimImages(input.messages);
+  // Append-only: never rewrite earlier turns. Opus 5.5 rejects replayed
+  // thinking blocks after an edited history on newer accounts.
+  const savedMessages = input.messages;
   const updated = await options.store.persistAgentStep({
     taskId: task.taskId,
     expectedStepCount: task.stepCount,
@@ -557,7 +517,7 @@ function requestWithMessages(
   messages: AgentMessage[],
   model?: string,
 ): AnthropicRequest {
-  return anthropicRequest(trimImages(messages), model);
+  return anthropicRequest(messages, model);
 }
 
 function isControlTool(toolUse: ToolUse): boolean {
@@ -615,7 +575,7 @@ export async function runAgentStep(
   const consumedInboundIds = inbound.map((message) => message.providerMessageId);
   if (task.stepCount >= MAX_AGENT_STEPS) {
     const summary = "Stopped after 40 steps without finishing.";
-    const messages = trimImages(task.agentMessages);
+    const messages = task.agentMessages;
     const response = finishedResponse(
       task.taskId,
       task.stepCount,
@@ -729,6 +689,27 @@ export async function runAgentStep(
       content: response.content,
     };
     messages.push(assistantMessage);
+
+    // A refusal or a cut-off reply can't be fixed by asking again in this step.
+    const stopReason = response.stop_reason ?? null;
+    if (stopReason === "refusal" || (stopReason === "max_tokens" && !hasToolUse(response.content))) {
+      if (stopReason === "refusal") {
+        console.warn("Claude declined task", task.taskId, response.stop_details?.category ?? "unknown");
+      }
+      const summary = stopReason === "refusal" ? REFUSAL_SUMMARY : CUT_OFF_SUMMARY;
+      const finished = finishedResponse(task.taskId, task.stepCount + 1, "failed", summary);
+      const saved = await persist(options, task, finished, {
+        messages,
+        pendingToolResults: [],
+        state: "failed",
+        question: null,
+        summary,
+        consumedInboundIds: consumed,
+        stepCount: task.stepCount + 1,
+      });
+      await notifyResultSafely(options, task.taskId, summary, "failed");
+      return saved;
+    }
 
     let toolUses: ToolUse[];
     try {
