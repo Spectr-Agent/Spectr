@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "staleRevision",
+    "message": "Expected revision 1, but the current revision is 2.",
+    "currentRevision": 2
+  }
+}
