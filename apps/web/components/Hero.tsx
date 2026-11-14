@@ -32,7 +32,7 @@ export function Hero() {
   }, [run]);
 
   return (
-    <header className="hero">
+    <header className="slide hero" id="top">
       <div className="wrap">
         <Reveal>
           <span className="eyebrow">{hero.eyebrow}</span>
@@ -42,7 +42,7 @@ export function Hero() {
           </h1>
           <p className="sub">{hero.sub}</p>
           <div className="cta-row">
-            <a className="btn" href="#waitlist">
+            <a className="btn" href="#how">
               {hero.cta}
             </a>
             <small>{hero.note}</small>

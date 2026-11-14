@@ -51,7 +51,7 @@ export function UseCases() {
   };
 
   return (
-    <section id="cases" className="cases">
+    <section id="cases" className="slide cases">
       <div className="wrap">
         <Reveal onReveal={onReveal}>
           <span className="eyebrow">{cases.eyebrow}</span>

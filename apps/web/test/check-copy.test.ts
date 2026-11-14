@@ -12,27 +12,29 @@ describe("check:copy", () => {
   });
 
   it.each([
+    ["Hello there", "all lowercase"],
+    ["spectr and Mac", "all lowercase"],
     ["a-b", "no dashes or hyphens"],
     ["one – two", "no dashes or hyphens"],
     ["one — two", "no dashes or hyphens"],
     ["one; two", "no semicolons"],
-    ["It actually works.", "never actually, genuinely or kind"],
-    ["Genuinely good.", "never actually, genuinely or kind"],
-    ["Be kind.", "never actually, genuinely or kind"],
-    ["Wait while it runs.", "avoid while"],
-    ["This rather than that.", "avoid rather than"],
-    ["Text instead of calling.", "avoid instead of"],
+    ["it actually works.", "never actually, genuinely or kind"],
+    ["genuinely good.", "never actually, genuinely or kind"],
+    ["be kind.", "never actually, genuinely or kind"],
+    ["wait while it runs.", "avoid while"],
+    ["this rather than that.", "avoid rather than"],
+    ["text instead of calling.", "avoid instead of"],
   ])("rejects %j", (text, rule) => {
     expect(rulesBrokenBy(text)).toContain(rule);
   });
 
   it("allows words that only contain the banned ones", () => {
-    expect(rulesBrokenBy("Kindly wait. Meanwhile, relax. Contractually fine.")).toEqual([]);
+    expect(rulesBrokenBy("kindly wait. meanwhile, relax. contractually fine.")).toEqual([]);
   });
 
   it("allows one exclamation point and rejects two", () => {
-    expect(checkSource('const a = "Hi!";')).toEqual([]);
-    expect(checkSource('const a = "Hi!", b = "Yay!";').map((p) => p.rule)).toContain("at most 1 exclamation point on the page");
+    expect(checkSource('const a = "hi!";')).toEqual([]);
+    expect(checkSource('const a = "hi!", b = "yay!";').map((p) => p.rule)).toContain("at most 1 exclamation point on the page");
   });
 
   it("rejects a sentence of more than 24 words", () => {
@@ -46,12 +48,27 @@ describe("check:copy", () => {
   });
 
   it("ignores comments and import lines", () => {
-    const source = `import { x } from "@/some-module";\n// a-b; actually\n/* kind of; while */\nconst ok = "Fine.";`;
-    expect(extractStrings(source).map((s) => s.value)).toEqual(["Fine."]);
+    const source = `import { x } from "@/Some-Module";\n// A-b; actually\n/* Kind of; while */\nconst ok = "fine.";`;
+    expect(extractStrings(source).map((s) => s.value)).toEqual(["fine."]);
     expect(checkSource(source)).toEqual([]);
   });
 
   it("reads strings that contain comment markers", () => {
     expect(extractStrings('const url = "https://example.com";').map((s) => s.value)).toEqual(["https://example.com"]);
+  });
+
+  it("research: 3 big numbers and 11 more, each with a source", async () => {
+    const { copy } = await import("../content/copy");
+    expect(copy.research.big.length + copy.more.facts.length).toBe(14);
+    for (const item of [...copy.research.big, ...copy.more.facts]) {
+      expect(item.source.length).toBeGreaterThan(3);
+      expect(item.text.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("every research source has a slot in sources.ts", async () => {
+    const { copy } = await import("../content/copy");
+    const { sourceLinks } = await import("../lib/sources");
+    for (const item of [...copy.research.big, ...copy.more.facts]) expect(Object.keys(sourceLinks)).toContain(item.link);
   });
 });

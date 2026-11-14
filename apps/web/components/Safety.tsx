@@ -7,7 +7,7 @@ import { Reveal } from "./Reveal";
 export function Safety() {
   const { safety } = copy;
   return (
-    <section id="safety">
+    <section id="safety" className="slide safety">
       <div className="wrap center">
         <Reveal>
           <span className="eyebrow">{safety.eyebrow}</span>

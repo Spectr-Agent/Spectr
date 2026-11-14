@@ -47,6 +47,7 @@ export function extractStrings(source) {
 }
 
 const RULES = [
+  { name: "all lowercase", test: (s) => s !== s.toLowerCase() },
   { name: "no dashes or hyphens", test: (s) => /[-‐-―−]/.test(s) },
   { name: "no semicolons", test: (s) => s.includes(";") },
   { name: "never actually, genuinely or kind", test: (s) => /\b(actually|genuinely|kind)\b/i.test(s) },
