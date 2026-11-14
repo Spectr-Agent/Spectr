@@ -78,6 +78,9 @@ export async function handleFaceTimeWebhook(
   if (env.CHERT_FACETIME_WEBHOOK_SECRET) {
     const headers = Object.fromEntries(request.headers.entries());
     if (!verifyChertSignature(raw, headers, env.CHERT_FACETIME_WEBHOOK_SECRET)) {
+      // Names only, never values: lets us see how Chert labels FaceTime signatures.
+      const names = Object.keys(headers).filter((name) => /sig|chert|webhook|timestamp/iu.test(name));
+      console.error(`FaceTime webhook signature rejected; signature-like headers: ${names.join(", ") || "none"}`);
       return Response.json({ error: "invalid signature" }, { status: 401 });
     }
   }
