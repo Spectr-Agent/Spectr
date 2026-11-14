@@ -32,7 +32,7 @@ interface Entry {
 export const STATUS = {
   // working: shown while the Mac runs a batch
   listening: { kind: "working", mascot: "spectr_listening", template: "Listening." },
-  thinking: { kind: "working", mascot: "spectr_working", template: "On it." },
+  thinking: { kind: "working", mascot: "spectr_working", template: "Right away." },
   checkingScreen: { kind: "working", mascot: "spectr_working", template: "Checking the screen." },
   openingApp: { kind: "working", mascot: "spectr_working", template: "Opening {app}." },
   openingSite: { kind: "working", mascot: "spectr_working", template: "Opening {site}." },
@@ -41,23 +41,23 @@ export const STATUS = {
   pressingKeys: { kind: "working", mascot: "spectr_working", template: "Pressing {keys}." },
   scrolling: { kind: "working", mascot: "spectr_working", template: "Scrolling {direction}." },
   dragging: { kind: "working", mascot: "spectr_working", template: "Dragging." },
-  waitingForPage: { kind: "working", mascot: "spectr_working", template: "Waiting for the page." },
+  waitingForPage: { kind: "working", mascot: "spectr_working", template: "Waiting for the page to load." },
 
   // waiting: Spectr needs the owner
   question: { kind: "waiting", mascot: "spectr_waiting_for_answer", template: "{question}" },
-  confirm: { kind: "waiting", mascot: "spectr_waiting_for_answer", template: "{action} Reply yes to go ahead." },
-  login: { kind: "waiting", mascot: "spectr_waiting_for_answer", template: "Please log in on the Mac, then reply done." },
+  confirm: { kind: "waiting", mascot: "spectr_waiting_for_answer", template: "{action} Reply yes to proceed." },
+  login: { kind: "waiting", mascot: "spectr_waiting_for_answer", template: "I'll wait while you sign in on the Mac. Reply done when you're in." },
 
   // finished
-  done: { kind: "done", mascot: "spectr_success", template: "Done: {summary}" },
-  failed: { kind: "failed", mascot: "spectr_error", template: "Couldn't finish: {summary}" },
+  done: { kind: "done", mascot: "spectr_success", template: "{summary}" },
+  failed: { kind: "failed", mascot: "spectr_error", template: "I'm afraid I couldn't finish. {summary}" },
   stopped: { kind: "stopped", mascot: "spectr_stopped", template: "Stopped." },
-  slideMismatch: { kind: "failed", mascot: "spectr_error", template: "I asked for slide {target} but the Mac shows slide {observed}. Try again?" },
-  declined: { kind: "failed", mascot: "spectr_error", template: "Claude declined this task, so I stopped." },
-  stepLimit: { kind: "failed", mascot: "spectr_error", template: "Stopped after 40 steps without finishing." },
+  slideMismatch: { kind: "failed", mascot: "spectr_error", template: "I asked for slide {target}, but slide {observed} is showing. Shall I try again?" },
+  declined: { kind: "failed", mascot: "spectr_error", template: "I'm afraid I can't help with that one, so I've stopped." },
+  stepLimit: { kind: "failed", mascot: "spectr_error", template: "I've stopped after 40 steps without finishing." },
 
   // device and connection states (AGENTS.md: keep lock, sleep, disconnect and denied permission distinct)
-  macOffline: { kind: "device", mascot: "spectr_error", template: "Your Mac is offline. Last seen {lastSeen}." },
+  macOffline: { kind: "device", mascot: "spectr_error", template: "Your Mac appears to be offline. Last seen {lastSeen}." },
   macLocked: { kind: "device", mascot: "spectr_error", template: "Your Mac is locked. Unlock it to continue." },
   macAsleep: { kind: "device", mascot: "spectr_error", template: "Your Mac is asleep. Wake it to continue." },
   liveViewStale: { kind: "device", mascot: "spectr_screen_capture_denied", template: "The live view stopped updating. Reconnecting." },

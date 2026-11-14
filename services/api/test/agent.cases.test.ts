@@ -220,7 +220,7 @@ describe("Keynote example: observedSlide check", () => {
     expect(await step(store, taskId, c.call, { afterStep: 1, results: [{ actionId: "k", ok: true }], observedSlide: 3 })).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "I asked for slide 5 but the Mac shows slide 3. Try again?",
+      summary: "I asked for slide 5, but slide 3 is showing. Shall I try again?",
     });
   });
 

@@ -50,7 +50,7 @@
         "x": 600,
         "y": 120
       },
-      "status": "On it."
+      "status": "Right away."
     },
     {
       "name": "drag",
@@ -108,7 +108,7 @@
         "type": "wait",
         "seconds": 2
       },
-      "status": "Waiting for the page."
+      "status": "Waiting for the page to load."
     },
     {
       "name": "open app",
@@ -135,9 +135,9 @@
         "kind": "waiting",
         "taskId": "tsk_demo_001",
         "step": 4,
-        "question": "Send \"running late\" to Sam in Messages? Reply yes to go ahead."
+        "question": "Shall I send \"running late\" to Sam in Messages? Reply yes to proceed."
       },
-      "status": "Send \"running late\" to Sam in Messages? Reply yes to go ahead."
+      "status": "Shall I send \"running late\" to Sam in Messages? Reply yes to proceed."
     },
     {
       "name": "login pause",
@@ -146,9 +146,9 @@
         "kind": "waiting",
         "taskId": "tsk_demo_001",
         "step": 2,
-        "question": "Instagram wants you to log in. Please log in on the Mac, then reply done."
+        "question": "Instagram would like you to sign in. I'll wait while you sign in on the Mac. Reply done when you're in."
       },
-      "status": "Instagram wants you to log in. Please log in on the Mac, then reply done."
+      "status": "Instagram would like you to sign in. I'll wait while you sign in on the Mac. Reply done when you're in."
     },
     {
       "name": "unclear request",
@@ -157,9 +157,9 @@
         "kind": "waiting",
         "taskId": "tsk_demo_001",
         "step": 1,
-        "question": "Which app or website do you mean?"
+        "question": "Which one did you have in mind?"
       },
-      "status": "Which app or website do you mean?"
+      "status": "Which one did you have in mind?"
     },
     {
       "name": "done",
@@ -171,7 +171,7 @@
         "state": "succeeded",
         "summary": "Your Instagram DMs are open."
       },
-      "status": "Done: Your Instagram DMs are open."
+      "status": "Your Instagram DMs are open."
     },
     {
       "name": "failed honestly",
@@ -183,7 +183,7 @@
         "state": "failed",
         "summary": "I couldn't find that restaurant."
       },
-      "status": "Couldn't finish: I couldn't find that restaurant."
+      "status": "I'm afraid I couldn't finish. I couldn't find that restaurant."
     },
     {
       "name": "wrong slide",
@@ -193,9 +193,9 @@
         "taskId": "tsk_demo_001",
         "step": 3,
         "state": "failed",
-        "summary": "I asked for slide 5 but the Mac shows slide 3. Try again?"
+        "summary": "I asked for slide 5, but slide 3 is showing. Shall I try again?"
       },
-      "status": "Couldn't finish: I asked for slide 5 but the Mac shows slide 3. Try again?"
+      "status": "I'm afraid I couldn't finish. I asked for slide 5, but slide 3 is showing. Shall I try again?"
     },
     {
       "name": "declined",
@@ -205,9 +205,9 @@
         "taskId": "tsk_demo_001",
         "step": 1,
         "state": "failed",
-        "summary": "Claude declined this task, so I stopped."
+        "summary": "I'm afraid I can't help with that one, so I've stopped."
       },
-      "status": "Couldn't finish: Claude declined this task, so I stopped."
+      "status": "I'm afraid I couldn't finish. I'm afraid I can't help with that one, so I've stopped."
     },
     {
       "name": "stopped",

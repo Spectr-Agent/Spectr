@@ -49,9 +49,9 @@ describe("Jared handoff files", () => {
     expect(statusForAction({ type: "key", keys: "cmd+shift+t", repeat: 1 })).toBe("Pressing Command-Shift-T.");
     expect(statusForAction({ type: "type", text: "my secret note" })).toBe("Typing.");
     expect(statusForResponse({ kind: "finished", taskId: "t", step: 1, state: "succeeded", summary: "Notes is open." })).toBe(
-      "Done: Notes is open.",
+      "Notes is open.",
     );
     expect(statusForResponse({ kind: "finished", taskId: "t", step: 1, state: "cancelled", summary: "x" })).toBe("Stopped.");
-    expect(status("macOffline", { lastSeen: "at 3:42 PM" })).toBe("Your Mac is offline. Last seen at 3:42 PM.");
+    expect(status("macOffline", { lastSeen: "at 3:42 PM" })).toBe("Your Mac appears to be offline. Last seen at 3:42 PM.");
   });
 });
