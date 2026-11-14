@@ -49,6 +49,8 @@ targets:
         SpectrEnvironment: $(SPECTR_ENVIRONMENT)
         SpectrAPIOrigin: $(SPECTR_API_ORIGIN)
         SpectrLinkHost: $(SPECTR_LINK_HOST)
+        SpectrSupabaseURL: $(SPECTR_SUPABASE_URL)
+        SpectrSupabasePublishableKey: $(SPECTR_SUPABASE_PUBLISHABLE_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.ios

@@ -8,8 +8,8 @@ import Testing
 @Suite("iOS composition")
 struct AppEnvironmentTests {
     @Test func missingConfigurationIsSurfacedNotIgnored() {
-        let bundleWithoutKeys = AppEnvironment.live(bundle: Bundle(for: BundleMarker.self))
-        #expect(bundleWithoutKeys.startup == .misconfigured(.missing(key: AppConfiguration.apiOriginKey)))
+        let environment = AppEnvironment.live(bundle: Bundle(for: BundleMarker.self))
+        #expect(environment.configurationError == .missing(key: AppConfiguration.apiOriginKey))
     }
 
     @Test func debugHostAppDeclaresDevelopmentEnvironment() {

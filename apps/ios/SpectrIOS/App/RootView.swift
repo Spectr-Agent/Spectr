@@ -8,8 +8,8 @@ struct RootView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
             switch environment.startup {
-            case .ready:
-                WelcomeView()
+            case .ready(_, let auth):
+                SignedContent(auth: auth)
                     #if DEBUG
                         .safeAreaInset(edge: .bottom) { DemoEntry() }
                     #endif
@@ -20,61 +20,25 @@ struct RootView: View {
     }
 }
 
-/// First-run explanation of what Spectr needs. Sign-in and pairing attach here in Phase 2.
-struct WelcomeView: View {
+/// Routes between restoring, sign-in and the signed-in home.
+private struct SignedContent: View {
+    let auth: AuthModel
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: Theme.spacing * 3) {
-                Image("spectr_welcome")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: 180)
-                    .accessibilityHidden(true)
-
-                VStack(spacing: Theme.spacing) {
-                    Text("Spectr")
-                        .font(.largeTitle.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Text("Tell your Mac what to do, then watch it work from here.")
-                        .font(.body)
-                        .foregroundStyle(Theme.inkSecondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
-                    RequirementRow(
-                        symbol: "laptopcomputer", text: "A Mac that is awake and running the Spectr menu-bar app.")
-                    RequirementRow(symbol: "wifi", text: "An internet connection on both devices.")
-                    RequirementRow(symbol: "lock.open", text: "The Mac unlocked while Spectr works on it.")
-                }
-                .padding(Theme.spacing * 2)
-                .background(Theme.surface, in: .rect(cornerRadius: Theme.cornerRadius))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline)
-                }
+        Group {
+            switch auth.state {
+            case .restoring:
+                ProgressView()
+                    .accessibilityLabel("Restoring your session")
+            case .signedOut:
+                SignInView(auth: auth)
+            case .awaitingCode(let email):
+                CodeEntryView(auth: auth, email: email)
+            case .signedIn(_, let email):
+                HomeView(auth: auth, email: email)
             }
-            .padding(.horizontal, Theme.spacing * 2)
-            .padding(.vertical, Theme.spacing * 4)
-            .frame(maxWidth: 520)
-            .frame(maxWidth: .infinity)
         }
-    }
-}
-
-private struct RequirementRow: View {
-    let symbol: String
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Theme.spacing * 1.5) {
-            Image(systemName: symbol)
-                .foregroundStyle(Theme.accent)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            Text(text)
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        .task { await auth.restore() }
     }
 }
 
@@ -107,7 +71,7 @@ struct ConfigurationProblemView: View {
         case .invalidURL(let key):
             "\(key) is not a valid URL."
         case .insecureOrigin:
-            "The API origin must use HTTPS outside local development."
+            "Server addresses must use HTTPS outside local development."
         }
     }
 }
@@ -126,11 +90,11 @@ struct ConfigurationProblemView: View {
                     media: DemoLiveViewSource(), isTestData: true
                 )
             } label: {
-                Text("Preview with test data")
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 50)
+                Text("Preview task screen with test data")
+                    .font(.footnote.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 36)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
             .padding(.horizontal, Theme.spacing * 2)
             .padding(.bottom, Theme.spacing)
             .fullScreenCover(item: $session) { session in

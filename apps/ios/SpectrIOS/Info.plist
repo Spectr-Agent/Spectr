@@ -26,6 +26,10 @@
 	<string>$(SPECTR_ENVIRONMENT)</string>
 	<key>SpectrLinkHost</key>
 	<string>$(SPECTR_LINK_HOST)</string>
+	<key>SpectrSupabasePublishableKey</key>
+	<string>$(SPECTR_SUPABASE_PUBLISHABLE_KEY)</string>
+	<key>SpectrSupabaseURL</key>
+	<string>$(SPECTR_SUPABASE_URL)</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

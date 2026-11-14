@@ -5,3 +5,6 @@ DEVELOPMENT_TEAM =
 // Use the deployed API origin, or http:/$()/localhost:3000 for Debug only.
 SPECTR_API_ORIGIN = https:/$()/api.example.test
 SPECTR_LINK_HOST = links.example.test
+// Supabase public client values (Project Settings -> API). Never the secret key.
+SPECTR_SUPABASE_URL = https:/$()/your-project.supabase.co
+SPECTR_SUPABASE_PUBLISHABLE_KEY = sb_publishable_xxx
