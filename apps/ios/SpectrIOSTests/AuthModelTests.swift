@@ -295,4 +295,28 @@ struct AuthModelTests {
         #expect(auth.state == .signedOut)
         #expect(auth.errorMessage == AuthModel.message(for: .invalidEmail))
     }
+
+    @Test func aSessionThatCannotBeSavedStillSignsInAndSaysSo() async throws {
+        let auth = AuthModel(
+            client: client, store: FailingCredentialStore(), pendingStore: pendingStore,
+            callbackURL: Self.callback, now: { Self.t0 }
+        )
+        await auth.restore()
+        await auth.requestCode(email: "sam@example.test")
+        await client.queue(verify: .success(session()))
+        await auth.verify(code: "123456")
+        // The single-use code is spent: the session must not be thrown away.
+        #expect(auth.state == .signedIn(userId: "user_1", email: "sam@example.test"))
+        #expect(auth.sessionIsSaved == false)
+        #expect(auth.errorMessage == nil)
+        #expect(try await auth.accessToken() == "at_1")
+    }
+}
+
+/// A store whose writes always fail, like Keychain without entitlements.
+struct FailingCredentialStore: CredentialStore {
+    struct Unavailable: Error {}
+    func load() -> Data? { nil }
+    func save(_ data: Data) throws { throw Unavailable() }
+    func clear() {}
 }

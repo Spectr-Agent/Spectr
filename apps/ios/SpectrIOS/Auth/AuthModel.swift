@@ -23,6 +23,9 @@ final class AuthModel {
     private(set) var state: State = .restoring
     private(set) var isWorking = false
     private(set) var errorMessage: String?
+    /// False when the current session could not be written to Keychain. The user is
+    /// signed in for this launch only.
+    private(set) var sessionIsSaved = true
 
     private let client: any AuthClient
     private let store: any CredentialStore
@@ -137,7 +140,7 @@ final class AuthModel {
             }
             await run {
                 let fresh = try await self.client.exchange(authCode: code, codeVerifier: waiting.verifier)
-                try self.persist(fresh)
+                self.persist(fresh)
                 self.pending = nil
                 self.state = .signedIn(userId: fresh.userId, email: fresh.email)
             }
@@ -149,7 +152,7 @@ final class AuthModel {
         guard case .awaitingCode(let email) = state else { return }
         await run {
             let fresh = try await self.client.verify(email: email, code: code)
-            try self.persist(fresh)
+            self.persist(fresh)
             self.pending = nil
             self.state = .signedIn(userId: fresh.userId, email: fresh.email)
         }
@@ -200,11 +203,7 @@ final class AuthModel {
         let fresh = try await Self.value(of: task)
         // Ignore the result if the user signed out while the refresh was in flight.
         guard session?.userId == fresh.userId else { throw .sessionExpired }
-        do {
-            try persist(fresh)
-        } catch {
-            throw .server("Could not save the session on this device.")
-        }
+        persist(fresh)
         return fresh
     }
 
@@ -218,15 +217,25 @@ final class AuthModel {
         }
     }
 
-    private func persist(_ fresh: AuthSession) throws {
-        try store.save(try WireJSON.encoder().encode(fresh))
+    /// Adopts `fresh` as the current session and saves it. A failed save never discards
+    /// a session the server already issued (the code or link that produced it is
+    /// single-use): the user stays signed in for this launch and is told they will need
+    /// to sign in again next time.
+    private func persist(_ fresh: AuthSession) {
         session = fresh
+        do {
+            try store.save(try WireJSON.encoder().encode(fresh))
+            sessionIsSaved = true
+        } catch {
+            sessionIsSaved = false
+        }
     }
 
     private func clearLocal(message: String?) {
         refreshTask?.cancel()
         refreshTask = nil
         session = nil
+        sessionIsSaved = true
         store.clear()
         pending = nil
         errorMessage = message
@@ -244,7 +253,7 @@ final class AuthModel {
         } catch let error as AuthError {
             errorMessage = Self.message(for: error)
         } catch {
-            errorMessage = "Could not save the session on this device."
+            errorMessage = "Something went wrong. Try again."
         }
     }
 

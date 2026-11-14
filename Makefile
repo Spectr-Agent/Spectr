@@ -5,6 +5,12 @@ DERIVED := apps/build/DerivedData
 PACKAGES := apps/build/SourcePackages
 SWIFT_SOURCES := apps/ios apps/mac packages/SpectrKit/Sources packages/SpectrKit/Tests packages/SpectrKit/Package.swift
 XCB := xcodebuild -project $(PROJECT) -derivedDataPath $(DERIVED) -clonedSourcePackagesDirPath $(PACKAGES) CODE_SIGNING_ALLOWED=NO
+# Simulator builds are signed ad hoc ("-"), which needs no identity or team. An unsigned
+# app has no entitlements, so every Keychain call fails and sign-in cannot be saved.
+# They build outside the repo because code signing rejects files in cloud-synced folders
+# (for example a checkout under an iCloud-synced ~/Documents).
+SIM_DERIVED ?= $(HOME)/Library/Developer/Xcode/DerivedData/Spectr-sim
+XCB_SIM := xcodebuild -project $(PROJECT) -derivedDataPath $(SIM_DERIVED) -clonedSourcePackagesDirPath $(PACKAGES) CODE_SIGN_IDENTITY=-
 # First available iPhone simulator; override with IOS_SIM=<udid>.
 IOS_SIM ?= $(shell xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next((x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')),''))")
 
@@ -30,7 +36,7 @@ test-kit:
 
 test-ios: resolve
 	@test -n "$(IOS_SIM)" || { echo "No iPhone simulator available"; exit 1; }
-	$(XCB) test -scheme SpectrIOS -destination "id=$(IOS_SIM)"
+	$(XCB_SIM) test -scheme SpectrIOS -destination "id=$(IOS_SIM)"
 
 test-mac: resolve
 	$(XCB) test -scheme SpectrMac -destination "platform=macOS"

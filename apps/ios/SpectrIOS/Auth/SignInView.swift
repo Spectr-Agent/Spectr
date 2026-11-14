@@ -108,6 +108,16 @@ struct HomeView: View {
                         .foregroundStyle(Theme.inkSecondary)
                 }
 
+                if !auth.sessionIsSaved {
+                    Label(
+                        "This device couldn't save your sign-in. You'll need to sign in again next time you open Spectr.",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(Theme.critical)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
                 VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
                     Label("No Mac paired", systemImage: "laptopcomputer.slash")
                         .font(.headline)
