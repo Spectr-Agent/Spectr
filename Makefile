@@ -14,7 +14,7 @@ XCB_SIM := xcodebuild -project $(PROJECT) -derivedDataPath $(SIM_DERIVED) -clone
 # First available iPhone simulator; override with IOS_SIM=<udid>.
 IOS_SIM ?= $(shell xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next((x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')),''))")
 
-.PHONY: bootstrap resolve format lint test-kit test-ios test-mac build-release check-release test ci clean
+.PHONY: bootstrap resolve format lint test-kit test-ios test-mac run-mac build-release check-release test ci clean
 
 # Generate the Xcode project and restore the pinned package versions.
 bootstrap:
@@ -40,6 +40,28 @@ test-ios: resolve
 
 test-mac: resolve
 	$(XCB) test -scheme SpectrMac -destination "platform=macOS"
+
+# Build, sign and launch the Debug Mac helper from ~/Applications.
+# Two things macOS requires before it will prompt for, list or remember Screen Recording
+# and Accessibility for an app:
+#  1. A real signature. Uses the first code-signing identity in the keychain; override
+#     with MAC_SIGN_IDENTITY ("-" is ad hoc: listed, but re-granted on every build).
+#  2. A bundle with no stray file attributes. This repo sits in an iCloud-synced folder,
+#     which keeps stamping Finder attributes onto the build output and silently
+#     invalidates the signature, so the app is copied out, without attributes, first.
+MAC_SIGN_IDENTITY ?= $(shell security find-identity -v -p codesigning | awk 'NR==1 && $$2 ~ /^[0-9A-F]+$$/ {print $$2}')
+MAC_DEBUG_APP := $(DERIVED)/Build/Products/Debug/SpectrMac.app
+MAC_RUN_APP := $(HOME)/Applications/SpectrMac.app
+
+run-mac: resolve
+	$(XCB) build -scheme SpectrMac -configuration Debug -destination "platform=macOS" -quiet
+	-pkill -f "SpectrMac.app/Contents/MacOS/SpectrMac"
+	mkdir -p "$(dir $(MAC_RUN_APP))"
+	rm -rf "$(MAC_RUN_APP)"
+	ditto --noextattr --norsrc "$(MAC_DEBUG_APP)" "$(MAC_RUN_APP)"
+	codesign --force --deep --sign "$(or $(MAC_SIGN_IDENTITY),-)" "$(MAC_RUN_APP)"
+	codesign --verify --deep --strict "$(MAC_RUN_APP)"
+	open "$(MAC_RUN_APP)"
 
 build-release: resolve
 	$(XCB) build -scheme SpectrIOS -configuration Release -destination "generic/platform=iOS Simulator"

@@ -54,6 +54,13 @@ struct AppPolicy: Sendable {
             "com.mitchellh.ghostty",
             "net.kovidgoyal.kitty",
             "io.alacritty",
+            "com.github.wez.wezterm",
+            // Editors with a built-in terminal: typing there is typing into a shell.
+            "com.microsoft.VSCode",
+            "com.microsoft.VSCodeInsiders",
+            "com.todesktop.230313mzl4w4u92",
+            "dev.zed.Zed",
+            "com.apple.dt.Xcode",
             "com.apple.ScriptEditor2",
             "com.apple.Automator",
             "com.apple.shortcuts",

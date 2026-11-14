@@ -13,6 +13,8 @@ actor ActionExecutor {
     private let now: @Sendable () -> Date
     private var ledger: CommandLedger
     private var tail: Task<Void, Never>?
+    /// Per task, the newest revision the user stopped from this Mac.
+    private var haltedThrough: [String: Int] = [:]
 
     init(
         deviceId: String,
@@ -32,6 +34,12 @@ actor ActionExecutor {
     /// Commands that started before a crash and have no result yet.
     var unfinishedCommands: [Command] { ledger.unfinished }
 
+    /// Stops a task from the Mac: every command at or below `revision` that has not run
+    /// yet is refused. A later correction (a higher revision) still runs.
+    func halt(taskId: String, through revision: Int) {
+        haltedThrough[taskId] = max(haltedThrough[taskId] ?? 0, revision)
+    }
+
     /// Executes `command` after every previously submitted command has finished.
     /// A valid Stop takes effect immediately for anything still queued.
     func handle(_ command: Command) async -> DeviceResult {
@@ -50,6 +58,10 @@ actor ActionExecutor {
     private func run(_ command: Command) async -> DeviceResult {
         if let code = CommandValidator.validate(command, forDevice: deviceId) {
             return result(command, .rejected, code, "The command failed validation.")
+        }
+
+        if command.action != .stop, let halted = haltedThrough[command.taskId], command.revision <= halted {
+            return result(command, .rejected, .stopped, "Stopped on the Mac.")
         }
 
         switch ledger.decide(command) {

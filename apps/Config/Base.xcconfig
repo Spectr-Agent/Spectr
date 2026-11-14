@@ -12,7 +12,9 @@ SPECTR_BUNDLE_PREFIX = dev.spectr.unconfigured
 DEVELOPMENT_TEAM =
 
 // Supplied by Poorav: public API origin. Supplied by Jared/Poorav: Universal Link host.
-SPECTR_API_ORIGIN =
-SPECTR_LINK_HOST =
+// Debug falls back to a local server (see Debug.xcconfig); Release has no fallback and
+// refuses to start without real values.
+SPECTR_API_ORIGIN = $(SPECTR_DEFAULT_API_ORIGIN)
+SPECTR_LINK_HOST = $(SPECTR_DEFAULT_LINK_HOST)
 
 #include? "Local.xcconfig"

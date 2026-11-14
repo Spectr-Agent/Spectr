@@ -101,16 +101,15 @@ final class AccessibilityDesktopDriver: DesktopDriver {
     func typeText(_ text: String, into target: Target?) throws(DriverError) {
         if let target { try focus(target) }
         let source = CGEventSource(stateID: .combinedSessionState)
-        // Post in small chunks; CGEvent carries at most 20 UTF-16 units per event.
-        var units = Array(text.utf16)[...]
-        while !units.isEmpty {
-            let chunk = Array(units.prefix(20))
-            units = units.dropFirst(chunk.count)
+        // One character per key event. Longer strings fit in a single event, but several
+        // apps (Notes among them) keep only the first character of a multi-character event.
+        for character in text {
+            let units = Array(String(character).utf16)
             for keyDown in [true, false] {
                 guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: keyDown) else {
                     throw .eventFailed
                 }
-                event.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+                event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
                 event.post(tap: .cghidEventTap)
             }
         }

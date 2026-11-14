@@ -28,7 +28,8 @@ final class CaptureController: NSObject {
     }
 
     private(set) var status: Status = .idle
-    private(set) var sourceName: String?
+    /// The picked source. Kept after the window closes so the UI can name what was lost.
+    private(set) var source: ShareSource?
     private(set) var preview: CGImage?
     private(set) var health = StreamHealth()
 
@@ -69,7 +70,7 @@ final class CaptureController: NSObject {
         let session = generation
         status = .starting
         windowID = filter.includedWindows.first?.windowID
-        sourceName = describe(filter)
+        source = describe(filter)
 
         let configuration = SCStreamConfiguration()
         let scale = CGFloat(filter.pointPixelScale)
@@ -143,6 +144,7 @@ final class CaptureController: NSObject {
         SCContentSharingPicker.shared.isActive = false
         preview = nil
         windowID = nil
+        if reason != .windowGone { source = nil }
         status = .stopped(reason)
     }
 
@@ -157,14 +159,30 @@ final class CaptureController: NSObject {
         output = nil
     }
 
-    private func describe(_ filter: SCContentFilter) -> String {
+    private func describe(_ filter: SCContentFilter) -> ShareSource {
         if let window = filter.includedWindows.first {
-            let app = window.owningApplication?.applicationName ?? "Window"
-            if let title = window.title, !title.isEmpty { return "\(app) — \(title)" }
-            return app
+            let app = window.owningApplication?.applicationName
+            if let title = window.title, !title.isEmpty {
+                return ShareSource(kind: .window, appName: app, title: title)
+            }
+            return ShareSource(kind: .window, appName: app, title: app.map { "\($0) window" } ?? "Untitled window")
         }
-        if filter.includedDisplays.first != nil { return "Entire display" }
-        return "Selected content"
+        return ShareSource(kind: .display, appName: nil, title: "Entire display")
+    }
+
+    /// Capture state for the UI at `now` (stream health is time-dependent).
+    func shareState(at now: Date) -> ShareState {
+        switch status {
+        case .idle, .stopped(.userStopped): return .none
+        case .choosing: return .choosing
+        case .starting:
+            return source.map { .starting($0) } ?? .none
+        case .sharing:
+            return source.map { .live($0, health.state(at: now)) } ?? .none
+        case .stopped(.windowGone): return .ended(.windowClosed(source))
+        case .stopped(.permissionDenied): return .ended(.denied)
+        case .stopped(.failed(let message)): return .ended(.failed(message))
+        }
     }
 
     private static func reason(for error: (any Error)?) -> StopReason {

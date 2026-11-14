@@ -1,0 +1,276 @@
+import Foundation
+import SpectrKit
+import Testing
+
+@testable import SpectrMac
+
+@MainActor
+@Suite("Helper state")
+struct HelperStateTests {
+    @Test func idleSaysReadyAndClaimsConnectionOnlyWithEvidence() {
+        #expect(HelperState.idle.headline == "Ready for instructions")
+        #expect(HelperState.idle.phoneLine == "Jared’s iPhone · Connected")
+        #expect(HelperState.idle.indicator == .idle)
+
+        var unknown = HelperState.idle
+        unknown.phone = .unknown
+        #expect(unknown.phoneLine == "Jared’s iPhone")
+        #expect(HelperState.idlePresenceUnknown.phoneLine == "iPhone paired")
+    }
+
+    @Test func sharingChangesTheIndicatorAndStoppingRestoresIt() {
+        var state = HelperState.active()
+        #expect(state.indicator == .sharing)
+        #expect(state.headline == "Working for Jared’s iPhone")
+        state.share = .none
+        #expect(state.indicator == .idle)
+    }
+
+    @Test func screenRecordingOffOutranksEverythingButPairing() {
+        #expect(HelperState.screenDenied.problem == .screenRecordingOff)
+        #expect(HelperState.screenDenied.headline == "Your iPhone can't see this Mac")
+        #expect(HelperState.screenDenied.indicator == .attention)
+        #expect(HelperState.screenDenied.currentSetupStep == .screenRecording)
+        #expect(HelperState.firstLaunch.problem == .notPaired)
+        #expect(HelperState.firstLaunch.currentSetupStep == .pair)
+    }
+
+    @Test func liveCaptureCountsAsScreenRecordingAllowed() {
+        var state = HelperState.screenDenied
+        state.share = .live(HelperState.sampleWindow, .live)
+        #expect(state.problem == nil)
+        #expect(state.isComplete(.screenRecording))
+        #expect(state.currentSetupStep == nil)
+    }
+
+    @Test func controlOffKeepsSharingDistinct() {
+        let state = HelperState.controlDeniedWhileSharing
+        #expect(state.problem == .controlOff)
+        #expect(state.share.isCapturing)
+        #expect(state.indicator == .sharing)
+        #expect(state.headline == "Sharing, but can't control")
+        #expect(state.currentSetupStep == .control)
+    }
+
+    @Test func closedWindowIsNotPresentedAsLive() {
+        let state = HelperState.windowClosed
+        #expect(!state.share.isCapturing)
+        #expect(state.share.source == nil)
+        #expect(state.indicator == .attention)
+        #expect(state.headline == "The shared window closed")
+        #expect(state.problemDetail?.contains("EmoryHacks Demo") == true)
+        #expect(state.currentSetupStep == .window)
+    }
+}
+
+@Suite("Activity tracker")
+struct ActivityTrackerTests {
+    private func result(revision: Int, _ outcome: DeviceResult.Outcome, window: String = "EmoryHacks Demo")
+        -> DeviceResult
+    {
+        DeviceResult(
+            commandId: "cmd_\(revision)", taskId: "tsk_1", revision: revision, outcome: outcome,
+            observed: ObservedState(
+                frontmostBundleId: "com.apple.Keynote", frontmostAppName: "Keynote", windowTitle: window,
+                focusedElement: nil, verification: .accessibility),
+            error: nil, observedAt: Date())
+    }
+
+    /// The walkthrough: slide three, corrected to slide five, then the old result lands late.
+    @Test func correctionKeepsNewestInstructionAndIgnoresLateResult() {
+        var tracker = ActivityTracker()
+        tracker.begin(taskId: "tsk_1", revision: 1, instruction: "Go to slide three")
+        tracker.begin(taskId: "tsk_1", revision: 2, instruction: "Go to slide five")
+
+        tracker.record(result(revision: 1, .succeeded))
+        tracker.finish(taskId: "tsk_1", revision: 1, state: .succeeded)
+        #expect(tracker.current?.instruction == "Go to slide five")
+        #expect(tracker.current?.phase == .working)
+        #expect(tracker.current?.observed == nil)
+
+        let reopened = tracker.begin(taskId: "tsk_1", revision: 1, instruction: "Go to slide three")
+        #expect(!reopened)
+        #expect(tracker.current?.instruction == "Go to slide five")
+
+        tracker.record(result(revision: 2, .succeeded))
+        #expect(tracker.current?.phase == .working, "a step result alone is not completion")
+        tracker.finish(taskId: "tsk_1", revision: 2, state: .succeeded)
+        #expect(tracker.current?.phase == .done)
+        #expect(tracker.current?.detailText == "Confirmed in Keynote — EmoryHacks Demo")
+    }
+
+    @Test func succeededWithoutReadbackIsNotReportedAsDone() {
+        var tracker = ActivityTracker()
+        tracker.begin(taskId: "tsk_1", revision: 1, instruction: "Go to slide five")
+        tracker.finish(taskId: "tsk_1", revision: 1, state: .succeeded)
+        #expect(tracker.current?.phase == .unconfirmed)
+
+        tracker.begin(taskId: "tsk_1", revision: 2, instruction: "Go to slide five")
+        tracker.record(result(revision: 2, .unverified))
+        tracker.finish(taskId: "tsk_1", revision: 2, state: .succeeded)
+        #expect(tracker.current?.phase == .unconfirmed)
+    }
+
+    @Test func stopWinsOverALateSuccess() {
+        var tracker = ActivityTracker()
+        tracker.begin(taskId: "tsk_1", revision: 1, instruction: "Go to slide five")
+        tracker.stop(taskId: "tsk_1", revision: 1)
+        tracker.record(result(revision: 1, .succeeded))
+        tracker.finish(taskId: "tsk_1", revision: 1, state: .succeeded)
+        #expect(tracker.current?.phase == .stopped)
+    }
+}
+
+@MainActor
+@Suite("Task session")
+struct TaskSessionTests {
+    private func command(_ id: String, revision: Int, _ action: Action) -> Command {
+        Command(commandId: id, taskId: "tsk_1", deviceId: "dev_1", revision: revision, action: action, issuedAt: Date())
+    }
+
+    @Test func stopTaskRefusesRemainingStepsButAllowsACorrection() async {
+        let desktop = FakeDesktop()
+        let session = TaskSession(
+            executor: ActionExecutor(deviceId: "dev_1", driver: desktop, store: MemoryLedgerStore()))
+        session.begin(taskId: "tsk_1", revision: 1, instruction: "Write milk")
+        await session.run(command("c1", revision: 1, .typeText(text: "mi", target: nil)))
+
+        await session.stopCurrentTask()
+        #expect(session.activity?.phase == .stopped)
+
+        let refused = await session.run(command("c2", revision: 1, .typeText(text: "lk", target: nil)))
+        #expect(refused.outcome == .rejected)
+        #expect(refused.error?.code == CommandErrorCode.stopped.rawValue)
+        #expect(desktop.fieldValue == "mi")
+
+        session.begin(taskId: "tsk_1", revision: 2, instruction: "Write eggs")
+        let corrected = await session.run(command("c3", revision: 2, .typeText(text: "eggs", target: nil)))
+        #expect(corrected.outcome == .succeeded)
+        #expect(session.activity?.instruction == "Write eggs")
+    }
+}
+
+private final class ScriptedAgent: AgentClient, @unchecked Sendable {
+    private let lock = NSLock()
+    private var decisions: [AgentDecision]
+    private(set) var seenHistory: [[AgentStep]] = []
+
+    init(_ decisions: [AgentDecision]) {
+        self.decisions = decisions
+    }
+
+    func nextStep(instruction: String, observed: ObservedState?, history: [AgentStep]) async -> AgentDecision {
+        lock.withLock {
+            seenHistory.append(history)
+            return decisions.isEmpty ? .action(.observe) : decisions.removeFirst()
+        }
+    }
+}
+
+@MainActor
+@Suite("Agent loop")
+struct AgentLoopTests {
+    @Test func carriesOutStepsThenFinishesAfterAFreshObservation() async {
+        let desktop = FakeDesktop()
+        let agent = ScriptedAgent([
+            .action(.openApp(bundleId: "com.apple.Notes")),
+            .action(.typeText(text: "milk", target: nil)),
+            .finish("Notes shows a note that says milk."),
+        ])
+        let lab = ActionLab(driver: desktop, agent: agent)
+        lab.runAgent("Open Notes and write milk")
+        await lab.waitUntilIdle()
+
+        #expect(desktop.fieldValue == "milk")
+        #expect(lab.session.activity?.phase == .done)
+        #expect(lab.lastMessage == "Notes shows a note that says milk.")
+        #expect(agent.seenHistory.last?.map(\.outcome) == ["succeeded", "succeeded"])
+    }
+
+    @Test func refusalAndRunawayLoopsEndAsFailures() async {
+        let refused = ActionLab(driver: FakeDesktop(), agent: ScriptedAgent([.refuse("Not allowed.")]))
+        refused.runAgent("Open Terminal")
+        await refused.waitUntilIdle()
+        #expect(refused.session.activity?.phase == .failed("Not allowed."))
+
+        let desktop = FakeDesktop()
+        let looping = ActionLab(driver: desktop, agent: ScriptedAgent([]))
+        looping.runAgent("Do something forever")
+        await looping.waitUntilIdle()
+        #expect(looping.session.activity?.phase == .failed("Stopped after 15 steps without finishing."))
+    }
+
+    @Test func blockedFrontAppIsReportedBackToTheAgentNotTypedInto() async {
+        let desktop = FakeDesktop()
+        desktop.frontmostBundleId = "com.microsoft.VSCode"
+        let agent = ScriptedAgent([.action(.typeText(text: "rm -rf", target: nil)), .refuse("Can't type there.")])
+        let lab = ActionLab(driver: desktop, agent: agent)
+        lab.runAgent("Type in the editor")
+        await lab.waitUntilIdle()
+        #expect(desktop.fieldValue == "")
+        #expect(agent.seenHistory.last?.first?.outcome == "rejected")
+    }
+}
+
+private struct ScriptedPairing: PairingClient {
+    var challenge: Result<PairingChallenge, PairingError>
+    var pendingPolls = 1
+    let polls = Counter()
+
+    final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+        func next() -> Int {
+            lock.withLock {
+                value += 1
+                return value
+            }
+        }
+    }
+
+    func createChallenge() async throws(PairingError) -> PairingChallenge { try challenge.get() }
+
+    func exchange(_ challenge: PairingChallenge) async throws(PairingError) -> PairingExchange {
+        polls.next() <= pendingPolls
+            ? .pending : .paired(StoredDevice(deviceId: "dev_1", deviceCredential: "secret", phoneName: nil))
+    }
+}
+
+@MainActor
+@Suite("Pairing")
+struct PairingControllerTests {
+    private func challenge(expiresIn: TimeInterval) -> PairingChallenge {
+        PairingChallenge(
+            challengeId: "ch_1", code: "482915", pollSecret: "s", expiresAt: Date().addingTimeInterval(expiresIn))
+    }
+
+    @Test func approvalPairsAndStoresTheCredential() async {
+        let store = MemoryDeviceCredentialStore()
+        let controller = PairingController(
+            client: ScriptedPairing(challenge: .success(challenge(expiresIn: 60))), credentials: store,
+            pollInterval: .milliseconds(1))
+        controller.start()
+        await controller.waitUntilSettled()
+        #expect(controller.state == .paired(PairedPhone(deviceId: "dev_1", phoneName: nil)))
+        #expect(store.load()?.deviceCredential == "secret")
+
+        let relaunched = PairingController(client: UnavailablePairingClient(), credentials: store)
+        #expect(relaunched.state.phone?.deviceId == "dev_1")
+        relaunched.unpair()
+        #expect(store.load() == nil)
+    }
+
+    @Test func expiredCodeAndUnreachableServerAreDistinct() async {
+        let expired = PairingController(
+            client: ScriptedPairing(challenge: .success(challenge(expiresIn: -1))),
+            credentials: MemoryDeviceCredentialStore(), pollInterval: .milliseconds(1))
+        expired.start()
+        await expired.waitUntilSettled()
+        #expect(expired.state == .failed(.expired))
+
+        let offline = PairingController(client: UnavailablePairingClient(), credentials: MemoryDeviceCredentialStore())
+        offline.start()
+        await offline.waitUntilSettled()
+        #expect(offline.state == .failed(.unreachable))
+    }
+}
