@@ -1,5 +1,7 @@
 import { MacActionSchema, type MacAction } from "../contracts.js";
 
+export const MAX_SUMMARY_CHARS = 1200;
+
 export const ANTHROPIC_TOOLS = [
   {
     type: "computer_toolset_20260801",
@@ -43,12 +45,16 @@ export const ANTHROPIC_TOOLS = [
   },
   {
     name: "finish",
-    description: "Report whether the requested state is visible on screen.",
+    description: "Report the result of the task. The summary is texted to the user.",
     input_schema: {
       type: "object",
       properties: {
         success: { type: "boolean" },
         summary: { type: "string" },
+        attach_screenshot: {
+          type: "boolean",
+          description: "True only when the screen itself is what the user wants to see.",
+        },
       },
       required: ["success", "summary"],
       additionalProperties: false,
@@ -67,7 +73,12 @@ export type ToolUse = {
 export type MappedTool =
   | { kind: "action"; action: MacAction }
   | { kind: "ask_user"; question: string }
-  | { kind: "finish"; success: boolean; summary: string };
+  | {
+      kind: "finish";
+      success: boolean;
+      summary: string;
+      attachScreenshot: boolean;
+    };
 
 type MacModifier = "cmd" | "option" | "ctrl" | "shift";
 
@@ -469,14 +480,21 @@ export function mapToolUse(
       exactKeys(input, ["question"]);
       return { kind: "ask_user", question: requiredString(input, "question") };
     case "finish":
-      exactKeys(input, ["success", "summary"]);
+      exactKeys(input, ["success", "summary", "attach_screenshot"]);
       if (typeof input.success !== "boolean") {
         throw new Error("success must be a boolean");
+      }
+      if (
+        input.attach_screenshot !== undefined &&
+        typeof input.attach_screenshot !== "boolean"
+      ) {
+        throw new Error("attach_screenshot must be a boolean");
       }
       return {
         kind: "finish",
         success: input.success,
-        summary: requiredString(input, "summary").slice(0, 300),
+        summary: requiredString(input, "summary").slice(0, MAX_SUMMARY_CHARS),
+        attachScreenshot: input.attach_screenshot === true,
       };
     default:
       throw new Error(`Unknown custom tool: ${toolUse.name}`);

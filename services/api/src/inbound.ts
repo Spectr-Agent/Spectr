@@ -70,14 +70,14 @@ export function isStop(text: string): boolean {
   ].includes(text.trim().toLowerCase().replace(/[.!]+$/u, ""));
 }
 
-function replyForInbound(kind: InboundKind, taskId: string): string {
+function replyForInbound(kind: InboundKind): string {
   switch (kind) {
     case "task":
-      return `Spectr is on it. Task ${taskId}.`;
+      return "Working on it.";
     case "correction":
-      return "Got it, updating the task.";
+      return "Okay, updating that.";
     case "answer":
-      return "Got it.";
+      return "Thanks, continuing.";
     case "stop":
       return "Stopped.";
   }
@@ -107,7 +107,7 @@ export async function handleInboundMessage(
   if (!(await deps.store.isInboundReplySent(message.providerMessageId))) {
     await deps.sendReply(
       message.fromNumber,
-      replyForInbound(routed.kind, routed.taskId),
+      replyForInbound(routed.kind),
       `reply-${message.providerMessageId}`,
     );
     await deps.store.markInboundReplySent(message.providerMessageId);

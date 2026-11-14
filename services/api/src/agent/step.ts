@@ -21,9 +21,13 @@ import {
   type CallClaude,
 } from "./anthropic.js";
 import { apiError, ApiErrorException } from "./errors.js";
-import { mapToolUse, type ToolUse } from "./tools.js";
+import {
+  mapToolUse,
+  MAX_SUMMARY_CHARS,
+  type ToolUse,
+} from "./tools.js";
 
-export const MAX_AGENT_STEPS = 40;
+export const MAX_AGENT_STEPS = 60;
 const MAX_CLAUDE_CALLS_PER_STEP = 3;
 const REQUEST_DEADLINE_MS = 280_000;
 const CLAUDE_TIMEOUT_MS = 90_000;
@@ -52,7 +56,7 @@ export interface StepNotifier {
   sendResult(
     task: AgentTaskRecord,
     text: string,
-    mediaUrl: string,
+    mediaUrl: string | undefined,
     idempotencyKey: string,
   ): Promise<void>;
 }
@@ -133,7 +137,7 @@ function assistantText(content: unknown): string {
     )
     .map((block) => block.text as string)
     .join("\n")
-    .slice(0, 300);
+    .slice(0, MAX_SUMMARY_CHARS);
 }
 
 function isActionTool(toolUse: ToolUse): boolean {
@@ -325,7 +329,7 @@ function finishedResponse(
     taskId,
     step,
     state,
-    summary: summary.slice(0, 300),
+    summary: summary.slice(0, MAX_SUMMARY_CHARS),
   });
 }
 
@@ -406,7 +410,7 @@ async function persist(
     options.deviceId,
   );
   if (latest?.state === "cancelled") {
-    return terminalResponse(latest, latest.summary ?? "Stopped by the user.");
+    return terminalResponse(latest, latest.summary ?? "Stopped.");
   }
   throw apiError(
     409,
@@ -437,9 +441,10 @@ async function notifyResult(
   taskId: string,
   summary: string,
   state: "succeeded" | "failed",
+  attachScreenshot: boolean,
 ): Promise<void> {
   const notifier = options.notifier;
-  if (!notifier || !options.linkSecret) {
+  if (!notifier || (attachScreenshot && !options.linkSecret)) {
     return;
   }
   const claimed = await options.store.claimResultNotification(
@@ -460,7 +465,10 @@ async function notifyResult(
   const text = status(state === "succeeded" ? "done" : "failed", { summary });
   const baseUrl =
     options.publicUrl ?? "https://spectr-api.vercel.app";
-  const mediaUrl = signedScreenshotUrl(taskId, options.linkSecret, baseUrl);
+  const mediaUrl =
+    attachScreenshot && options.linkSecret
+      ? signedScreenshotUrl(taskId, options.linkSecret, baseUrl)
+      : undefined;
   await notifier.sendResult(
     claimed,
     text,
@@ -494,9 +502,10 @@ async function notifyResultSafely(
   taskId: string,
   summary: string,
   state: "succeeded" | "failed",
+  attachScreenshot: boolean,
 ): Promise<void> {
   try {
-    await notifyResult(options, taskId, summary, state);
+    await notifyResult(options, taskId, summary, state, attachScreenshot);
   } catch (error) {
     console.error(
       "Result notification failed",
@@ -576,7 +585,7 @@ export async function runAgentStep(
   const inbound = await options.store.getUnconsumedInboundMessages(task.taskId);
   const consumedInboundIds = inbound.map((message) => message.providerMessageId);
   if (task.stepCount >= MAX_AGENT_STEPS) {
-    const summary = "Stopped after 40 steps without finishing.";
+    const summary = "This took too many steps.";
     const messages = task.agentMessages;
     const response = finishedResponse(
       task.taskId,
@@ -594,7 +603,7 @@ export async function runAgentStep(
       stepCount: task.stepCount,
     });
     if (saved.kind === "finished" && saved.state === "failed") {
-      await notifyResultSafely(options, task.taskId, summary, "failed");
+      await notifyResultSafely(options, task.taskId, summary, "failed", true);
     }
     return saved;
   }
@@ -656,7 +665,7 @@ export async function runAgentStep(
         error instanceof AnthropicHttpError &&
         NON_RETRYABLE_ANTHROPIC_STATUSES.has(error.status)
       ) {
-        const summary = `Couldn't reach the agent (HTTP ${error.status}).`;
+        const summary = `Something went wrong on our end (error ${error.status}).`;
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
@@ -672,7 +681,7 @@ export async function runAgentStep(
           consumedInboundIds: consumed,
           stepCount: task.stepCount + 1,
         });
-        await notifyResultSafely(options, task.taskId, summary, "failed");
+        await notifyResultSafely(options, task.taskId, summary, "failed", true);
         return saved;
       }
       throw upstreamError(task.revision);
@@ -709,7 +718,7 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
-      await notifyResultSafely(options, task.taskId, summary, "failed");
+      await notifyResultSafely(options, task.taskId, summary, "failed", true);
       return saved;
     }
 
@@ -739,8 +748,9 @@ export async function runAgentStep(
         });
         continue;
       }
-      const summary = assistantText(response.content) || "Claude did not finish the task.";
-      const failureSummary = summary.slice(0, 300);
+      const summary =
+        assistantText(response.content) || "Something went wrong on our end.";
+      const failureSummary = summary.slice(0, MAX_SUMMARY_CHARS);
       const finished = finishedResponse(
         task.taskId,
         task.stepCount + 1,
@@ -756,7 +766,13 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
-      await notifyResultSafely(options, task.taskId, failureSummary, "failed");
+      await notifyResultSafely(
+        options,
+        task.taskId,
+        failureSummary,
+        "failed",
+        true,
+      );
       return saved;
     }
 
@@ -821,7 +837,7 @@ export async function runAgentStep(
         const observed = options.request.observedSlide ?? null;
         const mismatch = target != null && observed != null && observed !== target;
         const state = mapped.success && !mismatch ? "succeeded" : "failed";
-        const summary = (mismatch ? slideMismatchSummary(target, observed) : mapped.summary).slice(0, 300);
+        const summary = (mismatch ? slideMismatchSummary(target, observed) : mapped.summary).slice(0, MAX_SUMMARY_CHARS);
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
@@ -837,7 +853,13 @@ export async function runAgentStep(
           consumedInboundIds: consumed,
           stepCount: task.stepCount + 1,
         });
-        await notifyResultSafely(options, task.taskId, summary, state);
+        await notifyResultSafely(
+          options,
+          task.taskId,
+          summary,
+          state,
+          state === "succeeded" ? mapped.attachScreenshot : true,
+        );
         return saved;
       }
     }
@@ -900,8 +922,8 @@ export async function runAgentStep(
 
   const summary =
     assistantText(lastAssistantContent) ||
-    "Claude could not produce a valid action batch.";
-  const failureSummary = summary.slice(0, 300);
+    "Something went wrong on our end.";
+  const failureSummary = summary.slice(0, MAX_SUMMARY_CHARS);
   const finished = finishedResponse(
     task.taskId,
     task.stepCount + 1,
@@ -922,6 +944,7 @@ export async function runAgentStep(
     task.taskId,
     failureSummary,
     "failed",
+    true,
   );
   return saved;
 }

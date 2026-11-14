@@ -128,7 +128,7 @@ Outcome: one inbound iMessage creates one authorized multi-step task; the final 
 
 - [ ] Wire Sendblue inbound and outbound on a verified demo phone; verify webhook auth and bind the sender to the paired owner.
 - [ ] Implement the Claude computer-use step endpoint with the Anthropic Messages API. `ANTHROPIC_API_KEY` is a Vercel environment variable and never reaches a device.
-- [ ] Persist each task's conversation and current state in Supabase. For each short request, accept the current screenshot and recent action results, then return a validated action batch or `done` with a summary. Cap tasks at 40 steps; do not run a long-lived server process.
+- [ ] Persist each task's conversation and current state in Supabase. For each short request, accept the current screenshot and recent action results, then return a validated action batch or `done` with a summary. Cap tasks at 60 steps; do not run a long-lived server process.
 - [ ] Text the final summary and screenshot to the original iMessage thread. Send a text confirmation request and wait for "yes" before outward-facing or irreversible actions.
 - [ ] Implement expiring pairing codes and viewer links, device revocation, and tenant-scoped RLS policies. Expire a watch link and prove a different owner cannot redeem it. Test revoke while the device is connected.
 - [ ] Persist tasks, revisions and events; reject stale results. Persist the task before acknowledging the webhook.

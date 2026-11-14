@@ -54,7 +54,7 @@ export const STATUS = {
   stopped: { kind: "stopped", mascot: "spectr_stopped", template: "Stopped." },
   slideMismatch: { kind: "failed", mascot: "spectr_error", template: "I asked for slide {target}, but slide {observed} is showing. Shall I try again?" },
   declined: { kind: "failed", mascot: "spectr_error", template: "I'm afraid I can't help with that one, so I've stopped." },
-  stepLimit: { kind: "failed", mascot: "spectr_error", template: "I've stopped after 40 steps without finishing." },
+  stepLimit: { kind: "failed", mascot: "spectr_error", template: "I've stopped after 60 steps without finishing." },
 
   // device and connection states (AGENTS.md: keep lock, sleep, disconnect and denied permission distinct)
   macOffline: { kind: "device", mascot: "spectr_error", template: "Your Mac appears to be offline. Last seen {lastSeen}." },

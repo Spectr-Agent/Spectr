@@ -133,7 +133,7 @@ function notifier(
     async sendResult(
       task: AgentTaskRecord,
       text: string,
-      mediaUrl: string,
+      mediaUrl: string | undefined,
       idempotencyKey: string,
     ) {
       if (
@@ -146,7 +146,11 @@ function notifier(
         );
         return;
       }
-      await sendblue(task.replyHandle, text, idempotencyKey, mediaUrl);
+      if (mediaUrl) {
+        await sendblue(task.replyHandle, text, idempotencyKey, mediaUrl);
+      } else {
+        await sendblue(task.replyHandle, text, idempotencyKey);
+      }
     },
   };
 }

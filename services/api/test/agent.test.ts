@@ -12,9 +12,16 @@ import {
 } from "../src/agent/anthropic.js";
 import { ApiErrorException } from "../src/agent/errors.js";
 import { SYSTEM_PROMPT } from "../src/agent/prompt.js";
-import { CUT_OFF_SUMMARY, REFUSAL_SUMMARY, runAgentStep, type StepNotifier } from "../src/agent/step.js";
+import {
+  CUT_OFF_SUMMARY,
+  MAX_AGENT_STEPS,
+  REFUSAL_SUMMARY,
+  runAgentStep,
+  type StepNotifier,
+} from "../src/agent/step.js";
 import {
   ANTHROPIC_TOOLS,
+  MAX_SUMMARY_CHARS,
   mapToolUse,
   type ToolUse,
 } from "../src/agent/tools.js";
@@ -142,7 +149,7 @@ function makeNotifier(): StepNotifier {
       async (
         _task: Parameters<StepNotifier["sendResult"]>[0],
         _text: string,
-        _mediaUrl: string,
+        _mediaUrl: string | undefined,
         _idempotencyKey: string,
       ) => {},
     ),
@@ -275,6 +282,55 @@ describe("Claude computer-use tool mapping", () => {
     expect(() =>
       mapToolUse(customTool("unknown", "unknown_tool", {}), screen),
     ).toThrow(/Unknown custom tool/u);
+  });
+
+  it("maps the optional screenshot flag and rejects non-boolean values", () => {
+    const screen = { width: 100, height: 100 };
+    const finishTool = ANTHROPIC_TOOLS.find(
+      (tool) => "name" in tool && tool.name === "finish",
+    );
+
+    expect(finishTool).toMatchObject({
+      description: "Report the result of the task. The summary is texted to the user.",
+      input_schema: {
+        required: ["success", "summary"],
+        properties: {
+          attach_screenshot: {
+            type: "boolean",
+            description: "True only when the screen itself is what the user wants to see.",
+          },
+        },
+      },
+    });
+    expect(
+      mapToolUse(
+        customTool("finish-1", "finish", {
+          success: true,
+          summary: "Done.",
+          attach_screenshot: true,
+        }),
+        screen,
+      ),
+    ).toMatchObject({ kind: "finish", attachScreenshot: true });
+    expect(
+      mapToolUse(
+        customTool("finish-2", "finish", {
+          success: true,
+          summary: "Done.",
+        }),
+        screen,
+      ),
+    ).toMatchObject({ kind: "finish", attachScreenshot: false });
+    expect(() =>
+      mapToolUse(
+        customTool("finish-3", "finish", {
+          success: true,
+          summary: "Done.",
+          attach_screenshot: "yes",
+        }),
+        screen,
+      ),
+    ).toThrow("attach_screenshot must be a boolean");
   });
 });
 
@@ -698,6 +754,12 @@ describe("runAgentStep", () => {
       "Should I open your personal account?",
       `question-${taskId}-2`,
     );
+    expect(store.tasks.get(taskId)?.question).toBe(
+      "Should I open your personal account?",
+    );
+    expect(JSON.stringify(store.tasks.get(taskId)?.agentMessages)).toContain(
+      "Should I open your personal account?",
+    );
     const whileWaiting = await runAgentStep({
       store,
       deviceId,
@@ -826,7 +888,7 @@ describe("runAgentStep", () => {
     expect(stopped).toMatchObject({
       kind: "finished",
       state: "cancelled",
-      summary: "Stopped by the user.",
+      summary: "Stopped.",
     });
     expect(callClaude).toHaveBeenCalledTimes(1);
   });
@@ -857,22 +919,22 @@ describe("runAgentStep", () => {
     expect(next.taskId).not.toBe(first.taskId);
     expect(await store.getTask(first.taskId)).toMatchObject({
       state: "failed",
-      summary: "Timed out waiting for the Mac.",
+      summary: "Lost connection to your Mac.",
     });
   });
 
-  it("fails at the 40-step cap and notifies the Sendblue thread once", async () => {
+  it("fails at the 60-step cap and notifies the Sendblue thread once", async () => {
     const store = new InMemoryTaskStore();
     const taskId = await createTask(store);
     const task = store.tasks.get(taskId)!;
     task.state = "running";
-    task.stepCount = 40;
+    task.stepCount = MAX_AGENT_STEPS;
     const callClaude = fakeClaude();
     const notifier = makeNotifier();
     const result = await runAgentStep({
       store,
       deviceId,
-      request: makeRequest(taskId, { afterStep: 40 }),
+      request: makeRequest(taskId, { afterStep: MAX_AGENT_STEPS }),
       callClaude,
       notifier,
       linkSecret: "cap-secret",
@@ -881,10 +943,14 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "Stopped after 40 steps without finishing.",
+      summary: "This took too many steps.",
     });
     expect(callClaude).not.toHaveBeenCalled();
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
+    expect(MAX_AGENT_STEPS).toBe(60);
+    expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[2]).toBe(
+      `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${createHmac("sha256", "cap-secret").update(taskId).digest("hex")}`,
+    );
   });
 
   it("skips final result notifications for non-Sendblue tasks", async () => {
@@ -1122,12 +1188,12 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "Couldn't reach the agent (HTTP 400).",
+      summary: "Something went wrong on our end (error 400).",
     });
     expect(store.tasks.get(taskId)).toMatchObject({
       state: "failed",
       stepCount: 1,
-      summary: "Couldn't reach the agent (HTTP 400).",
+      summary: "Something went wrong on our end (error 400).",
     });
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
     expect(log).toHaveBeenCalledWith(
@@ -1232,7 +1298,8 @@ describe("runAgentStep", () => {
       callClaude: fakeClaude(
         claudeResponse(customTool("finish-1", "finish", {
           success: true,
-          summary: "The page is open.",
+          summary: "Instagram is OPEN",
+          attach_screenshot: true,
         })),
       ),
       notifier,
@@ -1247,8 +1314,100 @@ describe("runAgentStep", () => {
       `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${expectedSignature}`,
     );
     expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-      "The page is open.",
+      "Instagram is OPEN",
     );
+  });
+
+  it("omits the screenshot when a successful finish does not request one", async () => {
+    const finishOptions: Array<{ attach_screenshot?: boolean }> = [
+      { attach_screenshot: false },
+      {},
+    ];
+
+    for (const options of finishOptions) {
+      const store = new InMemoryTaskStore();
+      const taskId = await createTask(store);
+      const notifier = makeNotifier();
+      await runAgentStep({
+        store,
+        deviceId,
+        request: makeRequest(taskId),
+        callClaude: fakeClaude(
+          claudeResponse(
+            customTool("finish-1", "finish", {
+              success: true,
+              summary: "The answer is 42.",
+              ...options,
+            }),
+          ),
+        ),
+        notifier,
+      });
+
+      expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
+        "The answer is 42.",
+      );
+      expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[2]).toBeUndefined();
+    }
+  });
+
+  it("attaches a screenshot when a task fails, even without the flag", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    const notifier = makeNotifier();
+    await runAgentStep({
+      store,
+      deviceId,
+      request: makeRequest(taskId),
+      callClaude: fakeClaude(
+        claudeResponse(customTool("finish-1", "finish", {
+          success: false,
+          summary: "I could not complete the task.",
+        })),
+      ),
+      notifier,
+      linkSecret: "failure-secret",
+    });
+
+    const expectedSignature = createHmac("sha256", "failure-secret")
+      .update(taskId)
+      .digest("hex");
+    expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[2]).toBe(
+      `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${expectedSignature}`,
+    );
+  });
+
+  it("texts summaries in full up to the 1200-character limit", async () => {
+    expect(MAX_SUMMARY_CHARS).toBe(1200);
+    for (const [summaryLength, expectedLength] of [
+      [900, 900],
+      [1500, MAX_SUMMARY_CHARS],
+    ] as const) {
+      const store = new InMemoryTaskStore();
+      const taskId = await createTask(store);
+      const notifier = makeNotifier();
+      const summary = "x".repeat(summaryLength);
+      const result = await runAgentStep({
+        store,
+        deviceId,
+        request: makeRequest(taskId),
+        callClaude: fakeClaude(
+          claudeResponse(customTool("finish-1", "finish", {
+            success: true,
+            summary,
+          })),
+        ),
+        notifier,
+      });
+
+      expect(result).toMatchObject({
+        kind: "finished",
+        summary: summary.slice(0, expectedLength),
+      });
+      expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
+        summary.slice(0, expectedLength),
+      );
+    }
   });
 
   it("returns the stored finished response without a second Claude call or notification", async () => {

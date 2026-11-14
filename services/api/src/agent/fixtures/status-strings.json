@@ -155,7 +155,7 @@
     "key": "stepLimit",
     "kind": "failed",
     "mascot": "spectr_error",
-    "template": "I've stopped after 40 steps without finishing.",
+    "template": "I've stopped after 60 steps without finishing.",
     "params": []
   },
   {

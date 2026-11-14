@@ -17,7 +17,7 @@ Messages ──► Sendblue ──► TypeScript API (Vercel) ──► Claude c
 ```
 
 - The **API** authorizes users, stores task state and per-task Claude conversation in Supabase, issues LiveKit room tokens, and texts the final summary and screenshot to the original iMessage thread through Sendblue.
-- The **agent** uses Claude through the Anthropic Messages API and computer-use tool. Each short HTTP step resumes the task's stored conversation with the current screenshot and recent action results, then returns an action batch or `done` with a final summary. There is no long-running server process; a task is capped at 40 steps.
+- The **agent** uses Claude through the Anthropic Messages API and computer-use tool. Each short HTTP step resumes the task's stored conversation with the current screenshot and recent action results, then returns an action batch or `done` with a final summary. There is no long-running server process; a task is capped at 60 steps.
 - The **Mac helper** captures only the display or window the user authorized, posts screenshots and action results to the API, executes validated actions, and publishes the authorized screen over LiveKit.
 - The **iPhone app** joins the authenticated live session, renders the stream, sends corrections and Stop, and plays Spectr's spoken replies.
 - **ElevenLabs** turns Spectr's verified status or completion text into speech, called from the API so the key never reaches a device.
@@ -65,11 +65,11 @@ Messages ──► Sendblue ──► TypeScript API (Vercel) ──► Claude c
 ### Agent — `services/api/src/agent/`
 
 - Claude computer use through the Anthropic Messages API runs in the TypeScript API on Vercel. `ANTHROPIC_API_KEY` stays server-side.
-- Persist the per-task conversation in Supabase. On each short request, send the current screenshot and recent action results; return the next batch or `done` with a final summary. Cap each task at 40 steps.
+- Persist the per-task conversation in Supabase. On each short request, send the current screenshot and recent action results; return the next batch or `done` with a final summary. Cap each task at 60 steps.
 - Validate every action before the Mac executes it. Allowed actions: screenshot, click/double-click/right-click at `(x,y)`, move, drag, scroll, type text, key/hotkey, wait, `openApp(name)` and `openUrl(url)`. No shell commands or model-generated AppleScript.
 - Allow one active task per device. Stop and a newer instruction cancel the running task and supersede pending actions; a new non-stop text is a correction.
 - Ask by text and wait for "yes" before sending a message or DM, posting, purchasing, submitting a form or deleting. Never type passwords or 2FA codes; ask the user to log in themselves while watching live.
-- Report success only after Claude's final check confirms the screenshot shows the requested state. If the task reaches 40 steps or gets stuck, fail with what was observed.
+- Report success only after Claude's final check confirms the screenshot shows the requested state. If the task reaches 60 steps or gets stuck, fail with what was observed.
 
 ## Interface contracts
 

@@ -194,7 +194,7 @@ describe("handleChertWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledTimes(1);
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      `Spectr is on it. Task ${first.body.taskId}.`,
+      "Working on it.",
       "reply-chert:msg:demo_001",
     );
   });
@@ -291,7 +291,7 @@ describe("createChertReplier", () => {
 
     await replier(
       "+15555550100",
-      "Spectr is on it.",
+      "Working on it.",
       "reply-tsk_demo_001",
     );
 
@@ -305,7 +305,7 @@ describe("createChertReplier", () => {
     expect(JSON.parse(requestInit?.body as string)).toEqual({
       line_id: "line-demo",
       recipient: "+15555550100",
-      text: "Spectr is on it.",
+      text: "Working on it.",
     });
   });
 

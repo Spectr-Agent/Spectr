@@ -488,3 +488,375 @@ export function desktopExecutor(): MockMacExecutor {
     },
   };
 }
+
+export type RunCommand = (
+  file: string,
+  args: string[],
+) => Promise<{ stdout: string }>;
+
+type ScreenSize = { width: number; height: number };
+
+const cliclickModifiers: Record<string, string> = {
+  cmd: "cmd",
+  option: "alt",
+  ctrl: "ctrl",
+  shift: "shift",
+};
+
+const cliclickKeys: Record<string, string> = {
+  return: "return",
+  tab: "tab",
+  escape: "esc",
+  space: "space",
+  delete: "delete",
+  forwardDelete: "fwd-delete",
+  up: "arrow-up",
+  down: "arrow-down",
+  left: "arrow-left",
+  right: "arrow-right",
+  home: "home",
+  end: "end",
+  pageUp: "page-up",
+  pageDown: "page-down",
+};
+
+function isModifier(value: string): boolean {
+  return value in cliclickModifiers;
+}
+
+export function mapKeyComboToCliclick(
+  combo: string,
+  repeat = 1,
+): string[] {
+  if (!Number.isInteger(repeat) || repeat < 1) {
+    throw new Error("Key repeat must be a positive integer.");
+  }
+  const parts = combo === "+" ? ["+"] : combo.split("+");
+  const modifiers: string[] = [];
+  while (parts.length > 1 && isModifier(parts[0] ?? "")) {
+    modifiers.push(cliclickModifiers[parts.shift()!]!);
+  }
+  const key = parts.join("+");
+  let command: string;
+  if (key in cliclickKeys) {
+    command = `kp:${cliclickKeys[key]}`;
+  } else if (/^f(?:[1-9]|1[0-2])$/iu.test(key)) {
+    command = `kp:${key.toLowerCase()}`;
+  } else if (key.length === 1) {
+    command = `t:${modifiers.length > 0 ? key.toLowerCase() : key}`;
+  } else {
+    throw new Error("Unsupported Mac key.");
+  }
+
+  const commands: string[] = [];
+  const modifierList = [...new Set(modifiers)].join(",");
+  for (let index = 0; index < repeat; index += 1) {
+    if (modifierList) {
+      commands.push(`kd:${modifierList}`);
+    }
+    commands.push(command);
+    if (modifierList) {
+      commands.push(`ku:${modifierList}`);
+    }
+  }
+  return commands;
+}
+
+const macScreenSizeScript =
+  'ObjC.import("AppKit"); var f=$.NSScreen.mainScreen.frame; f.size.width+"x"+f.size.height';
+
+const macScrollScript =
+  'function run(argv){ObjC.import("CoreGraphics"); var e=$.CGEventCreateScrollWheelEvent2(null, 1, 2, Number(argv[0]), Number(argv[1]), 0); $.CGEventPost(0, e); return "ok";}';
+
+function isMissingExecutable(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ENOENT"
+  );
+}
+
+export function macExecutor(options?: {
+  run?: RunCommand;
+  sleep?: (milliseconds: number) => Promise<void>;
+}): MockMacExecutor {
+  const run: RunCommand =
+    options?.run ??
+    (async (file, args) => {
+      const result = await execFile(file, args);
+      return { stdout: String(result.stdout) };
+    });
+  const sleep =
+    options?.sleep ??
+    ((milliseconds: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+  let screenSizePromise: Promise<ScreenSize> | undefined;
+  let lastScreenshotSize: ScreenSize | undefined;
+
+  const getScreenSize = (): Promise<ScreenSize> => {
+    screenSizePromise ??= (async () => {
+      const { stdout } = await run("osascript", [
+        "-l",
+        "JavaScript",
+        "-e",
+        macScreenSizeScript,
+      ]);
+      const match = stdout.trim().match(/^(\d+)x(\d+)$/u);
+      if (!match) {
+        throw new Error("Could not determine the Mac screen size.");
+      }
+      const width = Number(match[1]);
+      const height = Number(match[2]);
+      if (width < 1 || height < 1) {
+        throw new Error("Could not determine the Mac screen size.");
+      }
+      return { width, height };
+    })();
+    return screenSizePromise;
+  };
+
+  const runCliclick = async (args: string[]): Promise<void> => {
+    try {
+      await run("cliclick", args);
+    } catch (error) {
+      if (isMissingExecutable(error)) {
+        throw new Error("cliclick is not installed. Run: brew install cliclick");
+      }
+      throw error;
+    }
+  };
+
+  const captureScreenshot = async (): Promise<MockMacScreenshot> => {
+    await getScreenSize();
+    const directory = await mkdtemp(join(tmpdir(), "spectr-mac-executor-"));
+    const rawPath = join(directory, "raw.png");
+    const screenshotPath = join(directory, "shot.jpg");
+    try {
+      let rawBytes: Buffer;
+      try {
+        await run("screencapture", ["-x", "-t", "png", rawPath]);
+        rawBytes = await readFile(rawPath);
+      } catch {
+        throw new Error(
+          "Screen capture failed. Grant the Terminal app access in System Settings → Privacy & Security → Screen Recording.",
+        );
+      }
+      const rawSize = imageDimensions(rawBytes);
+      const targetSize = calculateScreenshotDimensions(
+        rawSize.width,
+        rawSize.height,
+      );
+      await run("sips", [
+        "-s",
+        "format",
+        "jpeg",
+        "-s",
+        "formatOptions",
+        "80",
+        "-z",
+        String(targetSize.height),
+        String(targetSize.width),
+        rawPath,
+        "--out",
+        screenshotPath,
+      ]);
+      const screenshotBytes = await readFile(screenshotPath);
+      imageDimensions(screenshotBytes);
+      lastScreenshotSize = targetSize;
+      return {
+        mediaType: "image/jpeg",
+        data: screenshotBytes.toString("base64"),
+        width: targetSize.width,
+        height: targetSize.height,
+      };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  };
+
+  const ensureScreenshot = async (): Promise<ScreenSize> => {
+    if (!lastScreenshotSize) {
+      await captureScreenshot();
+    }
+    if (!lastScreenshotSize) {
+      throw new Error("Could not capture the Mac screen.");
+    }
+    return lastScreenshotSize;
+  };
+
+  const point = async (
+    x: number,
+    y: number,
+  ): Promise<{ x: number; y: number }> => {
+    const screenshotSize = await ensureScreenshot();
+    const screenSize = await getScreenSize();
+    return {
+      x: scaleCoordinate(x, screenSize.width, screenshotSize.width),
+      y: scaleCoordinate(y, screenSize.height, screenshotSize.height),
+    };
+  };
+
+  const executor: MockMacExecutor = {
+    screenshot: captureScreenshot,
+    async execute(action) {
+      try {
+        if (action.type === "wait") {
+          await sleep(action.seconds * 1000);
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "screenshot") {
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "openUrl") {
+          if (
+            action.url.startsWith("-") ||
+            (!action.url.startsWith("http://") &&
+              !action.url.startsWith("https://"))
+          ) {
+            return { ok: false, error: "Only HTTP and HTTPS URLs can be opened." };
+          }
+          await run("open", [action.url]);
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "openApp") {
+          if (
+            action.name.startsWith("-") ||
+            action.name.includes("/") ||
+            /[\u0000-\u001f\u007f]/u.test(action.name)
+          ) {
+            return { ok: false, error: "Invalid app name." };
+          }
+          try {
+            await run("open", ["-a", action.name]);
+          } catch {
+            return { ok: false, error: `Couldn't open app ${action.name}.` };
+          }
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "type") {
+          await ensureScreenshot();
+          const commands = action.text.split("\n").flatMap((line, index) => [
+            ...(index > 0 ? ["kp:return"] : []),
+            ...(line.length > 0 ? [`t:${line}`] : []),
+          ]);
+          if (commands.length > 0) {
+            await runCliclick(commands);
+          }
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "key") {
+          await ensureScreenshot();
+          await runCliclick(mapKeyComboToCliclick(action.keys, action.repeat));
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "click" && action.button === "middle") {
+          return {
+            ok: false,
+            error: "Middle click is not supported on macOS.",
+          };
+        }
+        if (
+          action.type === "click" &&
+          action.button === "right" &&
+          action.clicks > 1
+        ) {
+          return {
+            ok: false,
+            error: "right click supports one click",
+          };
+        }
+        if (action.type === "mouseMove") {
+          const coordinate = await point(action.x, action.y);
+          await runCliclick([`m:${coordinate.x},${coordinate.y}`]);
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "click") {
+          const coordinate = await point(action.x, action.y);
+          const modifiers = action.modifiers
+            .map((modifier) => cliclickModifiers[modifier])
+            .join(",");
+          const clickCommand =
+            action.button === "right"
+              ? `rc:${coordinate.x},${coordinate.y}`
+              : action.clicks === 1
+                ? `c:${coordinate.x},${coordinate.y}`
+                : action.clicks === 2
+                  ? `dc:${coordinate.x},${coordinate.y}`
+                  : `tc:${coordinate.x},${coordinate.y}`;
+          await runCliclick([
+            ...(modifiers ? [`kd:${modifiers}`] : []),
+            clickCommand,
+            ...(modifiers ? [`ku:${modifiers}`] : []),
+          ]);
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "drag") {
+          const from = await point(action.fromX, action.fromY);
+          const to = await point(action.toX, action.toY);
+          const modifiers = action.modifiers
+            .map((modifier) => cliclickModifiers[modifier])
+            .join(",");
+          await runCliclick([
+            "-w",
+            "50",
+            ...(modifiers ? [`kd:${modifiers}`] : []),
+            `dd:${from.x},${from.y}`,
+            `m:${to.x},${to.y}`,
+            `du:${to.x},${to.y}`,
+            ...(modifiers ? [`ku:${modifiers}`] : []),
+          ]);
+          return { ok: true, output: "OK" };
+        }
+        if (action.type === "scroll") {
+          await ensureScreenshot();
+          if (action.x !== null && action.y !== null) {
+            const coordinate = await point(action.x, action.y);
+            await runCliclick([`m:${coordinate.x},${coordinate.y}`]);
+          }
+          const modifiers = action.modifiers
+            .map((modifier) => cliclickModifiers[modifier])
+            .join(",");
+          if (modifiers) {
+            await runCliclick([`kd:${modifiers}`]);
+          }
+          const dy =
+            action.direction === "down"
+              ? -action.amount
+              : action.direction === "up"
+                ? action.amount
+                : 0;
+          const dx =
+            action.direction === "right"
+              ? -action.amount
+              : action.direction === "left"
+                ? action.amount
+                : 0;
+          try {
+            await run("osascript", [
+              "-l",
+              "JavaScript",
+              "-e",
+              macScrollScript,
+              String(dy),
+              String(dx),
+            ]);
+          } finally {
+            if (modifiers) {
+              await runCliclick([`ku:${modifiers}`]);
+            }
+          }
+          return { ok: true, output: "OK" };
+        }
+        return { ok: false, error: "Unsupported Mac action." };
+      } catch (error) {
+        return {
+          ok: false,
+          error: error instanceof Error ? error.message : "Mac action failed.",
+        };
+      }
+    },
+  };
+
+  return executor;
+}

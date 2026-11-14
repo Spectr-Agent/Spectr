@@ -35,7 +35,7 @@ Voice and live screen viewing happen in the native iPhone app; push-to-talk is t
 
 Messages → Sendblue → authenticated Vercel TypeScript API (Claude computer-use step loop) → schema-validated actions → paired Mac helper → app or website on the Mac.
 
-For each short HTTP step, the Mac posts its authorized screenshot and recent action results. The backend resumes the task's stored Claude conversation and returns the next action batch or a final summary. The Mac executes the batch and posts a fresh screenshot; the loop is capped at 40 steps and task state is persisted in Supabase. `ANTHROPIC_API_KEY` is a server-side Vercel variable and never goes to either device.
+For each short HTTP step, the Mac posts its authorized screenshot and recent action results. The backend resumes the task's stored Claude conversation and returns the next action batch or a final summary. The Mac executes the batch and posts a fresh screenshot; the loop is capped at 60 steps and task state is persisted in Supabase. `ANTHROPIC_API_KEY` is a server-side Vercel variable and never goes to either device.
 
 Voice and live screen → native Spectr iPhone app (instructions to task API; Mac screen via LiveKit Cloud).
 
@@ -62,7 +62,7 @@ Chert (iMessage + FaceTime) is the backup channel.
 - Keep secrets server-side or in device Keychain as appropriate. Keep `ANTHROPIC_API_KEY` on Vercel, never on the Mac or iPhone.
 - Screen sharing uses only a display or window the user authorized. Validate actions before execution; allow only screenshot, click, double-click, right-click, move, drag, scroll, type, key/hotkey, wait, `openApp(name)` and `openUrl(url)`. Never execute shell commands or model-generated AppleScript.
 - Ask by text and wait for "yes" before sending messages, posting, purchasing, submitting forms or deleting. Never type passwords or 2FA codes; pause and ask the user to log in while watching live.
-- Stop at 40 steps or when stuck; fail with what was observed.
+- Stop at 60 steps or when stuck; fail with what was observed.
 
 ## First integration test
 
