@@ -82,6 +82,7 @@ Fixtures exist only in test targets (`packages/SpectrKit/Tests/SpectrKitTests/Fi
 | App shows "This build isn't configured" | `Local.xcconfig` missing or incomplete | Copy the example, fill in the values, run `make bootstrap`, rebuild |
 | Mac menu shows Screen capture "Not allowed" | Screen Recording permission not granted | System Settings → Privacy & Security → Screen & System Audio Recording |
 | Mac menu shows Accessibility control "Not allowed" | Accessibility permission not granted | System Settings → Privacy & Security → Accessibility |
+| Local signed build fails with "resource fork, Finder information, or similar detritus not allowed" | The repo is in an iCloud-synced folder (`~/Documents`), which adds file attributes that codesign rejects | Build with `-derivedDataPath` outside `~/Documents`, or move the repo |
 | Package resolution picks a different LiveKit version | Generated project lost its pin | `make bootstrap` restores `apps/Package.resolved` |
 | Black or frozen video, a room that joins without a track, an expired link, or an action reported without readback | These paths ship in Phases 2–5 | See [STATUS.md](docs/native/STATUS.md) |
 

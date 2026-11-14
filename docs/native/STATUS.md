@@ -5,7 +5,7 @@ The durable handoff between sessions. Update it at every phase boundary. No secr
 Status values: **done** (verified as stated), **in progress**, **blocked**, **planned**, **deferred**.
 Evidence tiers: *local* (this Mac, unit/sim), *live* (real backend), *hardware* (physical devices).
 
-Last updated: 2026-11-13, end of Phase 1.
+Last updated: 2026-11-13, Mac capture and actions (Phase 3/4 local work).
 
 | Item | Owner | Status | Evidence | Blocker / dependency | Next concrete test |
 | --- | --- | --- | --- | --- | --- |
@@ -13,9 +13,9 @@ Last updated: 2026-11-13, end of Phase 1.
 | iPhone sign-in (Supabase + Sign in with Apple), session restore, sign-out | Jared | planned (Phase 2) | — | Paid Apple developer membership (Jared); Apple provider enabled in Supabase (Poorav) | Interrupted sign-in resumes; sign-out clears all user state |
 | iPhone pairing, Watch live links, task routing, state restoration | Jared | planned (Phase 2) | Link parser unit-tested (*local*) | Pairing/link/device routes not in contract (Poorav); link domain + association file (Jared/Poorav) | Expired, reused and wrong-owner links rejected through the UI |
 | Mac pairing, device credential, revocation | Jared | planned (Phase 2) | — | Pairing routes (Poorav) | Expired/reused code; revoke while connected stops sharing |
-| Mac capture permission, window selection, LiveKit publish | Jared | planned (Phase 3) | Menu reads permission state without prompting (*local*) | Room tokens (Jared TS) and LiveKit Cloud project | Picked window publishes; closing it reports `windowGone` |
+| Mac capture permission, window selection, LiveKit publish | Jared | in progress | System picker (window or display), ScreenCaptureKit stream, menu preview, closed-window detection, static-vs-stalled health (`StreamHealth`, 4 tests). Builds and launches (*local*); picker flow not yet clicked through by a person | LiveKit Cloud project for publishing | Pick a Notes window, close it, menu says the window closed; leave it still 60 s, stays "no changes" not "stalled" |
 | LiveKit first-frame hardware test on cellular | Jared | blocked | — | Room tokens + LiveKit project; physical iPhone connected | Mac on Wi-Fi, iPhone on cellular, type in Notes by hand, fresh frame on phone |
-| General action execution with Accessibility readback | Jared | planned (Phase 4) | Ledger + validator unit-tested (*local*) | Generic actions not in backend contract (Poorav); step planner (Sweeya) | `typeText` into Notes; readback matches; duplicate and stale commands don't repeat |
+| General action execution with Accessibility readback | Jared | in progress | `ActionExecutor` + `AccessibilityDesktopDriver`: openApp, click, typeText, keyCombo, scroll, observe, stop; readback verdicts; blocklist (terminals, script tools, password managers); never types into password fields; ledger persisted before side effects. 17 Mac tests against a fake desktop (*local*). Not yet run against real Notes by a person | Generic actions not in backend contract (Poorav); step planner (Sweeya) | `typeText` into Notes; readback matches; duplicate and stale commands don't repeat |
 | Typed correction, push-to-talk, Stop | Jared | planned (Phase 5) | — | Instruction route lacks `clientMessageId` (Poorav) | Final transcript sent once; Stop wins a race |
 | Continuous hands-free call with spoken replies and interruption | Jared | planned (Phase 5) | — | Speech endpoint (Jared TS, ElevenLabs key server-side) | Barge-in stops playback; the app's own reply isn't transcribed |
 | Room-token endpoint, association file, speech endpoint, mock Mac (TypeScript) | Jared (from Colby) | planned | — | Poorav's API package on `origin/devin/1794614215-wire-format` not merged to `main` | Second user's token request rejected |
