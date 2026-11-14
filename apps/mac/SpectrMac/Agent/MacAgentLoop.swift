@@ -176,6 +176,9 @@ final class MacAgentLoop {
                 results = await execute(
                     actions, taskId: task.taskId, revision: revision, step: step, frame: frame)
                 afterStep = step
+                // Let pages load and windows appear before the next screenshot, so the
+                // model judges the result rather than the moment before it.
+                await pause(Self.settleTime(after: actions))
             case .waiting(_, _, _):
                 activity?.phase = .waitingForUser
                 status = .idle
@@ -280,6 +283,19 @@ final class MacAgentLoop {
 
     private func persist() {
         try? store.save(ledger)
+    }
+
+    /// How long to wait after a batch before capturing the screen the model will judge.
+    /// Opening a URL or an app takes the longest to show; input events settle quickly.
+    static func settleTime(after actions: [MacStepAction]) -> Duration {
+        actions.map { item -> Duration in
+            switch item.action {
+            case .openUrl: .milliseconds(2_500)
+            case .openApp: .milliseconds(1_500)
+            case .click, .drag, .key, .type, .scroll: .milliseconds(400)
+            case .mouseMove, .wait, .screenshot, .unsupported: .zero
+            }
+        }.max() ?? .zero
     }
 
     static func message(for error: MacAgentError) -> String {

@@ -25,6 +25,8 @@ final class MacEnvironment {
     private(set) var taskSession: TaskSession?
     /// Runs backend tasks while this Mac is connected with a device token.
     private(set) var agent: MacAgentLoop?
+    /// Streams the shared screen to LiveKit while sharing and connected.
+    let publisher: ScreenPublisher
     #if DEBUG
         let lab: ActionLab
     #endif
@@ -36,6 +38,7 @@ final class MacEnvironment {
         self.startup = startup
         self.permissions = permissions
         self.capture = CaptureController()
+        self.publisher = ScreenPublisher(sink: capture.frameSink)
         self.driver = AccessibilityDesktopDriver()
         let client: any PairingClient =
             if case .ready(let configuration) = startup {
@@ -53,8 +56,25 @@ final class MacEnvironment {
             self.lab = lab
             self.taskSession = lab.session
         #endif
-        pairing.onChange = { [weak self] _ in self?.syncAgent() }
+        pairing.onChange = { [weak self] _ in
+            self?.syncAgent()
+            self?.syncPublisher()
+        }
+        capture.onStatusChange = { [weak self] _ in self?.syncPublisher() }
         syncAgent()
+    }
+
+    /// Streams the screen while something is shared and this Mac is connected; stops
+    /// otherwise, so nothing is published without both the owner's choice and a token.
+    func syncPublisher() {
+        guard case .ready(let configuration) = startup, capture.status == .sharing,
+            let token = pairing.deviceToken, pairing.state.phone != nil
+        else {
+            publisher.stop()
+            return
+        }
+        let client = MacAgentClient(origin: configuration.apiOrigin, deviceToken: token)
+        publisher.start { () async throws(MacAgentError) -> MacLiveKitGrant in try await client.liveKitGrant() }
     }
 
     /// Starts the agent loop when this Mac holds a device token and the build has a
@@ -105,10 +125,11 @@ final class MacEnvironment {
     }
 
     private var agentNotice: String? {
+        if case .failed(let message) = publisher.state { return message }
         switch agent?.status {
-        case .blocked(let message): message
-        case .unauthorized: "This Mac's device token was rejected. Connect it again in Setup."
-        case .idle, .working, .stopped, nil: nil
+        case .blocked(let message): return message
+        case .unauthorized: return "This Mac's device token was rejected. Connect it again in Setup."
+        case .idle, .working, .stopped, nil: return nil
         }
     }
 

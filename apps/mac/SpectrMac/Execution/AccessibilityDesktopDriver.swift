@@ -104,6 +104,17 @@ final class AccessibilityDesktopDriver: DesktopDriver {
         // One character per key event. Longer strings fit in a single event, but several
         // apps (Notes among them) keep only the first character of a multi-character event.
         for character in text {
+            // A newline or tab in typed text means the key itself: "url\n" submits an
+            // address bar, which a literal newline character does not.
+            if let key = Self.typedKey(character) {
+                for keyDown in [true, false] {
+                    guard let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: keyDown) else {
+                        throw .eventFailed
+                    }
+                    event.post(tap: .cghidEventTap)
+                }
+                continue
+            }
             let units = Array(String(character).utf16)
             for keyDown in [true, false] {
                 guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: keyDown) else {
@@ -112,6 +123,15 @@ final class AccessibilityDesktopDriver: DesktopDriver {
                 event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
                 event.post(tap: .cghidEventTap)
             }
+        }
+    }
+
+    /// Characters typed as real key presses instead of Unicode text.
+    static func typedKey(_ character: Character) -> CGKeyCode? {
+        switch character {
+        case "\n", "\r", "\r\n": CGKeyCode(kVK_Return)
+        case "\t": CGKeyCode(kVK_Tab)
+        default: nil
         }
     }
 

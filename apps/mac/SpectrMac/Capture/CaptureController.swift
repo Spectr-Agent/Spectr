@@ -28,7 +28,13 @@ final class CaptureController: NSObject {
         case failed(String)
     }
 
-    private(set) var status: Status = .idle
+    private(set) var status: Status = .idle {
+        didSet { if status != oldValue { onStatusChange?(status) } }
+    }
+    /// Called after every status change.
+    var onStatusChange: ((Status) -> Void)?
+    /// Frames for the LiveKit publisher; nothing is sent until it sets a target.
+    let frameSink = FrameSink()
     /// The picked source. Kept after the window closes so the UI can name what was lost.
     private(set) var source: ShareSource?
     private(set) var preview: CGImage?
@@ -85,7 +91,7 @@ final class CaptureController: NSObject {
         configuration.showsCursor = true
         configuration.queueDepth = 5
 
-        let output = FrameOutput { [weak self] event in
+        let output = FrameOutput(sink: frameSink) { [weak self] event in
             Task { @MainActor in self?.receive(event, session: session) }
         }
         let stream = SCStream(filter: filter, configuration: configuration, delegate: output)
@@ -286,10 +292,12 @@ private final class FrameOutput: NSObject, SCStreamOutput, SCStreamDelegate, @un
 
     let queue = DispatchQueue(label: "spectr.capture.frames", qos: .userInteractive)
     private let emit: @Sendable (Event) -> Void
+    private let sink: FrameSink
     private let context = CIContext(options: [.cacheIntermediates: false])
     private var lastPreview = Date.distantPast
 
-    init(emit: @escaping @Sendable (Event) -> Void) {
+    init(sink: FrameSink, emit: @escaping @Sendable (Event) -> Void) {
+        self.sink = sink
         self.emit = emit
     }
 
@@ -303,6 +311,7 @@ private final class FrameOutput: NSObject, SCStreamOutput, SCStreamDelegate, @un
 
         switch status {
         case .complete:
+            if let buffer = sampleBuffer.imageBuffer { sink.deliver(buffer) }
             var image: CGImage?
             let now = Date()
             if now.timeIntervalSince(lastPreview) >= 0.5, let buffer = sampleBuffer.imageBuffer {
@@ -312,6 +321,7 @@ private final class FrameOutput: NSObject, SCStreamOutput, SCStreamDelegate, @un
             }
             emit(.frame(changed: true, image: image))
         case .idle:
+            sink.idle()
             emit(.frame(changed: false, image: nil))
         default:
             return

@@ -9,6 +9,7 @@ import {
   createTaskScreenshotRoute,
 } from "../src/agent/routes.js";
 import { createSendblueWebhookRoute } from "../src/sendblue/route.js";
+import { createMacLiveKitRoute } from "../src/livekit/mac-token.js";
 
 const env = () => process.env;
 const makeSql = (url: string) => postgres(url, { prepare: false, max: 1 });
@@ -40,6 +41,7 @@ const callClaude: CallClaude | undefined =
 const routes = new Map<string, (request: Request) => Promise<Response>>([
   ["POST /api/sendblue/webhook", createSendblueWebhookRoute(env, makeSql)],
   ["GET /api/mac/task", createMacTaskRoute(env, makeSql)],
+  ["GET /api/mac/livekit", createMacLiveKitRoute(env, makeSql)],
   [
     "POST /api/mac/step",
     createMacStepRoute(

@@ -103,6 +103,8 @@ This section covers Jared's native workstream and follows the team architecture 
 | `docs/native/` | Native status ledger, contract notes, auth hardening list |
 | `apps/mac/SpectrMac/Agent/` | Mac client for `/api/mac/task` and `/api/mac/step`: screenshots only the shared window or display, validates and executes returned actions, never runs a step batch twice |
 | `tools/dev-agent/` | Debug-only local planner for the Mac action lab; not used by the real task loop |
+| `services/call-agent/` | LiveKit voice agent for calling your Mac by phone (+1 470 596 9455), FaceTime (Chert) or the app. Routes speech through the iMessage inbound pipeline and speaks in the pinned ElevenLabs voice. Owner: Jared |
+| `services/api/src/livekit/` | `GET /api/mac/livekit`: a one-hour, screen-share-only LiveKit grant for the Mac's own room. Owner: Jared |
 | `Makefile`, `.swift-format`, `.github/workflows/apple.yml` | Native build, lint and CI; they never touch TypeScript or SQL |
 
 - Commands: `make bootstrap`, `make lint`, `make test-kit`, `make test-ios`, `make test-mac`, `make check-release`.

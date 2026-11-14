@@ -5,7 +5,7 @@ The durable handoff between sessions. Update it at every phase boundary. No secr
 Status values: **done** (verified as stated), **in progress**, **blocked**, **planned**, **deferred**.
 Evidence tiers: *local* (this Mac, unit/sim), *live* (real backend), *hardware* (physical devices).
 
-Last updated: 2026-11-14, Mac moved to the backend agent loop; device-token connection.
+Last updated: 2026-11-14, calling: phone number, call agent, FaceTime relay, Mac screen publishing.
 
 | Item | Owner | Status | Evidence | Blocker / dependency | Next concrete test |
 | --- | --- | --- | --- | --- | --- |
@@ -17,7 +17,10 @@ Last updated: 2026-11-14, Mac moved to the backend agent loop; device-token conn
 | Mac helper UI: menu bar popover + setup window | Jared | in progress | One `HelperState` drives both surfaces; shows agent problems (not sharing, server unreachable, token rejected) | Physical-Mac checklist below | Run the checklist |
 | Debug action lab + `tools/dev-agent` | Jared | Debug only | Local planner over the older Accessibility-element actions; not used by the real loop | — | Remove once the real loop is verified live |
 | Mac capture permission, window selection | Jared | in progress | System picker (window or display), stream, preview, closed-window detection; agent screenshots use exactly the picked content | — | Pick a Notes window, close it, popover says it closed |
-| LiveKit video Mac → iPhone | Jared | planned | — | Room-token endpoint (Jared, TypeScript in `services/api`), LiveKit Cloud project exists | Mac on Wi-Fi, iPhone on cellular, type in Notes, fresh frame on the phone |
+| Phone calls (LiveKit number +1 470 596 9455) | Jared | in progress | Number claimed; dispatch rule `SDR_8W7wdqA2EPbJ` sends calls to agent `spectr-call`; the agent registers with LiveKit Cloud (*live*). `services/call-agent` tests: call flow, narration, caller ID (*local*) | `ELEVENLABS_API_KEY` and `POSTGRES_URL` for the agent; attaching the rule to the number failed in the CLI ("invalid argument") — attach it in the LiveKit dashboard if calls don't reach the agent | Call the number from a phone linked for iMessage; say "open Notes and write milk" |
+| FaceTime calls with the Mac's screen (Chert) | Jared | in progress | Agent waits for `chert_bridge_ready`, greets within 10 s, relays the Mac's screen as its own video (Chert shows video only from the speaking participant) | `chert login` + a line set to "customer decides"; Chert doesn't pass caller identity yet, so a line is bound to `SPECTR_FACETIME_OWNER_PHONE` | `chert dev --agent spectr-call`; FaceTime Video the line; see the shared Notes window |
+| Mac screen publishing to LiveKit | Jared | done (*local*) | `ScreenPublisher` publishes the shared window into `spectr-mac-<deviceId>` with a grant from `GET /api/mac/livekit` (screen-share only, 1 h); a static screen is re-sent about once per second; stops when sharing stops or the Mac disconnects. `FrameSinkTests`, `mac-token.test.ts` | Route must be deployed with `LIVEKIT_*` set on Vercel (Poorav) | Share Notes; join `spectr-mac-…` from the LiveKit dashboard and see it |
+| iPhone live viewer (in-app call) | Jared | planned | Viewer states exist on test data | iPhone viewer token route | iPhone on cellular shows the Mac's screen |
 | Typed correction, push-to-talk, Stop from iPhone | Jared | planned | Composer and Stop exist on test data | iPhone task API | Final transcript sent once; Stop wins a race |
 | Continuous hands-free voice with spoken replies | Jared | planned | — | Speech endpoint (Jared, TypeScript), ElevenLabs key server-side | Barge-in stops playback; the app's own reply isn't transcribed |
 | Room tokens, association file, speech endpoint (TypeScript) | Jared (from Colby) | planned | — | Now unblocked: `services/api` is on `main` | Second user's token request rejected |

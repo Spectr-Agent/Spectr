@@ -272,4 +272,36 @@ struct MacAgentLoopTests {
         #expect(EventActionPerformer.applicationURL(named: "../../../bin/sh") == nil)
         #expect(EventActionPerformer.applicationURL(named: "Definitely Not Installed 123") == nil)
     }
+
+    @Test func waitsForPagesAndAppsBeforeTheNextScreenshot() {
+        func settle(_ actions: [MacAction]) -> Duration {
+            MacAgentLoop.settleTime(
+                after: actions.enumerated().map { MacStepAction(actionId: "a\($0.offset)", action: $0.element) })
+        }
+        #expect(settle([.openUrl(URL(string: "https://www.instagram.com")!)]) == .milliseconds(2_500))
+        #expect(settle([.openApp(name: "Notes"), .type(text: "milk")]) == .milliseconds(1_500))
+        #expect(settle([.key(keys: "return", repeat: 1)]) == .milliseconds(400))
+        #expect(settle([.screenshot, .wait(seconds: 1)]) == .zero)
+        #expect(settle([]) == .zero)
+    }
+
+    @Test func pausesAfterABatchBeforeCapturingAgain() async {
+        let pauses = PauseRecorder()
+        let api = FakeAgentAPI(
+            tasks: [.success(task())],
+            steps: [
+                .success(batch(1, [("a1", .openUrl(URL(string: "https://www.instagram.com")!))])),
+                .success(.finished(taskId: "tsk_1", step: 2, state: .succeeded, summary: "Instagram is open.")),
+            ])
+        let agent = MacAgentLoop(
+            api: api, frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { await pauses.record($0) })
+        #expect(await agent.cycle())
+        #expect(await pauses.values == [.milliseconds(2_500)])
+    }
+}
+
+actor PauseRecorder {
+    private(set) var values: [Duration] = []
+    func record(_ value: Duration) { values.append(value) }
 }

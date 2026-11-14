@@ -69,6 +69,22 @@ describe("createElevenLabsClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(texts.length);
   });
 
+  it("can return raw PCM for live calls while keeping the pinned voice, model and settings", async () => {
+    const { client, fetchImpl } = makeClient(audioResponse);
+    await client.stream("On it.", { signal: new AbortController().signal, outputFormat: "pcm_24000" });
+    const call = lastCall(fetchImpl);
+    expect(call.url).toContain("output_format=pcm_24000");
+    expect(call.url).not.toContain(`output_format=${voiceConfig.outputFormat}`);
+    expect(call.headers.get("accept")).toBe("audio/pcm");
+    expect(call.url).toContain(voiceConfig.voiceId);
+    expect(call.body.model_id).toBe(voiceConfig.modelId);
+    expect(call.body.voice_settings).toEqual(voiceConfig.voiceSettings);
+
+    // The default stays MP3 for the app's speech endpoint.
+    await client.stream("Done.", { signal: new AbortController().signal });
+    expect(lastCall(fetchImpl).url).toContain(`output_format=${voiceConfig.outputFormat}`);
+  });
+
   it("sends the API key as xi-api-key and forwards the abort signal", async () => {
     const { client, fetchImpl } = makeClient(audioResponse);
     const controller = new AbortController();
