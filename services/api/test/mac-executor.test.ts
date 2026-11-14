@@ -180,6 +180,13 @@ describe("macOS executor", () => {
       .toEqual(["t:a", "kp:return", "t:b"]);
   });
 
+  it("presses return for a trailing newline", async () => {
+    const { executor, calls } = makeExecutor();
+    await executor.execute({ type: "type", text: "instagram.com\n" });
+    expect(calls.filter((call) => call.file === "cliclick").at(-1)?.args)
+      .toEqual(["t:instagram.com", "kp:return"]);
+  });
+
   it("validates app names and opens allowed URLs with argument arrays", async () => {
     const { executor, calls } = makeExecutor();
     expect(await executor.execute({ type: "openApp", name: "-x" })).toEqual({

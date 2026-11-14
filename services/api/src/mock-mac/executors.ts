@@ -736,10 +736,10 @@ export function macExecutor(options?: {
         }
         if (action.type === "type") {
           await ensureScreenshot();
-          const lines = action.text.split("\n").filter((line) => line.length > 0);
-          const commands = lines.flatMap((line, index) =>
-            index === 0 ? [`t:${line}`] : ["kp:return", `t:${line}`],
-          );
+          const commands = action.text.split("\n").flatMap((line, index) => [
+            ...(index > 0 ? ["kp:return"] : []),
+            ...(line.length > 0 ? [`t:${line}`] : []),
+          ]);
           if (commands.length > 0) {
             await runCliclick(commands);
           }
