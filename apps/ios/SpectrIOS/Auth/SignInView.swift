@@ -26,9 +26,9 @@ struct SignInView: View {
             }
 
             PrimaryButton(
-                title: "Email me a sign-in link", isWorking: auth.isWorking, isEnabled: !email.isEmpty, action: submit)
+                title: "Email me a code", isWorking: auth.isWorking, isEnabled: !email.isEmpty, action: submit)
 
-            Text("We'll email you a link that signs you in. No password needed.")
+            Text("We'll email you a 6-digit code. No password needed.")
                 .font(.footnote)
                 .foregroundStyle(Theme.inkSecondary)
 
@@ -54,9 +54,9 @@ struct CodeEntryView: View {
     var body: some View {
         AuthScaffold(
             title: "Check your email",
-            subtitle: "We sent a sign-in email to \(email). Open it on this iPhone and tap the link."
+            subtitle: "Enter the 6-digit code we sent to \(email), or tap the link in that email on this iPhone."
         ) {
-            TextField("Code from the email, if it has one", text: $code)
+            TextField("6-digit code", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .font(.body.monospacedDigit())
@@ -72,7 +72,7 @@ struct CodeEntryView: View {
                 ErrorText(message)
             }
 
-            PrimaryButton(title: "Sign in with code", isWorking: auth.isWorking, isEnabled: code.count >= 6) {
+            PrimaryButton(title: "Sign in", isWorking: auth.isWorking, isEnabled: code.count >= 6) {
                 focused = false
                 Task { await auth.verify(code: code) }
             }
