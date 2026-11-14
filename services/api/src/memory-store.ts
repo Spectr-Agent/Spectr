@@ -55,7 +55,7 @@ export class InMemoryTaskStore implements TaskStore {
         Date.parse(task.updatedAt) < staleBefore
       ) {
         task.state = "failed";
-        task.summary = "lost connection to ur mac";
+        task.summary = "Lost connection to your Mac.";
         task.updatedAt = now;
       }
     }
@@ -101,7 +101,7 @@ export class InMemoryTaskStore implements TaskStore {
         kind = "stop";
         task.state = "cancelled";
         task.revision += 1;
-        task.summary = "stopped";
+        task.summary = "Stopped.";
         task.resultSentAt = now;
         task.updatedAt = now;
         consumedAt = now;
@@ -170,7 +170,7 @@ export class InMemoryTaskStore implements TaskStore {
         Date.parse(task.updatedAt) < staleBefore
       ) {
         task.state = "failed";
-        task.summary = "lost connection to ur mac";
+        task.summary = "Lost connection to your Mac.";
         task.updatedAt = now.toISOString();
       }
     }

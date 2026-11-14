@@ -444,7 +444,7 @@ async function persist(
     options.deviceId,
   );
   if (latest?.state === "cancelled") {
-    return terminalResponse(latest, latest.summary ?? "stopped");
+    return terminalResponse(latest, latest.summary ?? "Stopped.");
   }
   throw apiError(
     409,
@@ -465,7 +465,7 @@ async function notifyQuestion(
   }
   await options.notifier.sendQuestion(
     task,
-    question.toLowerCase(),
+    question,
     `question-${task.taskId}-${step}`,
   );
 }
@@ -494,9 +494,8 @@ async function notifyResult(
   if (!claimed.replyHandle) {
     return;
   }
-  const text = (
-    state === "succeeded" ? `done. ${summary}` : `couldn't do it. ${summary}`
-  ).toLowerCase();
+  const text =
+    state === "succeeded" ? `Done. ${summary}` : `Couldn't finish. ${summary}`;
   const baseUrl =
     options.publicUrl ?? "https://spectr-api.vercel.app";
   const mediaUrl = signedScreenshotUrl(taskId, options.linkSecret, baseUrl);
@@ -615,7 +614,7 @@ export async function runAgentStep(
   const inbound = await options.store.getUnconsumedInboundMessages(task.taskId);
   const consumedInboundIds = inbound.map((message) => message.providerMessageId);
   if (task.stepCount >= MAX_AGENT_STEPS) {
-    const summary = "took too many steps, gave up";
+    const summary = "This took too many steps.";
     const messages = trimImages(task.agentMessages);
     const response = finishedResponse(
       task.taskId,
@@ -695,7 +694,7 @@ export async function runAgentStep(
         error instanceof AnthropicHttpError &&
         NON_RETRYABLE_ANTHROPIC_STATUSES.has(error.status)
       ) {
-        const summary = `couldn't reach the agent (http ${error.status})`;
+        const summary = `Something went wrong on our end (error ${error.status}).`;
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
@@ -758,7 +757,7 @@ export async function runAgentStep(
         continue;
       }
       const summary =
-        assistantText(response.content) || "the agent bailed before finishing";
+        assistantText(response.content) || "Something went wrong on our end.";
       const failureSummary = summary.slice(0, 300);
       const finished = finishedResponse(
         task.taskId,
@@ -914,7 +913,7 @@ export async function runAgentStep(
 
   const summary =
     assistantText(lastAssistantContent) ||
-    "Claude could not produce a valid action batch.";
+    "Something went wrong on our end.";
   const failureSummary = summary.slice(0, 300);
   const finished = finishedResponse(
     task.taskId,

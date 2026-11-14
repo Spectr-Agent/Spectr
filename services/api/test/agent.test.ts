@@ -676,7 +676,7 @@ describe("runAgentStep", () => {
     });
     expect(notifier.sendQuestion).toHaveBeenCalledWith(
       expect.objectContaining({ taskId }),
-      "should i open your personal account?",
+      "Should I open your personal account?",
       `question-${taskId}-2`,
     );
     expect(store.tasks.get(taskId)?.question).toBe(
@@ -813,7 +813,7 @@ describe("runAgentStep", () => {
     expect(stopped).toMatchObject({
       kind: "finished",
       state: "cancelled",
-      summary: "stopped",
+      summary: "Stopped.",
     });
     expect(callClaude).toHaveBeenCalledTimes(1);
   });
@@ -844,7 +844,7 @@ describe("runAgentStep", () => {
     expect(next.taskId).not.toBe(first.taskId);
     expect(await store.getTask(first.taskId)).toMatchObject({
       state: "failed",
-      summary: "lost connection to ur mac",
+      summary: "Lost connection to your Mac.",
     });
   });
 
@@ -868,7 +868,7 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "took too many steps, gave up",
+      summary: "This took too many steps.",
     });
     expect(callClaude).not.toHaveBeenCalled();
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
@@ -1014,12 +1014,12 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "couldn't reach the agent (http 400)",
+      summary: "Something went wrong on our end (error 400).",
     });
     expect(store.tasks.get(taskId)).toMatchObject({
       state: "failed",
       stepCount: 1,
-      summary: "couldn't reach the agent (http 400)",
+      summary: "Something went wrong on our end (error 400).",
     });
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
     expect(log).toHaveBeenCalledWith(
@@ -1139,7 +1139,7 @@ describe("runAgentStep", () => {
       `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${expectedSignature}`,
     );
     expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-      "done. instagram is open",
+      "Done. Instagram is OPEN",
     );
   });
 

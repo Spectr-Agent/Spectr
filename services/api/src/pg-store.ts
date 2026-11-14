@@ -119,7 +119,7 @@ export class PostgresTaskStore implements TaskStore {
       await tx`
         update public.tasks
         set state = 'failed',
-            summary = 'lost connection to ur mac',
+            summary = 'Lost connection to your Mac.',
             updated_at = ${input.now}
         where device_id = ${input.deviceId}
           and state in ('accepted', 'running', 'waitingForUser')
@@ -174,7 +174,7 @@ export class PostgresTaskStore implements TaskStore {
             update public.tasks
             set state = 'cancelled',
                 revision = revision + 1,
-                summary = 'stopped',
+                summary = 'Stopped.',
                 result_sent_at = ${input.now},
                 reply_provider = ${input.replyProvider},
                 reply_handle = ${input.replyHandle},
@@ -304,7 +304,7 @@ export class PostgresTaskStore implements TaskStore {
       await tx`
         update public.tasks
         set state = 'failed',
-            summary = 'lost connection to ur mac',
+            summary = 'Lost connection to your Mac.',
             updated_at = ${now}
         where device_id = ${deviceId}
           and state in ('accepted', 'running', 'waitingForUser')
