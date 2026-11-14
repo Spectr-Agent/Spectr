@@ -5,11 +5,11 @@
   </picture>
 </p>
 
-<p align="center">your computer, by text.</p>
+<p align="center">your computer, by text or call.</p>
 
 ## what it is
 
-spectr is a personal computer agent you can reach while you're away from your computer. text it on imessage, and it does the work on the mac that's set up for it. progress, questions and results come back in the same thread.
+spectr is a personal computer agent you can reach while you're away from your computer. text it on imessage or call it, and it does the work on the mac that's set up for it. progress, questions and results come back in the same thread or on the call.
 
 spectr only uses the mac it's set up on, and the accounts signed in on that mac. it can't reach any other laptop, or files that aren't on that mac.
 
@@ -20,7 +20,17 @@ spectr only uses the mac it's set up on, and the accounts signed in on that mac.
 3. the mac clicks, types, scrolls or opens an app or website, then sends a new screenshot.
 4. this repeats until the task is done. you get the result in the thread, with a screenshot when it helps.
 
-text `stop` to cancel. any other text during a task corrects it. spectr asks before it sends, posts, buys, submits or deletes anything, and it never types passwords.
+text or say `stop` to cancel. any other text during a task corrects it. spectr asks before it sends, posts, buys, submits or deletes anything, and it never types passwords.
+
+## calling (in progress)
+
+you can also call your mac instead of texting it:
+
+- **phone:** call +1 (470) 596-9455 from a number linked to your mac.
+- **facetime:** facetime video spectr's chert line to see the mac's screen as the call's video.
+- **in the app:** planned.
+
+the call agent turns what you say into the same tasks a text creates, and speaks the questions and the result back in spectr's voice. you can talk over it to interrupt. it never plans or runs anything itself; the mac still does the work. setup: [services/call-agent](services/call-agent/README.md).
 
 ## onboarding (planned)
 
@@ -52,9 +62,11 @@ answer in your own words, or skip. you can change your answers later. spectr kee
 | onboarding and saved preferences | not built |
 | `status` and `continue` after an interruption | not built |
 | mac menu-bar helper (swift) | built, not yet run against the live backend |
+| mac screen streaming (livekit) | built and tested locally; not deployed |
+| phone calls | number and call agent set up; not tested end to end |
+| facetime (chert) | built; not tested on a real call |
 | iphone app | sign-in works; live screen and voice not built |
-| facetime | not built |
-| spectr voice (elevenlabs) | code in `services/api/src/voice`, not connected to imessage |
+| spectr voice (elevenlabs) | used by the call agent; not used in imessage |
 
 ## setup
 
@@ -81,7 +93,7 @@ backend checks:
 cd services/api && npm install && npm run typecheck && npm test
 ```
 
-native apps: [docs/native/SETUP.md](docs/native/SETUP.md).
+call agent: [services/call-agent](services/call-agent/README.md). native apps: [docs/native/SETUP.md](docs/native/SETUP.md). design system (colours, type, mascot states): [design-system](design-system/README.md).
 
 ## team
 
@@ -90,6 +102,6 @@ native apps: [docs/native/SETUP.md](docs/native/SETUP.md).
 | poorav | backend, imessage |
 | sweeya | agent, wording, brand |
 | colby | tests, voice |
-| jared | iphone and mac apps |
+| jared | iphone and mac apps, calls |
 
 docs: [requirements](docs/requirements.md), [design](docs/design.md), [tasks](docs/tasks.md).
