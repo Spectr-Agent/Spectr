@@ -7,7 +7,7 @@ See [requirements.md](requirements.md) and [design.md](design.md).
 Colby doesn't have a Mac, so he can't build or test Swift. Chert is now the main channel: texts arrive through a Chert line, and FaceTime is the main way to talk to and watch the Mac. The iPhone app becomes a fallback.
 
 - **Jared** owns all Swift work. The Mac helper comes first. The iPhone app shrinks to a fallback viewer with Stop and a typed correction; voice moved to the FaceTime call.
-- **Colby** owns the FaceTime call agent (TypeScript): LiveKit Agents worker, speech-to-text, the ElevenLabs Spectr voice, and the Mac window as the call's video. He also keeps the LiveKit token endpoint.
+- **Colby** owns the FaceTime call agent (TypeScript): LiveKit Agents worker, realtime ElevenLabs Scribe, the ElevenLabs Spectr voice, and the Mac window as the call's video. He also keeps the LiveKit token endpoint.
 - **Poorav** owns the backend and Chert: account and line, the `message.received` webhook, replies, Supabase, the task API, and the mock Mac.
 - **Sweeya** owns the agent planner, guardrails and brand, and takes back the parser and utterance tests, now including spoken phrasing.
 
@@ -24,7 +24,7 @@ Critical path: Jared's Mac stream and Colby's call agent. Unblock them first: fi
 
 - **Jared:** Swift/SwiftUI, Xcode, ScreenCaptureKit, LiveKit Swift SDK, URLSession/Codable, Keychain, Keynote AppleScript automation.
 - **Poorav:** Node.js/TypeScript, Vercel, Chert messaging and calls API, Supabase Auth/Postgres, Zod, Vitest.
-- **Colby:** Node.js/TypeScript, LiveKit Agents (Node) and server SDK, Chert CLI (`chert dev`), speech-to-text, ElevenLabs. Can work in a Coder workspace.
+- **Colby:** Node.js/TypeScript, LiveKit Agents (Node) and server SDK, Chert CLI (`chert dev`), ElevenLabs Scribe and voice. Can work in a Coder workspace.
 - **Sweeya:** TypeScript, structured model outputs, Zod, Vitest, SVG/PNG brand assets.
 
 ## Feature owners
@@ -152,7 +152,7 @@ Outcome: a judge FaceTimes Spectr, hears the Spectr voice, sees the Mac window, 
 
 ### Call agent — second PR · talk to the Mac
 
-- [ ] Transcribe `facetime-remote-audio` with the chosen speech-to-text provider. Post final transcripts to the task API as instruction or stop, with `taskId` and `expectedRevision`.
+- [ ] Transcribe `facetime-remote-audio` in realtime with ElevenLabs Scribe, using the same `ELEVENLABS_API_KEY` as voice; watch shared credit usage. Post final transcripts to the task API as instruction or stop, with `taskId` and `expectedRevision`.
 - [ ] Spectr voice: pick a British, JARVIS-like male voice (calm, crisp, slightly formal) from the ElevenLabs library, play two or three for the team, lock one, and pin its voice ID, model and settings. `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` in `.env.example` (names only).
 - [ ] Speak only status/completion text derived from `observedSlide`. If ElevenLabs fails, fall back to a stock voice so the call never goes silent.
 - [ ] Barge-in: the judge's speech stops playback; a new instruction supersedes the pending one.
@@ -161,7 +161,7 @@ Outcome: a judge FaceTimes Spectr, hears the Spectr voice, sees the Mac window, 
 
 ### Handoff and blockers
 
-Needs: Mac room publishing from Jared, task API and current-task endpoint from Poorav, short spoken status strings from Sweeya, and the speech-to-text provider decision. Done when a real FaceTime call shows the Mac and a spoken correction lands.
+Needs: Mac room publishing from Jared, task API and current-task endpoint from Poorav, and short spoken status strings from Sweeya. Done when a real FaceTime call shows the Mac and a spoken correction lands.
 
 ---
 
@@ -191,7 +191,7 @@ Outcome: Spectr interprets a natural request, spoken or texted, asks when uncert
 
 ### Handoff and blockers
 
-Coordinate the model provider and server-side key with Poorav, and the speech-to-text provider with Colby. Done when the judge can change their mind mid-call and only the final authorized action wins.
+Coordinate the model provider and server-side key with Poorav, and Scribe integration details with Colby. Done when the judge can change their mind mid-call and only the final authorized action wins.
 
 ---
 
@@ -199,7 +199,7 @@ Coordinate the model provider and server-side key with Poorav, and the speech-to
 
 - [ ] Pick the sample deck, demo Mac (Jared's) and demo phone.
 - [ ] Decide when to start the Chert trial so the 48 hours cover judging; verify the demo phones.
-- [ ] Pick the model provider and the speech-to-text provider.
+- [ ] Pick the model provider.
 - [ ] Test the LiveKit stream over cellular; if venue Wi-Fi blocks peer traffic, use the rehearsed hotspot.
 - [ ] Select "Best Use of FaceTime (Chert)" on Devpost; the demo must include a live FaceTime call.
 

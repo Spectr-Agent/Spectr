@@ -32,8 +32,8 @@ FaceTime ──► Chert line ──► chert dev ──► LiveKit call room �
 
 - LiveKit Agents (Node/TypeScript) worker registered with a fixed dispatch name, for example `spectr-agent`. Connected to FaceTime with `chert dev --agent spectr-agent`, using a pinned `@trychert/facetime` version.
 - Both the worker and `chert dev` are long-running; run them on a laptop or a Coder workspace, not on Vercel.
-- **Audio in:** subscribe to the bridge's `facetime-remote-audio` track and transcribe it with a server-side speech-to-text provider (chosen at kickoff).
-- **Audio out:** ElevenLabs TTS with one pinned British, JARVIS-like male voice (calm, crisp, slightly formal). `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` are environment variables.
+- **Audio in:** subscribe to the bridge's `facetime-remote-audio` track and transcribe it in realtime with ElevenLabs Scribe.
+- **Audio out:** ElevenLabs TTS with one pinned British, JARVIS-like male voice (calm, crisp, slightly formal). Scribe and voice use the same `ELEVENLABS_API_KEY` and share credits; monitor credit usage. `ELEVENLABS_VOICE_ID` is also an environment variable.
 - **Video out:** Chert plays the video track published by the agent. The agent joins the owner's Mac room as a subscriber, reads the Mac window frames, and republishes them into the call room as its own video track. The Mac helper never joins the call room, so the agent stays the only audio publisher there (Chert's bridge selects the sole audio publisher).
 - **Greeting:** speak within 10 seconds of the room metadata `chert_bridge_ready`, not on room join. Otherwise the call ends.
 - **Instructions:** send final transcripts to the task API as instructions or stop, with `taskId` and `expectedRevision`, the same as a text. Speak only status/completion text derived from `observedSlide`.
@@ -177,7 +177,7 @@ Fixtures: create, command, event, correction, result, error; task examples for `
 - Check ownership on every task, device and room token request.
 - Bridge tokens are per call, room-scoped, `exp - nbf ≤ 7200` seconds, with an identity distinct from the agent's. Never log them.
 - Expiring pairing codes and room tokens; device revocation.
-- Provider secrets (Chert, LiveKit, ElevenLabs, model, speech-to-text) in server environment variables; device credentials in Keychain.
+- Provider secrets (Chert, LiveKit, ElevenLabs Scribe/voice, model) in server environment variables; device credentials in Keychain.
 - Capture only the user-selected window. No arbitrary shell, stored Mac passwords, screen recordings, call recordings or raw voice logs by default.
 
 ## Recovery states

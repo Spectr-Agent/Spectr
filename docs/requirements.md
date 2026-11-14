@@ -83,7 +83,7 @@ A judge texts or FaceTimes Spectr, watches their Mac's actual screen on the Face
 
 - Bind the messaging handle to a signed-in owner via one-time pairing. Verify Chert webhook signatures.
 - Check ownership on every task, call and live session. Room tokens are short-lived and scoped to one room; the Chert bridge gets its own token, distinct from the agent's.
-- Service keys (Chert, LiveKit, ElevenLabs, model, speech-to-text) stay server-side. Device credentials live in Keychain. Never paste keys into chat.
+- Service keys (Chert, LiveKit, ElevenLabs Scribe/voice, model) stay server-side. Device credentials live in Keychain. Never paste keys into chat.
 - Capture only the user-selected window. Request Mac Automation/Accessibility only when the chosen action needs it.
 - No arbitrary shell, no stored Mac passwords, no screen recordings, and no raw voice logs or call transcripts by default. Never request a Mac password in chat or turn model output into shell commands.
 
@@ -101,6 +101,7 @@ A judge texts or FaceTimes Spectr, watches their Mac's actual screen on the Face
 - Mac helper and fallback iPhone app in Swift/SwiftUI. Backend, agent and call agent in TypeScript.
 - The call agent is a LiveKit Agents (Node) worker connected to FaceTime with the Chert CLI.
 - Spectr's voice is one fixed ElevenLabs British, JARVIS-like male voice.
+- Realtime call transcription uses ElevenLabs Scribe with the same `ELEVENLABS_API_KEY` and shared credit pool as voice; monitor credit usage.
 - Both Xcode targets pin the same stable LiveKit Swift SDK release.
 - Internet access is required. Plan a rehearsed hotspot if venue Wi-Fi blocks peer traffic.
 
