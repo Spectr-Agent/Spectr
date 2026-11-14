@@ -1,0 +1,11 @@
+{
+  "commandId": "cmd_demo_002",
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "revision": 2,
+  "action": {
+    "type": "goToSlide",
+    "number": 4
+  },
+  "issuedAt": "2026-11-13T12:01:00.000Z"
+}

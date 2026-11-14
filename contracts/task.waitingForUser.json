@@ -1,0 +1,11 @@
+{
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "state": "waitingForUser",
+  "revision": 1,
+  "instruction": "go to the slide we discussed",
+  "lastObservedSlide": null,
+  "question": "Which slide did you mean, three or four?",
+  "createdAt": "2026-11-13T12:00:00.000Z",
+  "updatedAt": "2026-11-13T12:01:00.000Z"
+}
