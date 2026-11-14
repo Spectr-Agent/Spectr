@@ -5,50 +5,110 @@
   </picture>
 </p>
 
-<p align="center">your computer, on call.</p>
+<p align="center">your computer, for everyone.<br>text it or call it. it does the work.</p>
 
-## what it is
+## why spectr
 
-spectr is a personal computer agent you can reach while you're away from your computer. text it on imessage or call it, and it does the work on the mac that's set up for it. progress, questions and results come back in the same thread or on the call.
+computers still ask a lot of people: small buttons, crowded websites, long forms, steps you have to remember. spectr takes that away. you say what you need in plain words, by imessage or a phone call, and spectr does it on your mac. it tells you what it did in plain words too.
+
+it's built for every age and every kind of work: a student between classes, a grandparent filling out a form, an office worker away from their desk, a traveler without their laptop. same assistant, shaped around the person using it.
+
+- **no new app to learn.** if you can send a text or make a call, you can use spectr.
+- **plain, calm replies.** short sentences, no jargon.
+- **you stay in charge.** text or say `stop` at any time. spectr asks before it sends, posts, buys, submits or deletes anything, and it never types your passwords.
+- **made around you.** onboarding (planned) learns how you like updates and any accessibility needs, and uses them in every reply.
+
+## who it's for
+
+<table>
+<tr>
+<td width="55%">
+
+### students
+
+> "find the slides from this week, put the relevant files in my study folder, and tell me what topics they cover."
+
+spectr finds the files, sorts them, and texts back a short list of topics.
+
+</td>
+<td width="45%" align="center">
+<!-- replace with assets/examples/student.gif -->
+<img src="design-system/assets/mascot/spectr_working.png" alt="student example (screenshot coming)" width="220">
+</td>
+</tr>
+<tr>
+<td>
+
+### older people and anyone with an accessibility need
+
+> "this website is hard for me to use. help me complete this registration and explain each decision aloud."
+
+spectr fills in the form step by step, explains each choice, and asks before it submits.
+
+</td>
+<td align="center">
+<!-- replace with assets/examples/accessibility.gif -->
+<img src="design-system/assets/mascot/spectr_listening.png" alt="accessibility example (screenshot coming)" width="220">
+</td>
+</tr>
+<tr>
+<td>
+
+### people at work
+
+> "open the report on my computer, update the chart from the latest spreadsheet, and send me a preview."
+
+spectr updates the chart and sends a preview to check before anything goes to anyone else.
+
+</td>
+<td align="center">
+<!-- replace with assets/examples/corporate.gif -->
+<img src="design-system/assets/mascot/spectr_success.png" alt="corporate example (screenshot coming)" width="220">
+</td>
+</tr>
+<tr>
+<td>
+
+### travelers
+
+> "i'm away from my laptop. find the document i was working on, make this change, and show me the result."
+
+spectr opens the document on your mac, makes the change, and shows you the result.
+
+</td>
+<td align="center">
+<!-- replace with assets/examples/traveler.gif -->
+<img src="design-system/assets/mascot/spectr_waiting_for_answer.png" alt="traveler example (screenshot coming)" width="220">
+</td>
+</tr>
+</table>
+
+these are the experiences we're building toward. see [what works today](#what-works-today) for what runs now.
+
+## what it can reach
 
 spectr only uses the mac it's set up on, and the accounts signed in on that mac. it can't reach any other laptop, or files that aren't on that mac.
 
 ## how it works
 
-1. you text a task to spectr's imessage number.
+1. you text or call spectr with a task.
 2. the backend sends claude a screenshot of the mac and asks what to do next.
 3. the mac clicks, types, scrolls or opens an app or website, then sends a new screenshot.
-4. this repeats until the task is done. you get the result in the thread, with a screenshot when it helps.
+4. this repeats until the task is done. the result comes back in the thread or on the call.
 
-text or say `stop` to cancel. any other text during a task corrects it. spectr asks before it sends, posts, buys, submits or deletes anything, and it never types passwords.
+any new message during a task corrects it.
 
-## calling (in progress)
-
-you can also call your mac instead of texting it:
+### calling (in progress)
 
 - **phone:** call +1 (470) 596-9455 from a number linked to your mac.
 - **facetime:** facetime video spectr's chert line to see the mac's screen as the call's video.
 - **in the app:** planned.
 
-the call agent turns what you say into the same tasks a text creates, and speaks the questions and the result back in spectr's voice. you can talk over it to interrupt. it never plans or runs anything itself; the mac still does the work. setup: [services/call-agent](services/call-agent/README.md).
+the call agent turns what you say into the same tasks a text creates, and speaks questions and results back in spectr's voice. you can talk over it to interrupt. setup: [services/call-agent](services/call-agent/README.md).
 
-## onboarding (planned)
+### onboarding (planned)
 
-the first time you text spectr, it asks a few questions:
-
-- what you use spectr for
-- which computer tasks you want help with
-- how you'd like updates
-- any accessibility needs
-
-answer in your own words, or skip. you can change your answers later. spectr keeps only what you agree to, tied to your imessage number, and uses it to plan tasks and word its replies. it never limits what you can ask.
-
-## examples
-
-- **student:** "find the slides from this week, put the relevant files in my study folder, and tell me what topics they cover."
-- **older person with an accessibility need:** "this website is hard for me to use. help me complete this registration and explain each decision aloud."
-- **corporate worker:** "open the report on my computer, update the chart from the latest spreadsheet, and send me a preview."
-- **frequent traveler:** "i'm away from my laptop. find the document i was working on, make this change, and show me the result."
+the first time you text spectr, it asks a few questions: what you use it for, which tasks you want help with, how you'd like updates, and any accessibility needs. answer in your own words, or skip. change your answers any time. spectr keeps only what you agree to, tied to your imessage number, and never limits what you can ask.
 
 ## what works today
 
@@ -93,7 +153,7 @@ backend checks:
 cd services/api && npm install && npm run typecheck && npm test
 ```
 
-call agent: [services/call-agent](services/call-agent/README.md). native apps: [docs/native/SETUP.md](docs/native/SETUP.md). design system (colours, type, mascot states): [design-system](design-system/README.md).
+more: [call agent](services/call-agent/README.md), [native apps](docs/native/SETUP.md), [design system](design-system/README.md), [example media](assets/examples/README.md).
 
 ## team
 
