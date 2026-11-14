@@ -112,3 +112,9 @@ This section covers Jared's native workstream and follows the team architecture 
 - The Mac connects with a device token issued by `services/api/scripts/issue-device-token.mjs` (stored in the Mac Keychain). There is no code-based pairing route yet.
 - The Mac executes only the backend's validated action set and checks each action itself: inside the shared area, http(s) links only, installed apps only. It refuses terminals, script editors and password managers, never types into password fields, and with a window shared, sends keystrokes only when that window's app is in front.
 - Release builds must not contain test data, Debug tools or development servers; `make check-release` enforces this.
+
+## Tests
+
+`cd tests && npm ci && npm run coverage` runs every TypeScript package's tests (services/api, services/call-agent, apps/web) plus `tests/unit` under one harness, gated at 99% lines/statements, 100% functions and 90% branches.
+Prerequisite: `npm ci` in each of those packages (and `tools/dev-agent`) first.
+Swift tests stay under `make test-*`; they are not part of this harness.

@@ -195,6 +195,7 @@ export function createFaceTimeRoute(
             metadata: JSON.stringify(metadata),
           });
         }),
+      /* v8 ignore next */
       now: overrides.now ?? (() => new Date()),
     };
     return handleFaceTimeWebhook(request, env, deps);

@@ -49,7 +49,7 @@ Known limit: Chert does not yet pass the caller's identity, so a line is bound t
 
 ## Production
 
-The agent runs on LiveKit Cloud as agent `CA_MqsA9odeGLc5` (us-east). Calls do not depend on anyone's laptop.
+The agent runs on LiveKit Cloud as agent `CA_MqsA9odeGLc5` (us-east). Calls do not depend on anyone's laptop. Merges to `main` that touch `services/call-agent/` or `services/api/src/` deploy automatically via `.github/workflows/deploy-call-agent.yml` (needs the `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` secrets in GitHub); `deploy.sh` still works by hand.
 
 ```sh
 services/call-agent/deploy/deploy.sh   # deploys committed HEAD; needs lk + the three LIVEKIT_ variables

@@ -1,0 +1,62 @@
+name: Deploy call agent
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/call-agent/**"
+      - "services/api/src/**"
+      - "services/api/package.json"
+      - "services/api/package-lock.json"
+      - ".github/workflows/deploy-call-agent.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-call-agent
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/call-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            services/call-agent/package-lock.json
+
+      # call-agent imports ../../api/src, so the API's deps must be installed too.
+      - name: Install dependencies
+        run: |
+          npm ci --prefix ../api
+          npm ci
+
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LiveKit CLI
+        run: curl -sSL https://get.livekit.io/cli | bash
+
+      # lk reads LIVEKIT_URL/API_KEY/API_SECRET from the env; livekit.toml
+      # in the staged folder pins the project and agent id.
+      - name: Deploy to LiveKit Cloud
+        run: services/call-agent/deploy/deploy.sh
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}

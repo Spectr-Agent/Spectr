@@ -1,0 +1,145 @@
+name: TypeScript
+
+on:
+  pull_request:
+    paths:
+      - "services/**"
+      - "apps/web/**"
+      - "supabase/**"
+      - "tools/dev-agent/**"
+      - "tests/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "apps/web/**"
+      - "supabase/**"
+      - "tools/dev-agent/**"
+      - "tests/**"
+      - ".github/workflows/ci.yml"
+
+concurrency:
+  group: ts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+
+      # Migrations reference auth.users, which only Supabase provides; stub it first.
+      - name: Prepare database
+        run: |
+          psql postgres://postgres:postgres@localhost:5432/postgres -v ON_ERROR_STOP=1 \
+            -c 'create schema auth; create table auth.users (id uuid primary key);'
+          for f in ../../supabase/migrations/*.sql; do
+            psql postgres://postgres:postgres@localhost:5432/postgres -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Test
+        run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
+  call-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/call-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            services/call-agent/package-lock.json
+
+      # call-agent imports ../../api/src, so the API's deps must be installed too.
+      - name: Install dependencies
+        run: |
+          npm ci --prefix ../api
+          npm ci
+
+      - run: npm run typecheck
+      - run: npm test
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            services/call-agent/package-lock.json
+            apps/web/package-lock.json
+            tools/dev-agent/package-lock.json
+            tests/package-lock.json
+
+      # The harness in tests/ runs every package's suite plus tests/unit and
+      # enforces the coverage thresholds in tests/vitest.config.ts.
+      - name: Install dependencies
+        run: |
+          npm ci --prefix services/api
+          npm ci --prefix services/call-agent
+          npm ci --prefix apps/web
+          npm ci --prefix tools/dev-agent
+          npm ci --prefix tests
+
+      - name: Unit tests with coverage
+        working-directory: tests
+        run: npm run coverage
