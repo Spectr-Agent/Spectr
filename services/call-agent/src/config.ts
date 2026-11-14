@@ -18,6 +18,9 @@ const EnvSchema = z.object({
    * owner by their phone number. Unset means FaceTime calls are declined.
    */
   SPECTR_FACETIME_OWNER_PHONE: z.string().optional(),
+  /** Chert project credentials, to read a webhook-answered call until its bridge is ready. */
+  CHERT_API_KEY: z.string().optional(),
+  CHERT_PROJECT_ID: z.string().optional(),
 });
 
 export type CallAgentEnv = z.infer<typeof EnvSchema>;
