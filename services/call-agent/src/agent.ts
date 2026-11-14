@@ -15,6 +15,7 @@ import { createSpeaker } from "./speech.js";
 import { PostgresTaskGateway, type Caller } from "./tasks.js";
 
 let sql: postgres.Sql | undefined;
+const APP_JOIN_TIMEOUT_MS = 45_000;
 
 /** The agent itself never answers: finished turns go to the task pipeline. */
 class SpectrVoice extends voice.Agent {
@@ -44,7 +45,21 @@ export default defineAgent({
     // A Chert warm room exists before any caller: stay silent until one arrives. An app
     // call happens in the Mac's own room, so wait for the app user, never the Mac.
     const appIdentity = appCallerIdentity(ctx.job.metadata);
-    const participant: RemoteParticipant = await ctx.waitForParticipant(appIdentity ?? undefined);
+    let participant: RemoteParticipant;
+    if (appIdentity) {
+      // The app asked for this call; if it never joins (lost network), don't linger.
+      const joined = await Promise.race([
+        ctx.waitForParticipant(appIdentity),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), APP_JOIN_TIMEOUT_MS)),
+      ]);
+      if (!joined) {
+        ctx.shutdown("app caller never joined");
+        return;
+      }
+      participant = joined;
+    } else {
+      participant = await ctx.waitForParticipant();
+    }
     const claim = claimCaller({
       jobMetadata: ctx.job.metadata,
       roomName: ctx.room.name ?? "",
