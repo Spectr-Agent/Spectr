@@ -40,14 +40,21 @@ struct FrameSinkTests {
         #expect(received.value == 2)
     }
 
-    @Test func clearingTheTargetDropsTheHeldFrame() throws {
-        let sink = FrameSink(refresh: 0)
+    @Test func aNewTargetGetsTheCurrentPictureAtOnce() throws {
+        let sink = FrameSink(refresh: 60)
+        sink.deliver(try buffer())
         let received = Received()
         sink.setTarget { _ in received.add() }
+        #expect(received.value == 1)
+    }
+
+    @Test func stoppingCaptureDropsTheHeldFrame() throws {
+        let sink = FrameSink(refresh: 0)
+        let received = Received()
         sink.deliver(try buffer())
-        sink.setTarget(nil)
+        sink.clear()
         sink.setTarget { _ in received.add() }
         sink.idle()
-        #expect(received.value == 1)
+        #expect(received.value == 0)
     }
 }

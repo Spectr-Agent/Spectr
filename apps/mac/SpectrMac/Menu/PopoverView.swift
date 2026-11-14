@@ -108,12 +108,15 @@ struct PopoverView: View {
                     state.problem != .screenRecordingOff
                 {
                     HStack(spacing: 8) {
-                        Text(state.share == .choosing ? "Choosing a window…" : "No window shared")
+                        Text(state.share == .choosing ? "Choosing a window…" : "Screen not shared")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                         if state.canShareScreen {
-                            Button("Choose Window…", action: actions.chooseWindow)
+                            Button("Share Screen", action: actions.shareScreen)
+                                .buttonStyle(.borderedProminent)
+                                .disabled(state.share == .choosing)
+                            Button("Window…", action: actions.chooseWindow)
                                 .disabled(state.share == .choosing)
                         }
                     }
@@ -163,7 +166,7 @@ struct PopoverView: View {
         case .notPaired: ("Continue Setup…", actions.openSetup)
         case .screenRecordingOff: ("Fix in Setup…", actions.openSetup)
         case .controlOff: ("Allow Control…", actions.openSetup)
-        case .windowClosed, .sharingFailed: ("Choose Window…", actions.chooseWindow)
+        case .windowClosed, .sharingFailed: ("Share Screen", actions.shareScreen)
         case .misconfigured, .none: nil
         }
     }
@@ -173,6 +176,11 @@ struct PopoverView: View {
     private var footer: some View {
         HStack {
             Menu {
+                Toggle(
+                    "Share Screen Automatically",
+                    isOn: Binding(get: { state.alwaysShareScreen }, set: actions.setAlwaysShareScreen))
+                Toggle("Keep Mac Awake", isOn: Binding(get: { state.keepAwake }, set: actions.setKeepAwake))
+                Divider()
                 Button("Setup & Permissions…", action: actions.openSetup)
                 if let openLab = actions.openLab {
                     Button("Action Lab (Debug)…", action: openLab)
@@ -232,7 +240,11 @@ private struct ShareSection: View {
 
             HStack {
                 Spacer()
-                Button("Change…", action: actions.chooseWindow)
+                if source.kind == .window {
+                    Button("Whole Screen", action: actions.shareScreen)
+                } else {
+                    Button("One Window…", action: actions.chooseWindow)
+                }
                 Button("Stop Sharing", systemImage: "eye.slash", action: actions.stopSharing)
                     .help("Your iPhone stops seeing this Mac. The task is not stopped.")
             }

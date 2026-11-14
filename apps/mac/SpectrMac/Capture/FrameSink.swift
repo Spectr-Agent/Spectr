@@ -17,13 +17,21 @@ final class FrameSink: @unchecked Sendable {
         self.refresh = refresh
     }
 
-    /// Starts or stops delivery. Clearing the target drops the held frame, so a new
-    /// session never shows an old picture.
+    /// Starts or stops delivery. A new target gets the current picture at once: LiveKit
+    /// needs a first frame to finish publishing, and a still screen sends no new ones.
     func setTarget(_ target: ((CVPixelBuffer) -> Void)?) {
-        lock.withLock {
+        let current: CVPixelBuffer? = lock.withLock {
             self.target = target
-            if target == nil { last = nil }
+            guard target != nil, let last else { return nil }
+            lastSent = Date()
+            return last
         }
+        if let target, let current { target(current) }
+    }
+
+    /// Drops the held frame when capture stops, so nothing old is ever shown again.
+    func clear() {
+        lock.withLock { last = nil }
     }
 
     func deliver(_ buffer: CVPixelBuffer, now: Date = Date()) {

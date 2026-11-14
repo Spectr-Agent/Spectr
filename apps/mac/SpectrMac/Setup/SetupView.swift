@@ -156,7 +156,7 @@ private struct StepDetail: View {
             if case .some(let source) = windowClosed {
                 return source.map { "“\($0.title)” closed" } ?? "The shared window closed"
             }
-            return "Choose the window to share"
+            return "Share your screen"
         }
     }
 
@@ -169,7 +169,7 @@ private struct StepDetail: View {
         case .control:
             "Open System Settings › Privacy & Security › Accessibility and turn on Spectr."
         case .window:
-            "Pick one window in the macOS picker. Choose the app you want your iPhone to operate."
+            "Spectr shares your whole screen on its own once Screen Recording is on. You can limit it to one window instead."
         }
     }
 
@@ -185,7 +185,7 @@ private struct StepDetail: View {
             if windowClosed != nil {
                 "Sharing stopped when the window went away. Spectr never switches to another window or your desktop on its own."
             } else {
-                "Your iPhone sees this window and nothing else. You can change it or stop sharing from the menu bar at any time."
+                "Your iPhone sees what you share, and Spectr acts only there. It keeps sharing after sleep or a dropped connection; stop it from the menu bar at any time."
             }
         }
     }
@@ -199,7 +199,7 @@ private struct StepDetail: View {
         case .control:
             "Come back to this window; the step checks itself off within a couple of seconds."
         case .window:
-            "The window's name appears here and in the menu bar, and the menu bar icon changes while it's shared."
+            "What's shared appears here and in the menu bar, and the menu bar icon changes while it's shared."
         }
     }
 
@@ -245,10 +245,14 @@ private struct StepDetail: View {
                 DoneRow(text: "Sharing “\(source.title)”\(source.appName.map { " in \($0)" } ?? "").")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Button("Choose Window…", action: actions.chooseWindow)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(!state.canShareScreen || state.share == .choosing)
+                    HStack {
+                        Button("Share Entire Screen", action: actions.shareScreen)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                        Button("Choose One Window…", action: actions.chooseWindow)
+                            .controlSize(.large)
+                    }
+                    .disabled(!state.canShareScreen || state.share == .choosing)
                     if !state.canShareScreen {
                         Text("Allow screen recording first.")
                             .font(.callout)
