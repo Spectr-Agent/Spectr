@@ -2,6 +2,52 @@
 
 See [requirements.md](requirements.md) and [design.md](design.md).
 
+## New direction: personal computer agent
+
+Spectr is a personal computer agent people reach by iMessage while they're away from their computer. It works on the Mac and the accounts configured for it, and sends progress, questions and results back in the same conversation. One task loop adapts to each person, instead of separate products per audience. Example people: a student, an older person with an accessibility need, a corporate worker and a frequent traveler (see the README).
+
+The iPhone app and LiveKit live screen are handled separately and aren't in this split.
+
+### Already working
+
+- [x] Text a task through Sendblue, Claude computer use runs it on a real Mac, and the result comes back in the thread.
+- [x] Stop and corrections by text; Spectr asks before sending, posting, buying, submitting or deleting, and pauses for logins.
+- [x] Searches and "check" tasks collect the details and text back the top options.
+- [x] Signed Sendblue webhooks, per-Mac device tokens, and a repeated message runs only once.
+
+### Gaps to know about
+
+- A text from a number that isn't set up is silently ignored. There's no sign-up step.
+- Nothing is saved about the person: no preferences, no accessibility notes.
+- No `status` or `continue` command, and a task can't resume after the Mac drops.
+- There is no FaceTime behavior to preserve. No code answers calls, and Chert FaceTime was never tested.
+
+### Poorav — backend and the iMessage end-to-end test (first; Sweeya and Colby build on it)
+
+- [ ] Onboarding entry: a verified new number gets a welcome text instead of being ignored. Only numbers linked to a configured Mac can run tasks.
+- [ ] Profile table per verified iMessage identity: uses, wanted tasks, update preference, accessibility needs, what the person agreed to keep, and onboarding progress.
+- [ ] Text commands: `status`, `continue` (resume after an interruption), `skip`, `change my preferences`, `forget that`.
+- [ ] Tests: people's context stays separate, a message processed twice doesn't replay a task, unverified senders are rejected.
+- [ ] One full run through the normal iMessage entry point on a real Mac: request, computer actions, a question or approval, and a useful result.
+- [ ] Update the README and this task list with what was verified.
+
+### Sweeya — agent and wording
+
+- [ ] Onboarding questions. People answer freely or skip; Claude turns the answers into the profile and asks "Shall I remember this?" before saving.
+- [ ] Use the profile as primary context for planning and replies (for example, explain each choice step by step for an accessibility need, or keep updates brief). Preferences guide the interaction and never restrict what someone can ask.
+- [ ] Progress texts during long tasks, matching the person's update preference.
+- [ ] Approval checks for sending a document to someone else, submitting a form and making a purchase, with cases from the four example people.
+
+### Colby — TypeScript tests and voice (no Mac needed)
+
+- [ ] Mock-Mac runs of the four example tasks through the real Sendblue webhook with a fake Sendblue.
+- [ ] A full onboarding conversation test: answers, skips, changing an answer later, and one person's context never reaching another.
+- [ ] Optional: for "explain each decision aloud", attach an ElevenLabs voice note to the iMessage using the existing code in `services/api/src/voice`.
+
+**Done when:** a new person onboards by iMessage, runs one real task with an approval, asks for its status, and gets a useful result, with their saved preferences shaping the replies.
+
+---
+
 ## Ownership changes from the build plan
 
 Colby doesn't have a Mac, so he can't build or test Swift.
