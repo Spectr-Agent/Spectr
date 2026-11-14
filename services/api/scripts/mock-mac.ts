@@ -1,9 +1,13 @@
-import { desktopExecutor, fixtureExecutor } from "../src/mock-mac/executors.js";
+import {
+  desktopExecutor,
+  fixtureExecutor,
+  macExecutor,
+} from "../src/mock-mac/executors.js";
 import { runMockMac } from "../src/mock-mac/loop.js";
 
 interface Options {
   api: string;
-  executor: "fixture" | "desktop";
+  executor: "fixture" | "desktop" | "mac";
   screenshot?: string;
   once: boolean;
 }
@@ -11,7 +15,7 @@ interface Options {
 function parseArgs(args: string[]): Options {
   const options: Options = {
     api: process.env.API ?? "http://localhost:3000",
-    executor: "desktop",
+    executor: process.platform === "darwin" ? "mac" : "desktop",
     once: false,
   };
   for (let index = 0; index < args.length; index += 1) {
@@ -27,8 +31,8 @@ function parseArgs(args: string[]): Options {
       if (arg === "--api") {
         options.api = value;
       } else if (arg === "--executor") {
-        if (value !== "fixture" && value !== "desktop") {
-          throw new Error("--executor must be fixture or desktop.");
+        if (value !== "fixture" && value !== "desktop" && value !== "mac") {
+          throw new Error("--executor must be fixture, desktop, or mac.");
         }
         options.executor = value;
       } else {
@@ -48,13 +52,15 @@ async function main(): Promise<void> {
   }
   const options = parseArgs(process.argv.slice(2));
   const executor =
-    options.executor === "desktop"
-      ? desktopExecutor()
-      : options.screenshot
-        ? fixtureExecutor({ screenshotPath: options.screenshot })
-        : (() => {
-            throw new Error("--screenshot is required for the fixture executor.");
-          })();
+    options.executor === "mac"
+      ? macExecutor()
+      : options.executor === "desktop"
+        ? desktopExecutor()
+        : options.screenshot
+          ? fixtureExecutor({ screenshotPath: options.screenshot })
+          : (() => {
+              throw new Error("--screenshot is required for the fixture executor.");
+            })();
   await runMockMac({
     apiUrl: options.api,
     token,
