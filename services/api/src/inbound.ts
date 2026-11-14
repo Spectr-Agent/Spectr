@@ -1,4 +1,10 @@
 import { InboundMessageSchema, type Command } from "./contracts.js";
+import {
+  handleOnboardingReply,
+  startOnboarding,
+  type OnboardingStore,
+  type OnboardingTurnLog,
+} from "./agent/onboarding/index.js";
 import type {
   AgentTaskRecord,
   InboundKind,
@@ -37,8 +43,15 @@ export interface TaskStore {
   claimResultNotification(taskId: string, now: Date): Promise<AgentTaskRecord | null>;
 }
 
+/** Optional: when set, texts can be answers to onboarding questions or onboarding commands. */
+export interface InboundOnboarding {
+  store: OnboardingStore;
+  turns: OnboardingTurnLog;
+}
+
 export interface InboundDeps {
   store: TaskStore;
+  onboarding?: InboundOnboarding;
   provider: "sendblue" | "chert";
   resolveSender(
     fromNumber: string,
@@ -57,6 +70,7 @@ export type InboundOutcome =
       taskId: string;
       kind: InboundKind;
     }
+  | { status: "onboarding" }
   | { status: "ignored"; reason: "unknownSender" };
 
 export function isStop(text: string): boolean {
@@ -83,6 +97,49 @@ function replyForInbound(kind: InboundKind): string {
   }
 }
 
+function onboardingCommand(text: string): "change" | "forget" | null {
+  const t = text.trim().toLowerCase().replace(/[.!]+$/u, "");
+  if (t === "change my preferences") return "change";
+  if (t === "forget that") return "forget";
+  return null;
+}
+
+/**
+ * Handles a text that belongs to onboarding: the person is partway through the
+ * questions, or sent "change my preferences" / "forget that". Returns null for
+ * an ordinary message, which then runs as a task.
+ */
+async function handleOnboardingMessage(
+  message: { providerMessageId: string; fromNumber: string; text: string },
+  ownerId: string,
+  onboarding: InboundOnboarding,
+  deps: InboundDeps,
+): Promise<InboundOutcome | null> {
+  const command = onboardingCommand(message.text);
+  if (!command && !(await onboarding.store.getState(ownerId))) return null;
+
+  // A repeat delivery of the same text must not move the questions on again.
+  if (!(await onboarding.turns.claim(message.providerMessageId, ownerId))) {
+    return { status: "onboarding" };
+  }
+
+  let say: string;
+  if (command === "forget") {
+    await onboarding.store.deleteState(ownerId);
+    await onboarding.store.deleteProfile(ownerId);
+    say = "Certainly. I've forgotten what I had saved about you.";
+  } else if (command === "change") {
+    say = (await startOnboarding(ownerId, onboarding, await onboarding.store.getProfile(ownerId))).say;
+  } else {
+    const turn = await handleOnboardingReply(ownerId, message.text, onboarding);
+    if (!turn) return null;
+    say = turn.say;
+  }
+
+  await deps.sendReply(message.fromNumber, say, `onboarding-${message.providerMessageId}`);
+  return { status: "onboarding" };
+}
+
 export async function handleInboundMessage(
   raw: unknown,
   deps: InboundDeps,
@@ -92,6 +149,11 @@ export async function handleInboundMessage(
 
   if (!sender) {
     return { status: "ignored", reason: "unknownSender" };
+  }
+
+  if (deps.onboarding) {
+    const outcome = await handleOnboardingMessage(message, sender.ownerId, deps.onboarding, deps);
+    if (outcome) return outcome;
   }
 
   const routed = await deps.store.routeInbound({

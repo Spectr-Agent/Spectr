@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { createChertReplier } from "./client.js";
 import { handleChertWebhook } from "./webhook.js";
 import { createSenderResolver, PostgresTaskStore } from "../pg-store.js";
+import { PostgresOnboardingStore, PostgresOnboardingTurnLog } from "../agent/onboarding/pg-store.js";
 
 type RouteEnvironment = Record<string, string | undefined>;
 
@@ -47,6 +48,10 @@ export function createChertWebhookRoute(
           secret: webhookSecret,
           inbound: {
             store: new PostgresTaskStore(connection),
+            onboarding: {
+              store: new PostgresOnboardingStore(connection),
+              turns: new PostgresOnboardingTurnLog(connection),
+            },
             provider: "chert",
             resolveSender: createSenderResolver(connection, "chert"),
             sendReply: createChertReplier({

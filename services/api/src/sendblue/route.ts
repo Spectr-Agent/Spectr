@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { createSenderResolver, PostgresTaskStore } from "../pg-store.js";
+import { PostgresOnboardingStore, PostgresOnboardingTurnLog } from "../agent/onboarding/pg-store.js";
 import { createSendblueReplier } from "./client.js";
 import { handleSendblueWebhook } from "./webhook.js";
 import type { RouteOverrides } from "../route-deps.js";
@@ -51,6 +52,10 @@ export function createSendblueWebhookRoute(
             store:
               overrides?.makeStore?.(connection) ??
               new PostgresTaskStore(connection),
+            onboarding: {
+              store: new PostgresOnboardingStore(connection),
+              turns: new PostgresOnboardingTurnLog(connection),
+            },
             provider: "sendblue",
             resolveSender: createSenderResolver(connection, "sendblue"),
             sendReply: createSendblueReplier({
