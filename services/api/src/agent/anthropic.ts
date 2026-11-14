@@ -8,10 +8,16 @@ export interface AnthropicRequest {
   system: string;
   tools: typeof ANTHROPIC_TOOLS;
   messages: AgentMessage[];
+  /** Cache the growing, append-only history so resending screenshots stays cheap. */
+  cache_control: { type: "ephemeral" };
 }
 
 export interface AnthropicResponse {
   content: unknown[];
+  /** Why Claude stopped, e.g. "tool_use", "end_turn", "max_tokens" or "refusal". */
+  stop_reason?: string | null;
+  /** Set on refusals; `category` is safe to log. */
+  stop_details?: { category?: string | null } | null;
 }
 
 export class AnthropicHttpError extends Error {
@@ -91,7 +97,18 @@ export function createAnthropicCaller(
     ) {
       throw new Error("Anthropic response did not contain message content");
     }
-    return { content: payload.content };
+    const record = payload as Record<string, unknown>;
+    const stopReason = typeof record.stop_reason === "string" ? record.stop_reason : null;
+    const details = record.stop_details;
+    const category =
+      typeof details === "object" && details !== null && typeof (details as Record<string, unknown>).category === "string"
+        ? ((details as Record<string, unknown>).category as string)
+        : null;
+    return {
+      content: payload.content,
+      stop_reason: stopReason,
+      stop_details: details == null ? null : { category },
+    };
   };
 }
 
@@ -105,5 +122,6 @@ export function anthropicRequest(
     system: SYSTEM_PROMPT,
     tools: ANTHROPIC_TOOLS,
     messages,
+    cache_control: { type: "ephemeral" },
   };
 }
