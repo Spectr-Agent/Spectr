@@ -10,6 +10,8 @@ import {
 } from "../src/agent/routes.js";
 import { createSendblueWebhookRoute } from "../src/sendblue/route.js";
 import { createMacLiveKitRoute } from "../src/livekit/mac-token.js";
+import { createAppApi } from "../src/app/routes.js";
+import { createMacPairingRoutes } from "../src/app/mac-pairing.js";
 
 const env = () => process.env;
 const makeSql = (url: string) => postgres(url, { prepare: false, max: 1 });
@@ -38,6 +40,8 @@ const callClaude: CallClaude | undefined =
         return claudeCaller(body, options);
       }
     : undefined;
+const app = createAppApi(env, makeSql);
+const macPairing = createMacPairingRoutes(env, makeSql);
 const routes = new Map<string, (request: Request) => Promise<Response>>([
   ["POST /api/sendblue/webhook", createSendblueWebhookRoute(env, makeSql)],
   ["GET /api/mac/task", createMacTaskRoute(env, makeSql)],
@@ -51,6 +55,16 @@ const routes = new Map<string, (request: Request) => Promise<Response>>([
     ),
   ],
   ["GET /api/tasks/screenshot", createTaskScreenshotRoute(env, makeSql)],
+  ["GET /api/app/home", app.home],
+  ["GET /api/app/task", app.task],
+  ["POST /api/app/message", app.message],
+  ["POST /api/app/stop", app.stop],
+  ["POST /api/app/live", app.live],
+  ["POST /api/app/pair", app.pair],
+  ["POST /api/app/phone", app.phone],
+  ["DELETE /api/app/phone", app.phone],
+  ["POST /api/mac/pair", macPairing.start],
+  ["POST /api/mac/pair-status", macPairing.status],
 ]);
 
 async function requestFromNode(

@@ -12,7 +12,7 @@ export interface TaskStore {
     ownerId: string;
     deviceId: string;
     text: string;
-    replyProvider: "sendblue" | "chert" | "call";
+    replyProvider: "sendblue" | "chert" | "call" | "app";
     replyHandle: string;
     now: Date;
   }): Promise<{ taskId: string; kind: InboundKind; created: boolean }>;
