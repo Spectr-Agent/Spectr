@@ -1,0 +1,17 @@
+{
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "state": "running",
+  "revision": 3,
+  "instruction": "open Notes and write a shopping list",
+  "lastObserved": {
+    "frontmostBundleId": "com.apple.Notes",
+    "frontmostAppName": "Notes",
+    "windowTitle": "Notes",
+    "focusedElement": { "role": "AXTextArea", "title": null, "value": "milk" },
+    "verification": "accessibility"
+  },
+  "question": null,
+  "createdAt": "2026-11-13T12:00:00.000Z",
+  "updatedAt": "2026-11-13T12:01:30.000Z"
+}

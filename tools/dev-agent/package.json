@@ -1,0 +1,12 @@
+{
+  "name": "spectr-dev-agent",
+  "private": true,
+  "type": "module",
+  "description": "Local-only planner for the Mac helper's Debug Action Lab. Not the production agent.",
+  "scripts": {
+    "start": "node --env-file=../../.env.local server.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  }
+}

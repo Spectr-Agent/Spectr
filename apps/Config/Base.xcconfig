@@ -1,0 +1,20 @@
+// Shared, non-secret build settings for both Spectr apps.
+// Values marked "supplied by" are filled in Config/Local.xcconfig (gitignored).
+
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+MACOSX_DEPLOYMENT_TARGET = 26.0
+
+// Supplied by Jared: reverse-DNS prefix you control, e.g. com.yourname
+SPECTR_BUNDLE_PREFIX = dev.spectr.unconfigured
+// Supplied by Jared: Apple developer team ID. Empty builds unsigned for simulator/CI.
+DEVELOPMENT_TEAM =
+
+// Supplied by Poorav: public API origin. Supplied by Jared/Poorav: Universal Link host.
+// Debug falls back to a local server (see Debug.xcconfig); Release has no fallback and
+// refuses to start without real values.
+SPECTR_API_ORIGIN = $(SPECTR_DEFAULT_API_ORIGIN)
+SPECTR_LINK_HOST = $(SPECTR_DEFAULT_LINK_HOST)
+
+#include? "Local.xcconfig"

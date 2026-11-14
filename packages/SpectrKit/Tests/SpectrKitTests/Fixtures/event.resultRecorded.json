@@ -1,0 +1,7 @@
+{
+  "taskId": "tsk_demo_001",
+  "seq": 7,
+  "type": "resultRecorded",
+  "data": { "commandId": "cmd_demo_002", "outcome": "succeeded" },
+  "at": "2026-11-13T12:01:03.000Z"
+}

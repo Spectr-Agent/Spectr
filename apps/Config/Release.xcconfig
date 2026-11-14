@@ -1,0 +1,4 @@
+#include "Base.xcconfig"
+// Release always runs as production: HTTPS origin required, no development routes.
+SPECTR_ENVIRONMENT = production
+SWIFT_ACTIVE_COMPILATION_CONDITIONS =

@@ -1,0 +1,6 @@
+#include "Base.xcconfig"
+SPECTR_ENVIRONMENT = development
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG
+// Used only when Config/Local.xcconfig does not set an origin, so a fresh checkout runs.
+SPECTR_DEFAULT_API_ORIGIN = http:/$()/localhost:3000
+SPECTR_DEFAULT_LINK_HOST = localhost
