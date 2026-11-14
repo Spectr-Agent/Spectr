@@ -1,51 +1,44 @@
-# Native contract proposal (PROVISIONAL)
+# Native contract notes
 
-What the Swift apps need from the backend. Nothing here is implemented server-side. Envelopes follow Poorav's frozen contract (`origin/devin/1794614215-wire-format`). Everything marked **new** needs his agreement. Fixtures: `packages/SpectrKit/Tests/SpectrKitTests/Fixtures/`.
+The canonical contract is `contracts/` and `services/api/src/contracts.ts` (owner: Poorav). This file records how the native apps use it and what they still need.
 
-## Action vocabulary (new)
+## Mac ↔ backend (implemented)
 
-The Mac executes only these steps. Unknown types are decoded and rejected with `unsupportedAction`. There is no shell, script or free-form case.
-
-| `type` | Fields | Mac-side validation |
+| Call | Native code | Notes |
 | --- | --- | --- |
-| `observe` | — | — |
-| `openApp` | `bundleId` | Reverse-DNS shape. The app must not be on the user's blocklist. |
-| `click` | `target` | `{elementId}` from the latest observation, or `{x, y}` ≥ 0 in shared-window points |
-| `typeText` | `text`, `target?` | 1–2000 characters. Never types into a secure (password) field. |
-| `keyCombo` | `combo: {modifiers[], key}` | Unique modifiers. `key` is one character or a named key. |
-| `scroll` | `dx`, `dy`, `target?` | Each within ±50 lines, not both zero |
-| `stop` | — | — |
+| `GET /api/mac/task` with `Authorization: Bearer <device token>` | `MacAgentClient.activeTask()` | Polled about every 3 s while idle. 401 forgets the token and asks the user to connect again. |
+| `POST /api/mac/step` | `MacAgentClient.step(_:)` | Sends a JPEG of only the shared window or display (long edge 1280 px, within the backend's 2576 px and 4784-tile limits), `afterStep`, and the previous batch's results. 409 `staleStep` means a correction or Stop moved the task: the Mac re-reads it. |
 
-## Observed state (new)
+Types: `SpectrKit/Agent/MacAgentWire.swift`. Tests decode the real `contracts/mac-*.json` files, not copies, so a contract change that breaks the Mac fails `make test-kit`.
 
-Results carry `observed: {frontmostBundleId, frontmostAppName, windowTitle, focusedElement: {role, title, value}, verification}`. `verification` is `accessibility` (read back) or `screenshotOnly` (not verifiable). `value` is always null for secure fields.
+### What the Mac checks itself before acting
 
-Outcomes: `succeeded` (readback matches), `failed`, `rejected` (refused before any side effect), and **new** `unverified` (may have run, can't be confirmed).
+The backend validates actions; the Mac checks again, independently (`MacActionPolicy`, `EventActionPerformer`):
 
-## Mac command rules (implemented in `CommandLedger`)
+- Coordinates must be inside the screenshot it sent; they map back into the shared window or display only.
+- `openUrl`: http and https only. `openApp`: installed apps found by name in the standard application folders; never a path.
+- Never operates terminals, script editors, Automator, Shortcuts, Keychain Access or password managers (`AppPolicy`), and never types into a password field.
+- With a window shared, keystrokes are sent only when that window's app is in front.
+- Unknown action types are reported as failed, never executed.
+- Locked screen and missing Accessibility permission are reported as distinct failures.
 
-| Situation | Behavior |
+### Exactly-once execution
+
+`StepLedger` records each step batch by `(taskId, step)` before and during execution and is saved to Application Support after every action. If the step request is retried and returns the same batch, the stored results are re-sent. If Spectr restarted mid-batch, nothing in it runs again; unfinished actions are reported as not run.
+
+## iPhone ↔ backend (needed, not on `main`)
+
+The iPhone signs in with Supabase directly. It still needs routes for a signed-in user:
+
+| Need | Why |
 | --- | --- |
-| Same `commandId`, same payload, already finished | Re-send the stored result. No second side effect. |
-| Same `commandId`, different payload | Reject as a protocol conflict. |
-| Same `commandId`, started but no result (crash/restart) | Read current state and report it. Do not execute again. |
-| `revision` older than the newest seen for the task (including via Stop or a correction) | Discard before execution. Report `stale`. |
+| List my tasks; get one task with ordered events after a cursor | Task screen and restore after relaunch |
+| Post an instruction or Stop with `expectedRevision` and a client message ID | Correction and Stop; the ID makes a retry safe |
+| LiveKit viewer token for my Mac's room | Live video (subscribe-only for the phone; publish for the Mac) |
+| Redeem a Watch live link | Opening a task from iMessage |
 
-## Operations needed (new routes; names are proposals)
+The iPhone's current wire models for these (`TaskSnapshot`, `TaskEvent`, `InstructionAck`) follow the frozen task envelopes in `contracts/` and are exercised only with test data until the routes exist.
 
-| Operation | Caller → auth | Notes |
-| --- | --- | --- |
-| Sign in / refresh / sign out | iPhone → Supabase Auth (Sign in with Apple ID token) | The Apple provider must be enabled in Supabase |
-| `POST /v1/pairing/challenges` | Mac → none | Returns `{challengeId, code, pollSecret, expiresAt}`. The code is single-use and lasts 5 minutes. |
-| `POST /v1/pairing/approve` | iPhone → user | `{code, deviceName}`. Reuse returns 409. |
-| `POST /v1/pairing/exchange` | Mac → `pollSecret` | Returns `{deviceId, deviceCredential}` or 202 pending. A wrong secret returns 403. |
-| `GET /v1/devices` | iPhone → user | Last seen, interactive/locked/asleep, capture and accessibility permission, revoked. Each is a separate fact. |
-| `POST /v1/devices/me/heartbeat` | Mac → device | Capability snapshot |
-| `POST /v1/tasks` | iPhone → user | Create a task from the app (`source: "app"`) |
-| `POST /v1/links/redeem` | iPhone → user | `{linkToken}` → `{taskId, deviceId}`. Expired → 410. Another owner → 403. |
-| `POST /v1/tasks/{id}/room-token` | iPhone (viewer: subscribe-only) or Mac (publisher: screen share + data) | Short TTL. Issued only after an ownership check. Owner: Jared (TypeScript). |
-| `GET /v1/tasks/{id}` and `/events?after=seq&wait=25` | iPhone → user | A sequence gap triggers a snapshot refetch |
-| `POST /v1/tasks/{id}/instructions` | iPhone → user | Add `clientMessageId`. `kind: instruction \| stop`. |
-| `GET /v1/devices/me/commands?wait=25` | Mac → device | Long-poll claim. Re-delivery keeps the same `commandId`. |
-| `POST /v1/commands/{commandId}/result` | Mac → device | `DeviceResult`. Returns a `Receipt`. |
-| `POST /v1/tasks/{id}/speech` | iPhone → user | Streams ElevenLabs audio for a verified reply event. Owner: Jared (TypeScript). |
+## Superseded
+
+The earlier native proposal for an Accessibility-element action set (`observe`, `click(elementId)`, `typeText`, `keyCombo`, `scroll`) and `/v1/pairing/*` routes is superseded by the backend's screenshot-and-coordinates loop and device tokens. The older action set remains only in the Debug action lab.

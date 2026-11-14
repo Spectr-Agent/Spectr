@@ -27,3 +27,19 @@ Status as of 2026-11-14. Owner: Jared (native), with Poorav (Supabase project an
 ## Tests that exist
 
 `SupabaseAuthClientTests`, `AuthLinkTests` (shared package), `AuthModelTests`, `KeychainCredentialStoreTests` (iOS). Live round trip verified against the real project with throwaway accounts on 2026-11-14 (code, refresh, sign-out, link redirect). A real inbox delivery was confirmed by Jared signing in.
+
+## Supabase project settings changed on 2026-11-14
+
+Made by Jared's agent through the Supabase Management API so sign-in could work. Shared project: tell Poorav before changing these again.
+
+| Setting | Before | After | Why |
+| --- | --- | --- | --- |
+| SMTP | Supabase built-in mailer | Resend (`smtp.resend.com`), sender `Spectr <onboarding@resend.dev>` | The built-in mailer can't use custom templates on the free plan and allows 2 emails/hour |
+| Email templates (Confirm signup, Magic Link) | Link only | 6-digit code plus link | The app signs in with the code |
+| Email subjects | "Confirm your email address", "Your sign-in link" | "Your Spectr sign-in code" | Matches the template |
+| Email OTP length | 8 | 6 | Matches the app |
+| Email rate limit | 2/hour | 30/hour | Testing |
+| Additional redirect URLs | none | `spectr://auth-callback` | Lets the emailed link open the iPhone app |
+| Confirm email | on | on (briefly off during setup, restored) | — |
+
+The Resend API key lives only in Supabase's SMTP settings and in the developer's local `~/.config/spectr/dev.env`; it is never in the repo or an app.

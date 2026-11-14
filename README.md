@@ -1,10 +1,9 @@
-Spectr takes a multi-step task by Sendblue text and runs it on your paired Mac across apps and websites. Use voice and watch the authorized screen in the native iPhone app over LiveKit, correct or stop the task, and get a verified result. Examples include opening Instagram DMs or moving a Keynote slide.
+Spectr takes a multi-step task by Sendblue text and runs it on your paired Mac across apps and websites. Use voice and watch the authorized screen in the native iPhone app over LiveKit, correct or stop the task, and get a verified result. Examples include opening Instagram DMs or writing a note in Notes.
 
 | Owner | Area |
 | --- | --- |
-| Jared | iPhone and Mac Swift apps |
+| Jared | iPhone and Mac Swift apps; LiveKit room tokens, voice and Apple association file (taken over from Colby) |
 | Poorav | Backend |
-| Colby | Backend and agent support, including ElevenLabs voice |
 | Sweeya | Agent and brand |
 
 Project docs: [requirements](docs/requirements.md), [design](docs/design.md), and [tasks](docs/tasks.md).
@@ -21,14 +20,10 @@ Swift sources live in `apps/ios`, `apps/mac` and `packages/SpectrKit`. Native st
 
 ### What works today
 
-Native foundation only (Phase 1):
-
-- Both apps build from a clean checkout and run their unit tests.
-- The shared Swift package decodes task, command, result, receipt, event and error payloads, including the provisional general-control actions.
-- The command ledger rejects duplicate, conflicting and stale commands (unit-tested).
-- Each app refuses to start against missing or insecure configuration and says why.
-
-Sign-in, pairing, live video, Mac actions and voice are **not implemented yet**. See [STATUS.md](docs/native/STATUS.md) for what is next and who it depends on.
+- **iPhone:** real Supabase sign-in (6-digit email code or the emailed link), session in Keychain. The task screen (live-view states, steps, correction, Stop) runs on labeled test data until the iPhone task API exists.
+- **Mac:** menu-bar helper with setup for Screen Recording and Accessibility, sharing of one picked window or display, and connection to the backend with a device token.
+- **Mac agent loop:** polls `GET /api/mac/task`, sends screenshots of only the shared content to `POST /api/mac/step`, and executes the returned actions after its own safety checks. Verified against the backend contract files and fakes; **not yet run against a deployed backend**.
+- **Not built yet:** LiveKit video to the iPhone, voice. See [STATUS.md](docs/native/STATUS.md).
 
 ### Prerequisites
 
@@ -52,10 +47,13 @@ Which values come from whom (all go in `apps/Config/Local.xcconfig`):
 | Setting | Supplied by |
 | --- | --- |
 | `SPECTR_BUNDLE_PREFIX`, `DEVELOPMENT_TEAM` | Jared |
-| `SPECTR_API_ORIGIN` | Poorav (deployed API) |
+| `SPECTR_API_ORIGIN` | The deployed `services/api` origin (Poorav), or `http://localhost:3000` from `npm run dev:server` in Debug |
 | `SPECTR_LINK_HOST` | Jared (hosts the association file) and Poorav (domain) |
+| `SPECTR_SUPABASE_URL`, `SPECTR_SUPABASE_PUBLISHABLE_KEY` | Supabase project settings (public values; never the secret key) |
 
-Supabase project settings and Sendblue are configured by Poorav. LiveKit token issuance is Jared's TypeScript work. Provider secrets never go in either app.
+Sendblue is configured by Poorav. LiveKit token issuance and voice are Jared's TypeScript work. Provider secrets never go in either app. Sign-in details and remaining hardening: [docs/native/AUTH.md](docs/native/AUTH.md).
+
+**Connect the Mac:** issue a token with `POSTGRES_URL=... node services/api/scripts/issue-device-token.mjs <deviceId>`, then paste it into Spectr Setup → "Connect this Mac to your account". The token is stored in the Mac Keychain.
 
 ### Commands
 
@@ -84,12 +82,16 @@ Fixtures exist only in test targets (`packages/SpectrKit/Tests/SpectrKitTests/Fi
 | Mac menu shows Accessibility control "Not allowed" | Accessibility permission not granted | System Settings → Privacy & Security → Accessibility |
 | Local signed build fails with "resource fork, Finder information, or similar detritus not allowed" | The repo is in an iCloud-synced folder (`~/Documents`), which adds file attributes that codesign rejects | Build with `-derivedDataPath` outside `~/Documents`, or move the repo |
 | Package resolution picks a different LiveKit version | Generated project lost its pin | `make bootstrap` restores `apps/Package.resolved` |
-| Black or frozen video, a room that joins without a track, an expired link, or an action reported without readback | These paths ship in Phases 2–5 | See [STATUS.md](docs/native/STATUS.md) |
+| Setup says the device token wasn't accepted | Token mistyped, revoked, or issued by a different backend than `SPECTR_API_ORIGIN` | Issue a new token against the same database the API uses |
+| Mac menu says "Can't reach the Spectr server" | Wrong `SPECTR_API_ORIGIN` or the API isn't running | Open `<origin>/api/health` in a browser |
+| Mac menu says to choose a window or display | Nothing is shared, so the agent may not see anything | Choose Window… in the menu |
+| An action fails with "The shared window is not in front" | A window (not a display) is shared and another app is focused | The agent should click the window first; or share the display |
+| Black or frozen video on the iPhone | LiveKit video isn't built yet | See [STATUS.md](docs/native/STATUS.md) |
 
 ### Demo rehearsal (target; not yet runnable)
 
-1. Mac awake and unlocked on Wi-Fi with Notes open. iPhone on cellular, signed in, Mac paired.
+1. Mac awake and unlocked on Wi-Fi with Notes open and shared. iPhone on cellular, signed in, Mac connected with its device token.
 2. A judge texts "open Notes and write milk" and taps Watch live. A live frame appears within about 3 s.
-3. The phone shows each step and the verified result: Notes is in front and the note reads "milk".
+3. The phone shows each step and the result the backend verified from the final screenshot.
 4. The judge says "actually, eggs". Both screens show "eggs" and the receipt matches.
 5. The judge taps Stop, or the Mac's Wi-Fi is turned off. The phone shows an honest stopped or disconnected state with a retry.

@@ -6,18 +6,18 @@ This file is the base prompt for any coding agent working in this repo. Read it 
 
 Spectr lets you text your Mac via Sendblue iMessage, tell it what to do in plain English, and use the native Spectr iPhone app for voice interaction and live viewing of the Mac screen over LiveKit. You can interrupt, correct the instruction, or stop the task.
 
-Homework deadlines and job applications are later example workflows for the same general agent. The current repo does not yet implement the Mac computer-use loop.
+Spectr is general computer control: it has no slide- or presentation-specific features. Homework deadlines and job applications are later example workflows for the same general agent. The backend computer-use loop (`/api/mac/task`, `/api/mac/step`) and the native Mac client for it are both in the repo.
 
 ## What we are proving this weekend
 
 The first end-to-end workflow runs a judge-chosen multi-step task on a real, awake Mac:
 
-1. A user texts a task through Sendblue, such as "open Instagram and show my DMs" or "go to slide five."
+1. A user texts a task through Sendblue, such as "open Instagram and show my DMs" or "write a shopping list in Notes."
 2. The Mac helper sends the authorized screen and recent action results to the backend, then executes its validated next actions.
 3. The user watches the Mac screen live in the iPhone app over LiveKit.
 4. The user corrects or stops the task and receives a verified result in the original thread.
 
-Browser and Keynote tasks are examples, not separate workflows. Pairing, task routing, screen streaming and correction must not depend on which app or website is being used.
+Browser and native-app tasks (for example Notes) are examples, not separate workflows. Pairing, task routing, screen streaming and correction must not depend on which app or website is being used.
 
 Voice and live screen viewing happen in the native iPhone app; push-to-talk is the first milestone. VM and hosted cloud browsers are last priority; browser tasks on the real Mac are in scope.
 
@@ -25,12 +25,11 @@ Voice and live screen viewing happen in the native iPhone app; push-to-talk is t
 
 | Owner | Build area | First handoff |
 | --- | --- | --- |
-| Jared | iPhone + Mac · Swift/SwiftUI | The general Mac executor runs a task while the iPhone shows the screen live. |
+| Jared | iPhone + Mac · Swift/SwiftUI; plus Colby's former work: LiveKit room tokens, Apple association file, ElevenLabs voice, mock Mac · TypeScript | The general Mac executor runs a task while the iPhone shows the screen live. |
 | Poorav | Backend · TypeScript | One message creates one authenticated task. |
-| Colby | Backend + agent support + voice · TypeScript | Room token issued for a task; mock Mac returns a receipt; first reply spoken in the Spectr voice. |
 | Sweeya | Agent · guardrails · brand | A correction selects the new target; logo goes to Jared. |
 
-**Current repo state:** `contracts/`, the TypeScript API package (contracts, inbound deduplication and tests), and the initial Supabase migration exist. The Sendblue webhook is on branch `devin/1794627061-sendblue-inbound`, not on main. The Swift targets are not built yet.
+**Current repo state:** `contracts/`, the TypeScript API package (Sendblue and Chert webhooks, Postgres task store, Claude step loop, tests) and the Supabase migrations exist. The iPhone app, Mac helper and shared Swift package are under `apps/` and `packages/SpectrKit` (see "Native apps" below). Colby's former work (room tokens, voice, association file) now belongs to Jared.
 
 ## Architecture
 
@@ -58,7 +57,7 @@ Chert (iMessage + FaceTime) is the backup channel.
 - A repeated message or command must not execute the same action twice.
 - Stop and newer corrections supersede older pending actions.
 - Allow one active task per device. Stop and a newer instruction cancel the running task and supersede pending steps; a new non-stop text is a correction.
-- Report success only when Claude's final screenshot check shows the requested state. A Keynote task may also report `observedSlide`.
+- Report success only when Claude's final screenshot check shows the requested state.
 - Make denied permissions, stale video, disconnection and unsupported requests visible and recoverable. Treat lock, sleep, disconnect and denied permission as distinct states.
 - Keep secrets server-side or in device Keychain as appropriate. Keep `ANTHROPIC_API_KEY` on Vercel, never on the Mac or iPhone.
 - Screen sharing uses only a display or window the user authorized. Validate actions before execution; allow only screenshot, click, double-click, right-click, move, drag, scroll, type, key/hotkey, wait, `openApp(name)` and `openUrl(url)`. Never execute shell commands or model-generated AppleScript.
@@ -70,9 +69,9 @@ Chert (iMessage + FaceTime) is the backup channel.
 1. Put the Mac on Wi-Fi and the iPhone on cellular.
 2. Text a browser task such as "open Instagram and show my DMs"; verify the authorized screen is fresh on the iPhone.
 3. Correct or stop the task while it runs, then verify the final screenshot and result on both screens.
-4. Repeat with a Keynote task such as "go to slide five"; `observedSlide` may provide an additional check.
+4. Repeat with a native-app task such as "write milk in a new note in Notes".
 
-**Demo gate:** three consecutive runs of different judge-chosen tasks, e.g. a browser task and a Keynote example task, verified on both screens.
+**Demo gate:** three consecutive runs of different judge-chosen tasks, e.g. a browser task and a native-app task, verified on both screens.
 
 ## Handoffs
 
@@ -80,7 +79,7 @@ When you hand off work, include the changed paths, the verification command, the
 
 ## Native apps (Swift) — layout, tooling and rules
 
-This section covers Jared's native workstream. It was added when the native branch was merged and does not change the team architecture above; where the two disagree, see the reconciliation notes in the native PR.
+This section covers Jared's native workstream and follows the team architecture above.
 
 | Path | What it is |
 | --- | --- |
@@ -90,10 +89,12 @@ This section covers Jared's native workstream. It was added when the native bran
 | `apps/mac/` | SwiftUI menu-bar Mac helper and tests |
 | `packages/SpectrKit/` | Shared Swift package: wire models, auth client, command ledger, stream health |
 | `docs/native/` | Native status ledger, contract notes, auth hardening list |
-| `tools/dev-agent/` | Local-only Debug planner for the Mac action lab (stopgap until the Mac uses `/api/mac/step`) |
+| `apps/mac/SpectrMac/Agent/` | Mac client for `/api/mac/task` and `/api/mac/step`: screenshots only the shared window or display, validates and executes returned actions, never runs a step batch twice |
+| `tools/dev-agent/` | Debug-only local planner for the Mac action lab; not used by the real task loop |
 | `Makefile`, `.swift-format`, `.github/workflows/apple.yml` | Native build, lint and CI; they never touch TypeScript or SQL |
 
 - Commands: `make bootstrap`, `make lint`, `make test-kit`, `make test-ios`, `make test-mac`, `make check-release`.
 - Native code never holds provider secrets. The Supabase publishable key is a public client value; the secret key, LiveKit secret, Resend key and `ANTHROPIC_API_KEY` stay server-side or in a developer's local env file.
-- The Mac executes only a closed, validated action set; it refuses terminals, script editors and password managers, and never types into password fields.
+- The Mac connects with a device token issued by `services/api/scripts/issue-device-token.mjs` (stored in the Mac Keychain). There is no code-based pairing route yet.
+- The Mac executes only the backend's validated action set and checks each action itself: inside the shared area, http(s) links only, installed apps only. It refuses terminals, script editors and password managers, never types into password fields, and with a window shared, sends keystrokes only when that window's app is in front.
 - Release builds must not contain test data, Debug tools or development servers; `make check-release` enforces this.
