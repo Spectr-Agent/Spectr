@@ -129,6 +129,9 @@ Clients replay events after the last `seq` they saw on reconnect.
 | Operation | Returns |
 | --- | --- |
 | Create task | `taskId` |
+| `GET /api/mac/task` | Active task and current step for the authenticated Mac |
+| `POST /api/mac/step` | Validated actions, a waiting question, or a finished result |
+| `GET /api/tasks/screenshot` | Final screenshot for a task with a valid signature |
 | Redeem watch link | Authenticated, short-lived session |
 | Post instruction or stop | New `revision` |
 | Mac step | Validated action batch or `done` with final summary |

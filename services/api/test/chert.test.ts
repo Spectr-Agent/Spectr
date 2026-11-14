@@ -45,7 +45,12 @@ function makeInboundHarness(sender: { ownerId: string; deviceId: string } | null
     async (_toNumber: string, _text: string, _idempotencyKey: string) => {},
   );
   const resolveSender = vi.fn(async (_fromNumber: string) => sender);
-  const inbound: InboundDeps = { store, sendReply, resolveSender };
+  const inbound: InboundDeps = {
+    store,
+    provider: "chert",
+    sendReply,
+    resolveSender,
+  };
   return { store, sendReply, resolveSender, inbound };
 }
 
@@ -190,7 +195,7 @@ describe("handleChertWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
       `Spectr is on it. Task ${first.body.taskId}.`,
-      `reply-${first.body.taskId}`,
+      "reply-chert:msg:demo_001",
     );
   });
 

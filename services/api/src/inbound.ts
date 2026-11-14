@@ -1,25 +1,45 @@
-import {
-  InboundMessageSchema,
-  type Command,
-  type Task,
-} from "./contracts.js";
+import { InboundMessageSchema, type Command } from "./contracts.js";
+import type {
+  AgentTaskRecord,
+  InboundKind,
+  PendingInboundMessage,
+  PersistAgentStepInput,
+} from "./agent/types.js";
 
 export interface TaskStore {
-  // Insert-or-return-existing keyed on providerMessageId (mirrors the DB unique constraint).
-  createTaskFromMessage(input: {
+  routeInbound(input: {
     providerMessageId: string;
     ownerId: string;
     deviceId: string;
-    instruction: string;
-  }): Promise<{ task: Task; created: boolean }>;
-  isReplySent(taskId: string): Promise<boolean>;
-  markReplySent(taskId: string): Promise<void>;
+    text: string;
+    replyProvider: "sendblue" | "chert";
+    replyHandle: string;
+    now: Date;
+  }): Promise<{ taskId: string; kind: InboundKind; created: boolean }>;
+  isInboundReplySent(providerMessageId: string): Promise<boolean>;
+  markInboundReplySent(providerMessageId: string): Promise<void>;
   // Insert-or-return-existing keyed on commandId.
   insertCommand(command: Command): Promise<{ command: Command; created: boolean }>;
+  authenticateDevice(tokenHash: string): Promise<string | null>;
+  getActiveTaskForDevice(
+    deviceId: string,
+    now: Date,
+  ): Promise<AgentTaskRecord | null>;
+  getTaskForDevice(
+    taskId: string,
+    deviceId: string,
+  ): Promise<AgentTaskRecord | null>;
+  getTask(taskId: string): Promise<AgentTaskRecord | null>;
+  getUnconsumedInboundMessages(
+    taskId: string,
+  ): Promise<PendingInboundMessage[]>;
+  persistAgentStep(input: PersistAgentStepInput): Promise<boolean>;
+  claimResultNotification(taskId: string, now: Date): Promise<AgentTaskRecord | null>;
 }
 
 export interface InboundDeps {
   store: TaskStore;
+  provider: "sendblue" | "chert";
   resolveSender(
     fromNumber: string,
   ): Promise<{ ownerId: string; deviceId: string } | null>;
@@ -27,12 +47,41 @@ export interface InboundDeps {
     toNumber: string,
     text: string,
     idempotencyKey: string,
+    mediaUrl?: string,
   ): Promise<void>;
 }
 
 export type InboundOutcome =
-  | { status: "created" | "duplicate"; taskId: string }
+  | {
+      status: "created" | "duplicate";
+      taskId: string;
+      kind: InboundKind;
+    }
   | { status: "ignored"; reason: "unknownSender" };
+
+export function isStop(text: string): boolean {
+  return [
+    "stop",
+    "cancel",
+    "abort",
+    "stop it",
+    "nevermind",
+    "never mind",
+  ].includes(text.trim().toLowerCase().replace(/[.!]+$/u, ""));
+}
+
+function replyForInbound(kind: InboundKind, taskId: string): string {
+  switch (kind) {
+    case "task":
+      return `Spectr is on it. Task ${taskId}.`;
+    case "correction":
+      return "Got it, updating the task.";
+    case "answer":
+      return "Got it.";
+    case "stop":
+      return "Stopped.";
+  }
+}
 
 export async function handleInboundMessage(
   raw: unknown,
@@ -45,24 +94,28 @@ export async function handleInboundMessage(
     return { status: "ignored", reason: "unknownSender" };
   }
 
-  const { task, created } = await deps.store.createTaskFromMessage({
+  const routed = await deps.store.routeInbound({
     providerMessageId: message.providerMessageId,
     ownerId: sender.ownerId,
     deviceId: sender.deviceId,
-    instruction: message.text,
+    text: message.text,
+    replyProvider: deps.provider,
+    replyHandle: message.fromNumber,
+    now: new Date(),
   });
 
-  if (!(await deps.store.isReplySent(task.taskId))) {
+  if (!(await deps.store.isInboundReplySent(message.providerMessageId))) {
     await deps.sendReply(
       message.fromNumber,
-      `Spectr is on it. Task ${task.taskId}.`,
-      `reply-${task.taskId}`,
+      replyForInbound(routed.kind, routed.taskId),
+      `reply-${message.providerMessageId}`,
     );
-    await deps.store.markReplySent(task.taskId);
+    await deps.store.markInboundReplySent(message.providerMessageId);
   }
 
   return {
-    status: created ? "created" : "duplicate",
-    taskId: task.taskId,
+    status: routed.created ? "created" : "duplicate",
+    taskId: routed.taskId,
+    kind: routed.kind,
   };
 }

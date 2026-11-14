@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev:server": "tsx scripts/dev-server.ts",
+    "mock-mac": "tsx scripts/mock-mac.ts",
+    "send-text": "tsx scripts/send-text.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -12,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }

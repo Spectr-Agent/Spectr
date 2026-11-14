@@ -1,0 +1,9 @@
+{
+  "task": {
+    "taskId": "tsk_demo_001",
+    "revision": 1,
+    "state": "running",
+    "instruction": "Open Instagram.",
+    "step": 1
+  }
+}

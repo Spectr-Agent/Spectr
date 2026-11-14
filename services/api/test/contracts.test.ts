@@ -10,6 +10,9 @@ import {
   DeviceResultSchema,
   EventSchema,
   InboundMessageSchema,
+  MacStepRequestSchema,
+  MacStepResponseSchema,
+  MacTaskResponseSchema,
   PostInstructionRequestSchema,
   PostInstructionResponseSchema,
   ReceiptSchema,
@@ -40,6 +43,12 @@ const schemaByFile: Record<string, { parse(input: unknown): unknown }> = {
   "receipt.stale.json": ReceiptSchema,
   "event.json": EventSchema,
   "error.staleRevision.json": ApiErrorSchema,
+  "mac-step.request.json": MacStepRequestSchema,
+  "mac-step.response.actions.json": MacStepResponseSchema,
+  "mac-step.response.waiting.json": MacStepResponseSchema,
+  "mac-step.response.finished.json": MacStepResponseSchema,
+  "mac-task.response.json": MacTaskResponseSchema,
+  "error.staleStep.json": ApiErrorSchema,
   "inbound-message.json": InboundMessageSchema,
 };
 
