@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center">your computer, by text or call.</p>
+<p align="center">your computer, on call.</p>
 
 ## what it is
 
