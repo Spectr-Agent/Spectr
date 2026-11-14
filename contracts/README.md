@@ -29,3 +29,5 @@ These fixtures are fictional examples of Spectr's frozen wire format. Swift targ
 | `mac-task.response.json` | `MacTaskResponse` | Return the paired Mac's active task |
 | `error.staleStep.json` | `ApiError` | Reject a step based on stale task state |
 | `inbound-message.json` | `InboundMessage` | Normalized provider-neutral inbound message |
+
+Spoken replies have their own fixtures and client notes in [`voice/`](voice/README.md).
