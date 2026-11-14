@@ -220,3 +220,15 @@ struct AppPolicyTests {
         #expect(!AppPolicy.standard.isBlocked(bundleId))
     }
 }
+
+@MainActor
+@Suite("Typed keys")
+struct TypedKeyTests {
+    @Test func newlinesAndTabsArePressedAsKeys() {
+        #expect(AccessibilityDesktopDriver.typedKey("\n") == 36)  // kVK_Return
+        #expect(AccessibilityDesktopDriver.typedKey("\r\n") == 36)
+        #expect(AccessibilityDesktopDriver.typedKey("\t") == 48)  // kVK_Tab
+        #expect(AccessibilityDesktopDriver.typedKey("a") == nil)
+        #expect(AccessibilityDesktopDriver.typedKey(" ") == nil)
+    }
+}
