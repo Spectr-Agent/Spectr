@@ -130,7 +130,7 @@ the first time you text spectr, it asks a few questions: what you use it for, wh
 | ask before sending, buying or submitting; pause for logins | works |
 | searches that text back the top options | works |
 | a message that arrives twice runs once | works |
-| onboarding and saved preferences | not built |
+| onboarding questions and "shall i remember this?" | built and tested; not connected to imessage, nothing saved to the database yet |
 | `status` and `continue` after an interruption | not built |
 | mac menu-bar helper (swift) | built, not yet run against the live backend |
 | mac screen streaming (livekit) | built and tested locally; not deployed |
