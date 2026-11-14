@@ -13,7 +13,7 @@ export function Footer() {
           <div className="team">
             <span className="l">{footer.builtBy}</span>
             {footer.team.map((name) => (
-              <span key={name} className="pill">
+              <span key={name}>
                 {name}
               </span>
             ))}

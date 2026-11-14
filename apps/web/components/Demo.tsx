@@ -45,9 +45,9 @@ export function Demo() {
   const macClasses = ["appr", mac.go ? "go" : "", mac.press ? "press" : "", mac.dark ? "dark" : ""].filter(Boolean).join(" ");
 
   return (
-    <section id="demo" className="demo">
+    <section id="demo" className="slide demo">
       <div className="wrap">
-        <Reveal className="demobox" onReveal={onReveal}>
+        <Reveal onReveal={onReveal}>
           <div className="center">
             <span className="eyebrow">{demo.eyebrow}</span>
             <h2>{demo.title}</h2>

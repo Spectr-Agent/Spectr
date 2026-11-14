@@ -97,7 +97,7 @@ function Window({ scene }: { scene: Exclude<SceneKind, "appearance"> }) {
           <TitleBar title={scenes.text.title} />
           <div className="fb tx">
             <div className="aa">{scenes.text.sample}</div>
-            <div className="slide">
+            <div className="sizer">
               <i />
             </div>
             <small>{scenes.text.label}</small>

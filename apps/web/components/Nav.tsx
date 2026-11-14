@@ -22,9 +22,6 @@ export function Nav() {
           ))}
         </ul>
         <div className="navright">
-          <a className="btn sm" href="#waitlist">
-            {nav.cta}
-          </a>
           <button className={`burger${open ? " open" : ""}`} aria-label={a11y.menu} aria-expanded={open} aria-controls="mobile-menu" onClick={() => setOpen((value) => !value)}>
             <i />
             <i />

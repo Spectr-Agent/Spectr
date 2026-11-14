@@ -6,7 +6,7 @@ import { Reveal } from "./Reveal";
 export function HowItWorks() {
   const { how } = copy;
   return (
-    <section id="how">
+    <section id="how" className="slide how">
       <div className="wrap center">
         <Reveal>
           <span className="eyebrow">{how.eyebrow}</span>
