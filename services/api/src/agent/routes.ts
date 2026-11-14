@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import postgres from "postgres";
+import type { TaskStore } from "../inbound.js";
 import {
   ApiErrorSchema,
   MacStepRequestSchema,
@@ -9,9 +10,11 @@ import { PostgresTaskStore } from "../pg-store.js";
 import { createChertReplier } from "../chert/client.js";
 import { createSendblueReplier } from "../sendblue/client.js";
 import { createAnthropicCaller } from "./anthropic.js";
+import type { CallClaude } from "./anthropic.js";
 import { apiErrorResponse } from "./errors.js";
 import { runAgentStep, type StepNotifier } from "./step.js";
 import type { AgentTaskRecord } from "./types.js";
+import type { RouteOverrides } from "../route-deps.js";
 
 type RouteEnvironment = Record<string, string | undefined>;
 type MakeSql = (url: string) => postgres.Sql;
@@ -72,7 +75,17 @@ function makeDefaultSql(url: string): postgres.Sql {
   return postgres(url, { prepare: false, max: 1 });
 }
 
-function notifier(env: RouteEnvironment): StepNotifier {
+function makeStore(
+  sql: postgres.Sql,
+  overrides?: RouteOverrides,
+): TaskStore {
+  return overrides?.makeStore?.(sql) ?? new PostgresTaskStore(sql);
+}
+
+function notifier(
+  env: RouteEnvironment,
+  overrides?: RouteOverrides,
+): StepNotifier {
   const sendblue: Replier | undefined =
     env.SENDBLUE_API_KEY_ID &&
     env.SENDBLUE_API_SECRET_KEY &&
@@ -81,6 +94,8 @@ function notifier(env: RouteEnvironment): StepNotifier {
           apiKeyId: env.SENDBLUE_API_KEY_ID,
           apiSecretKey: env.SENDBLUE_API_SECRET_KEY,
           fromNumber: env.SENDBLUE_FROM_NUMBER,
+          baseUrl: env.SENDBLUE_API_BASE_URL,
+          fetch: overrides?.fetch,
         })
       : undefined;
   const chert: Replier | undefined =
@@ -139,6 +154,7 @@ function notifier(env: RouteEnvironment): StepNotifier {
 export function createMacTaskRoute(
   getEnv: () => RouteEnvironment,
   makeSql: MakeSql = makeDefaultSql,
+  overrides?: RouteOverrides,
 ): (request: Request) => Promise<Response> {
   let sql: postgres.Sql | undefined;
   return async (request) => {
@@ -153,7 +169,7 @@ export function createMacTaskRoute(
         return unauthorized();
       }
       const connection = (sql ??= makeSql(env.POSTGRES_URL!));
-      const store = new PostgresTaskStore(connection);
+      const store = makeStore(connection, overrides);
       const tokenHash = createHash("sha256").update(token).digest("hex");
       const deviceId = await store.authenticateDevice(tokenHash);
       if (!deviceId) {
@@ -182,6 +198,7 @@ export function createMacTaskRoute(
 export function createMacStepRoute(
   getEnv: () => RouteEnvironment,
   makeSql: MakeSql = makeDefaultSql,
+  overrides?: RouteOverrides,
 ): (request: Request) => Promise<Response> {
   let sql: postgres.Sql | undefined;
   return async (request) => {
@@ -232,7 +249,7 @@ export function createMacStepRoute(
         );
       }
       const connection = (sql ??= makeSql(env.POSTGRES_URL!));
-      const store = new PostgresTaskStore(connection);
+      const store = makeStore(connection, overrides);
       const tokenHash = createHash("sha256").update(token).digest("hex");
       const deviceId = await store.authenticateDevice(tokenHash);
       if (!deviceId) {
@@ -242,8 +259,10 @@ export function createMacStepRoute(
         store,
         deviceId,
         request: parsed.data,
-        callClaude: createAnthropicCaller(env.ANTHROPIC_API_KEY!),
-        notifier: notifier(env),
+        callClaude:
+          overrides?.callClaude ??
+          createAnthropicCaller(env.ANTHROPIC_API_KEY!),
+        notifier: notifier(env, overrides),
         model: env.ANTHROPIC_MODEL ?? "claude-opus-5-5",
         linkSecret: env.SPECTR_LINK_SECRET,
         publicUrl: env.SPECTR_PUBLIC_URL,
@@ -258,6 +277,7 @@ export function createMacStepRoute(
 export function createTaskScreenshotRoute(
   getEnv: () => RouteEnvironment,
   makeSql: MakeSql = makeDefaultSql,
+  overrides?: RouteOverrides,
 ): (request: Request) => Promise<Response> {
   let sql: postgres.Sql | undefined;
   return async (request) => {
@@ -290,7 +310,7 @@ export function createTaskScreenshotRoute(
         return screenshotNotFound();
       }
       const connection = (sql ??= makeSql(env.POSTGRES_URL!));
-      const task = await new PostgresTaskStore(connection).getTask(taskId);
+      const task = await makeStore(connection, overrides).getTask(taskId);
       if (!task?.finalScreenshot || !task.finalScreenshotType) {
         return screenshotNotFound();
       }

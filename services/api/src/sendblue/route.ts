@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { createSenderResolver, PostgresTaskStore } from "../pg-store.js";
 import { createSendblueReplier } from "./client.js";
 import { handleSendblueWebhook } from "./webhook.js";
+import type { RouteOverrides } from "../route-deps.js";
 
 type RouteEnvironment = Record<string, string | undefined>;
 
@@ -17,6 +18,7 @@ export function createSendblueWebhookRoute(
   getEnv: () => RouteEnvironment,
   makeSql: (url: string) => postgres.Sql = (url) =>
     postgres(url, { prepare: false, max: 1 }),
+  overrides?: RouteOverrides,
 ): (request: Request) => Promise<Response> {
   let sql: postgres.Sql | undefined;
 
@@ -46,13 +48,17 @@ export function createSendblueWebhookRoute(
         {
           secret,
           inbound: {
-            store: new PostgresTaskStore(connection),
+            store:
+              overrides?.makeStore?.(connection) ??
+              new PostgresTaskStore(connection),
             provider: "sendblue",
             resolveSender: createSenderResolver(connection, "sendblue"),
             sendReply: createSendblueReplier({
               apiKeyId,
               apiSecretKey,
               fromNumber,
+              baseUrl: env.SENDBLUE_API_BASE_URL,
+              fetch: overrides?.fetch,
             }),
           },
         },
