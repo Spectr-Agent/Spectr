@@ -39,11 +39,11 @@ A judge texts a multi-step task to their paired Mac, watches the authorized scre
 
 ### Agent loop and guardrails
 
-The Vercel TypeScript backend calls Claude through the Anthropic Messages API and computer-use tool. Each short HTTP step sends the task's current screenshot and recent action results; the backend resumes the conversation persisted in Supabase and returns the next actions or `done` with a final summary. The Mac executes the actions, posts a fresh screenshot, and repeats. There is no long-running server process; each task is capped at 40 steps.
+The Vercel TypeScript backend calls Claude through the Anthropic Messages API and computer-use tool. Each short HTTP step sends the task's current screenshot and recent action results; the backend resumes the conversation persisted in Supabase and returns the next actions or `done` with a final summary. The Mac executes the actions, posts a fresh screenshot, and repeats. There is no long-running server process; each task is capped at 60 steps.
 
 Actions are validated before the Mac executes them. The allowed actions are screenshot, click/double-click/right-click at `(x,y)`, move, drag, scroll, type text, key/hotkey, wait, `openApp(name)` and `openUrl(url)`. No shell commands or model-generated AppleScript.
 
-Only one task runs per device. Stop and a newer instruction cancel the task and supersede pending steps; a new non-stop text while a task runs is a correction. Ask by text and wait for "yes" before sending a message or DM, posting, purchasing, submitting a form or deleting. Never type passwords or 2FA codes: pause and ask the user to log in themselves while watching live. Reaching 40 steps or getting stuck ends the task as failed with what was observed.
+Only one task runs per device. Stop and a newer instruction cancel the task and supersede pending steps; a new non-stop text while a task runs is a correction. Ask by text and wait for "yes" before sending a message or DM, posting, purchasing, submitting a form or deleting. Never type passwords or 2FA codes: pause and ask the user to log in themselves while watching live. Reaching 60 steps or getting stuck ends the task as failed with what was observed.
 
 ### P1 — Make delegation feel natural
 

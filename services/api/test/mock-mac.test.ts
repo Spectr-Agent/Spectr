@@ -225,6 +225,7 @@ describe("mock Mac end-to-end loop", () => {
         tool("finish-1", "finish", {
           success: true,
           summary: "Instagram is open.",
+          attach_screenshot: true,
         }),
       ],
     ]);
