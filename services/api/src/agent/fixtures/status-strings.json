@@ -10,7 +10,7 @@
     "key": "thinking",
     "kind": "working",
     "mascot": "spectr_working",
-    "template": "On it.",
+    "template": "Right away.",
     "params": []
   },
   {
@@ -81,7 +81,7 @@
     "key": "waitingForPage",
     "kind": "working",
     "mascot": "spectr_working",
-    "template": "Waiting for the page.",
+    "template": "Waiting for the page to load.",
     "params": []
   },
   {
@@ -97,7 +97,7 @@
     "key": "confirm",
     "kind": "waiting",
     "mascot": "spectr_waiting_for_answer",
-    "template": "{action} Reply yes to go ahead.",
+    "template": "{action} Reply yes to proceed.",
     "params": [
       "action"
     ]
@@ -106,14 +106,14 @@
     "key": "login",
     "kind": "waiting",
     "mascot": "spectr_waiting_for_answer",
-    "template": "Please log in on the Mac, then reply done.",
+    "template": "I'll wait while you sign in on the Mac. Reply done when you're in.",
     "params": []
   },
   {
     "key": "done",
     "kind": "done",
     "mascot": "spectr_success",
-    "template": "Done: {summary}",
+    "template": "{summary}",
     "params": [
       "summary"
     ]
@@ -122,7 +122,7 @@
     "key": "failed",
     "kind": "failed",
     "mascot": "spectr_error",
-    "template": "Couldn't finish: {summary}",
+    "template": "I'm afraid I couldn't finish. {summary}",
     "params": [
       "summary"
     ]
@@ -138,7 +138,7 @@
     "key": "slideMismatch",
     "kind": "failed",
     "mascot": "spectr_error",
-    "template": "I asked for slide {target} but the Mac shows slide {observed}. Try again?",
+    "template": "I asked for slide {target}, but slide {observed} is showing. Shall I try again?",
     "params": [
       "target",
       "observed"
@@ -148,21 +148,21 @@
     "key": "declined",
     "kind": "failed",
     "mascot": "spectr_error",
-    "template": "Claude declined this task, so I stopped.",
+    "template": "I'm afraid I can't help with that one, so I've stopped.",
     "params": []
   },
   {
     "key": "stepLimit",
     "kind": "failed",
     "mascot": "spectr_error",
-    "template": "This took too many steps.",
+    "template": "I've stopped after 60 steps without finishing.",
     "params": []
   },
   {
     "key": "macOffline",
     "kind": "device",
     "mascot": "spectr_error",
-    "template": "Your Mac is offline. Last seen {lastSeen}.",
+    "template": "Your Mac appears to be offline. Last seen {lastSeen}.",
     "params": [
       "lastSeen"
     ]

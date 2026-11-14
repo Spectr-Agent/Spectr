@@ -12,6 +12,7 @@ import type {
   PendingInboundMessage,
 } from "./types.js";
 import { slideMismatchSummary, targetSlide } from "./slides.js";
+import { status } from "./status.js";
 import {
   anthropicRequest,
   AnthropicHttpError,
@@ -32,8 +33,8 @@ const REQUEST_DEADLINE_MS = 280_000;
 const CLAUDE_TIMEOUT_MS = 90_000;
 const CLAUDE_TIMEOUT_BUFFER_MS = 5_000;
 const MINIMUM_CALL_WINDOW_MS = 15_000;
-export const REFUSAL_SUMMARY = "Claude declined this task, so I stopped.";
-export const CUT_OFF_SUMMARY = "Claude's reply was cut off, so I stopped. Try again.";
+export const REFUSAL_SUMMARY = "I'm afraid I can't help with that one, so I've stopped.";
+export const CUT_OFF_SUMMARY = "My reply was cut short, so I've stopped. Please try again.";
 
 function hasToolUse(content: unknown[]): boolean {
   return content.some((block) => isRecord(block) && block.type === "tool_use");
@@ -460,8 +461,8 @@ async function notifyResult(
   if (!claimed.replyHandle) {
     return;
   }
-  const text =
-    state === "succeeded" ? `Done. ${summary}` : `Couldn't finish. ${summary}`;
+  // Worded by the persona: a success is the summary itself; a failure says so calmly.
+  const text = status(state === "succeeded" ? "done" : "failed", { summary });
   const baseUrl =
     options.publicUrl ?? "https://spectr-api.vercel.app";
   const mediaUrl =

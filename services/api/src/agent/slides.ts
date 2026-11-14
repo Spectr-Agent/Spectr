@@ -45,5 +45,5 @@ export function targetSlide(messages: ReadonlyArray<{ role: string; content: unk
 }
 
 export function slideMismatchSummary(target: number, observed: number): string {
-  return `I asked for slide ${target} but the Mac shows slide ${observed}. Try again?`;
+  return `I asked for slide ${target}, but slide ${observed} is showing. Shall I try again?`;
 }

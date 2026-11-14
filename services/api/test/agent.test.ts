@@ -1314,7 +1314,7 @@ describe("runAgentStep", () => {
       `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${expectedSignature}`,
     );
     expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-      "Done. Instagram is OPEN",
+      "Instagram is OPEN",
     );
   });
 
@@ -1345,7 +1345,7 @@ describe("runAgentStep", () => {
       });
 
       expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-        "Done. The answer is 42.",
+        "The answer is 42.",
       );
       expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[2]).toBeUndefined();
     }
@@ -1405,7 +1405,7 @@ describe("runAgentStep", () => {
         summary: summary.slice(0, expectedLength),
       });
       expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-        `Done. ${summary.slice(0, expectedLength)}`,
+        summary.slice(0, expectedLength),
       );
     }
   });
