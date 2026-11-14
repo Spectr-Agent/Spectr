@@ -14,3 +14,5 @@ supabase/.temp/
 # Local secrets. Never commit.
 .env.local
 .env.*.local
+
+coverage/

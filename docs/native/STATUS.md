@@ -49,3 +49,18 @@ Run on a real Mac; record results here with the date and macOS version.
 6. Close the shared window: within about 2 s the popover says the window closed, and the agent stops sending screenshots.
 7. With a running API: text a task; the popover shows the instruction and "Working…"; Stop Task halts it on the Mac; a corrected instruction runs.
 8. Light and dark appearance; Increase Contrast; Reduce Motion; VoiceOver reads headline, shared window and both stop buttons; Tab reaches every control.
+
+## Phone calls: test matrix
+
+Call +1 470 596 9455 from a number linked for iMessage, with the agent running and a Notes window shared on the Mac. Record **works** or **broken** with a one-line reason, plus the date.
+
+| Test | Expected (from the code) | Result | Reason |
+| --- | --- | --- | --- |
+| "open Notes and write milk" | "On it.", the Mac writes milk, then "Done. …" | | |
+| Interrupt Spectr while it's talking | Spectr stops talking at once and handles what you said | | |
+| "actually write eggs" mid-task | "Got it, changing that.", the Mac writes eggs instead | | |
+| "stop" | "Stopping.", then "Stopped."; the Mac stops acting | | |
+| Silent for 30 s | Nothing is said and the call stays open (no idle timeout) | | |
+| Hang up mid-task | The task keeps running on the Mac; no result is texted (results are sent only for texted tasks) | | |
+| Unlinked number | "This number isn't linked…", then the call ends about 6 s later | | |
+| Noisy room | Background noise doesn't start a task or cut Spectr off | | |
