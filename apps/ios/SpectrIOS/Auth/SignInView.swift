@@ -26,11 +26,15 @@ struct SignInView: View {
             }
 
             PrimaryButton(
-                title: "Email me a code", isWorking: auth.isWorking, isEnabled: !email.isEmpty, action: submit)
+                title: "Email me a sign-in link", isWorking: auth.isWorking, isEnabled: !email.isEmpty, action: submit)
 
-            Text("We'll send a 6-digit code. No password needed.")
+            Text("We'll email you a link that signs you in. No password needed.")
                 .font(.footnote)
                 .foregroundStyle(Theme.inkSecondary)
+
+            Button("I already have a code") { auth.enterCode(for: email) }
+                .font(.footnote)
+                .disabled(email.isEmpty || auth.isWorking)
         }
     }
 
@@ -50,13 +54,12 @@ struct CodeEntryView: View {
     var body: some View {
         AuthScaffold(
             title: "Check your email",
-            subtitle: "Enter the code we sent to \(email)."
+            subtitle: "We sent a sign-in email to \(email). Open it on this iPhone and tap the link."
         ) {
-            TextField("6-digit code", text: $code)
+            TextField("Code from the email, if it has one", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
-                .font(.title2.monospacedDigit())
-                .multilineTextAlignment(.center)
+                .font(.body.monospacedDigit())
                 .focused($focused)
                 .onChange(of: code) { _, value in
                     let digits = String(value.filter(\.isNumber).prefix(10))
@@ -69,13 +72,13 @@ struct CodeEntryView: View {
                 ErrorText(message)
             }
 
-            PrimaryButton(title: "Sign in", isWorking: auth.isWorking, isEnabled: code.count >= 6) {
+            PrimaryButton(title: "Sign in with code", isWorking: auth.isWorking, isEnabled: code.count >= 6) {
                 focused = false
                 Task { await auth.verify(code: code) }
             }
 
             HStack {
-                Button("Send a new code") {
+                Button("Send a new email") {
                     code = ""
                     Task { await auth.requestCode(email: email) }
                 }
@@ -85,7 +88,6 @@ struct CodeEntryView: View {
             .font(.footnote)
             .disabled(auth.isWorking)
         }
-        .onAppear { focused = true }
     }
 }
 

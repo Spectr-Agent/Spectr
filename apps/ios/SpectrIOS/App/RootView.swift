@@ -39,6 +39,12 @@ private struct SignedContent: View {
             }
         }
         .task { await auth.restore() }
+        .onOpenURL { url in
+            Task {
+                await auth.restore()
+                await auth.handleCallback(url)
+            }
+        }
     }
 }
 

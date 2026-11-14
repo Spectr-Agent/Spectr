@@ -54,7 +54,7 @@ struct SupabaseAuthClientTests {
 
     @Test func requestCodePostsNormalizedEmailWithPublishableKey() async throws {
         let transport = ScriptedTransport([.respond(status: 200, body: "{}")])
-        try await client(transport).requestCode(email: "  Sam@Example.test ")
+        try await client(transport).requestCode(email: "  Sam@Example.test ", codeChallenge: nil)
         let request = try #require(transport.requests.first)
         #expect(request.url?.absoluteString == "https://project.example.test/auth/v1/otp")
         #expect(request.value(forHTTPHeaderField: "apikey") == "sb_publishable_test")
@@ -65,7 +65,9 @@ struct SupabaseAuthClientTests {
     @Test(arguments: ["", "sam", "sam@", "@example.test", "sam@example", "sam @example.test"])
     func rejectsInvalidEmailWithoutANetworkCall(email: String) async throws {
         let transport = ScriptedTransport([])
-        await #expect(throws: AuthError.invalidEmail) { try await client(transport).requestCode(email: email) }
+        await #expect(throws: AuthError.invalidEmail) {
+            try await client(transport).requestCode(email: email, codeChallenge: nil)
+        }
         #expect(transport.requests.isEmpty)
     }
 
@@ -101,17 +103,17 @@ struct SupabaseAuthClientTests {
             .respond(status: 429, body: #"{"error_code":"over_email_send_rate_limit","msg":"slow down"}"#)
         ])
         await #expect(throws: AuthError.rateLimited) {
-            try await client(limited).requestCode(email: "sam@example.test")
+            try await client(limited).requestCode(email: "sam@example.test", codeChallenge: nil)
         }
 
         let offline = ScriptedTransport([.fail])
         await #expect(throws: AuthError.offline) {
-            try await client(offline).requestCode(email: "sam@example.test")
+            try await client(offline).requestCode(email: "sam@example.test", codeChallenge: nil)
         }
 
         let broken = ScriptedTransport([.respond(status: 500, body: "oops")])
         await #expect(throws: AuthError.server("Sign-in failed (HTTP 500).")) {
-            try await client(broken).requestCode(email: "sam@example.test")
+            try await client(broken).requestCode(email: "sam@example.test", codeChallenge: nil)
         }
     }
 
@@ -145,5 +147,99 @@ struct SupabaseAuthClientTests {
                 "SpectrSupabasePublishableKey": "sb_publishable_test",
             ])
         }
+    }
+
+    @Test func linkSignInSendsChallengeAndRedirect() async throws {
+        let transport = ScriptedTransport([.respond(status: 200, body: "{}")])
+        let url = try #require(URL(string: "https://project.example.test"))
+        let callback = try #require(URL(string: "spectr://auth-callback"))
+        let client = SupabaseAuthClient(
+            configuration: SupabaseConfiguration(url: url, publishableKey: "sb_publishable_test"),
+            redirectURL: callback, transport: transport
+        )
+        try await client.requestCode(email: "sam@example.test", codeChallenge: "challenge_value")
+        let request = try #require(transport.requests.first)
+        let items = URLComponents(url: try #require(request.url), resolvingAgainstBaseURL: false)?.queryItems
+        #expect(items?.first { $0.name == "redirect_to" }?.value == "spectr://auth-callback")
+        let sent = try body(request)
+        #expect(sent["code_challenge"]?.stringValue == "challenge_value")
+        #expect(sent["code_challenge_method"]?.stringValue == "s256")
+    }
+
+    @Test func exchangeTradesAuthCodeAndVerifierForASession() async throws {
+        let transport = ScriptedTransport([.respond(status: 200, body: Self.sessionBody)])
+        let session = try await client(transport).exchange(authCode: "code_abc12345", codeVerifier: "verifier_xyz")
+        #expect(session.userId == "user_1")
+        let request = try #require(transport.requests.first)
+        #expect(request.url?.query() == "grant_type=pkce")
+        let sent = try body(request)
+        #expect(sent["auth_code"]?.stringValue == "code_abc12345")
+        #expect(sent["code_verifier"]?.stringValue == "verifier_xyz")
+    }
+
+    @Test func exchangeWithAWrongVerifierIsRejected() async throws {
+        let transport = ScriptedTransport([
+            .respond(status: 400, body: #"{"error_code":"bad_code_verifier","msg":"code challenge does not match"}"#)
+        ])
+        await #expect(throws: AuthError.invalidCode) {
+            try await client(transport).exchange(authCode: "code_abc12345", codeVerifier: "wrong")
+        }
+    }
+}
+
+@Suite("Sign-in link")
+struct AuthLinkTests {
+    let expected = URL(string: "spectr://auth-callback") ?? URL(filePath: "/")
+
+    @Test func pkceMatchesTheRFC7636Example() {
+        let pkce = PKCE(verifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")
+        #expect(pkce.challenge == "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+    }
+
+    @Test func generatedVerifiersAreUniqueAndURLSafe() {
+        let first = PKCE.generate()
+        let second = PKCE.generate()
+        #expect(first.verifier != second.verifier)
+        #expect(first.verifier.count == 43)
+        #expect(!first.verifier.contains("+") && !first.verifier.contains("/") && !first.verifier.contains("="))
+    }
+
+    @Test func parsesAuthCode() throws {
+        let url = try #require(URL(string: "spectr://auth-callback?code=6f1c2a34-aaaa-bbbb-cccc-1234567890ab"))
+        #expect(AuthCallback.parse(url, expected: expected) == .code("6f1c2a34-aaaa-bbbb-cccc-1234567890ab"))
+    }
+
+    @Test func expiredLinkIsReportedFromQueryOrFragment() throws {
+        let query = try #require(
+            URL(
+                string:
+                    "spectr://auth-callback?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid"
+            )
+        )
+        #expect(AuthCallback.parse(query, expected: expected) == .failure(.invalidCode))
+        let fragment = try #require(URL(string: "spectr://auth-callback#error=access_denied&error_code=otp_expired"))
+        #expect(AuthCallback.parse(fragment, expected: expected) == .failure(.invalidCode))
+    }
+
+    @Test(arguments: [
+        "https://auth-callback/?code=abcdefgh12345678",
+        "spectr://other-host?code=abcdefgh12345678",
+        "other://auth-callback?code=abcdefgh12345678",
+        "https://links.example.test/w/abcDEF0123456789_-xyz",
+    ])
+    func ignoresURLsThatAreNotTheCallback(raw: String) throws {
+        let url = try #require(URL(string: raw))
+        #expect(AuthCallback.parse(url, expected: expected) == nil)
+    }
+
+    @Test(arguments: [
+        "spectr://auth-callback",
+        "spectr://auth-callback?code=short",
+        "spectr://auth-callback?code=has%20space%20in%20code",
+        "spectr://auth-callback?access_token=stolen",
+    ])
+    func malformedCallbackNeverYieldsACode(raw: String) throws {
+        let url = try #require(URL(string: raw))
+        #expect(AuthCallback.parse(url, expected: expected) == .failure(.invalidCode))
     }
 }

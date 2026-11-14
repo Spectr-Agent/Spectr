@@ -23,34 +23,61 @@ public struct URLSessionTransport: HTTPTransport {
 
 /// What the app needs from an auth provider.
 public protocol AuthClient: Sendable {
-    /// Emails a one-time code to `email`.
-    func requestCode(email: String) async throws(AuthError)
+    /// Emails a sign-in message to `email`. It contains a link back into the app and,
+    /// when the project's template includes one, a one-time code. `codeChallenge` binds
+    /// the link to this device (PKCE), so only the app that asked can finish sign-in.
+    func requestCode(email: String, codeChallenge: String?) async throws(AuthError)
     /// Exchanges the emailed code for a session.
     func verify(email: String, code: String) async throws(AuthError) -> AuthSession
+    /// Finishes a link sign-in: trades the link's auth code plus this device's verifier
+    /// for a session.
+    func exchange(authCode: String, codeVerifier: String) async throws(AuthError) -> AuthSession
     func refresh(refreshToken: String) async throws(AuthError) -> AuthSession
     /// Revokes the session server-side. Local sign-out must not depend on this succeeding.
     func signOut(accessToken: String) async throws(AuthError)
 }
 
-/// Supabase Auth (GoTrue) over plain HTTPS: email one-time code, refresh, sign-out.
+/// Supabase Auth (GoTrue) over plain HTTPS: email link or one-time code, refresh, sign-out.
 public struct SupabaseAuthClient: AuthClient {
     private let configuration: SupabaseConfiguration
+    private let redirectURL: URL?
     private let transport: any HTTPTransport
     private let now: @Sendable () -> Date
 
+    /// - Parameter redirectURL: where the emailed link sends the user after Supabase
+    ///   verifies it. Must be in the project's allowed redirect list.
     public init(
         configuration: SupabaseConfiguration,
+        redirectURL: URL? = nil,
         transport: any HTTPTransport = URLSessionTransport(),
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.configuration = configuration
+        self.redirectURL = redirectURL
         self.transport = transport
         self.now = now
     }
 
-    public func requestCode(email: String) async throws(AuthError) {
+    public func requestCode(email: String, codeChallenge: String?) async throws(AuthError) {
         let address = try Self.normalized(email)
-        _ = try await post("otp", body: ["email": .string(address), "create_user": .bool(true)])
+        var body: [String: JSONValue] = ["email": .string(address), "create_user": .bool(true)]
+        if let codeChallenge {
+            body["code_challenge"] = .string(codeChallenge)
+            body["code_challenge_method"] = .string("s256")
+        }
+        var query: [URLQueryItem] = []
+        if let redirectURL {
+            query.append(URLQueryItem(name: "redirect_to", value: redirectURL.absoluteString))
+        }
+        _ = try await post("otp", query: query, body: body)
+    }
+
+    public func exchange(authCode: String, codeVerifier: String) async throws(AuthError) -> AuthSession {
+        let data = try await post(
+            "token", query: [URLQueryItem(name: "grant_type", value: "pkce")],
+            body: ["auth_code": .string(authCode), "code_verifier": .string(codeVerifier)]
+        )
+        return try decodeSession(data)
     }
 
     public func verify(email: String, code: String) async throws(AuthError) -> AuthSession {
@@ -142,7 +169,8 @@ public struct SupabaseAuthClient: AuthClient {
         if status == 429 || code.contains("rate_limit") { return .rateLimited }
         switch code {
         case "otp_expired", "invalid_grant", "refresh_token_not_found", "refresh_token_already_used",
-            "session_not_found", "invalid_credentials":
+            "session_not_found", "invalid_credentials", "flow_state_not_found", "flow_state_expired",
+            "bad_code_verifier":
             return .invalidCode
         case "email_address_invalid", "validation_failed", "email_address_not_authorized":
             return .invalidEmail

@@ -5,8 +5,11 @@ import SpectrKit
 /// Sign-in state for the iPhone app.
 ///
 /// The session lives in Keychain through `CredentialStore`. Signing out always clears
-/// local state, even when the server cannot be reached. An interrupted sign-in (code
-/// requested, app closed) resumes at the code step.
+/// local state, even when the server cannot be reached. An interrupted sign-in (email
+/// requested, app closed) resumes at the "check your email" step.
+///
+/// Sign-in finishes one of two ways: the emailed link reopens the app
+/// (`handleCallback`), or the user types the emailed code (`verify`).
 @MainActor
 @Observable
 final class AuthModel {
@@ -23,7 +26,8 @@ final class AuthModel {
 
     private let client: any AuthClient
     private let store: any CredentialStore
-    private let pending: PendingEmailStore
+    private let pendingStore: any CredentialStore
+    private let callbackURL: URL
     private let now: @Sendable () -> Date
     private var session: AuthSession?
     private var refreshTask: Task<AuthSession, any Error>?
@@ -33,13 +37,35 @@ final class AuthModel {
     init(
         client: any AuthClient,
         store: any CredentialStore,
-        pending: PendingEmailStore = PendingEmailStore(),
+        pendingStore: any CredentialStore,
+        callbackURL: URL,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.client = client
         self.store = store
-        self.pending = pending
+        self.pendingStore = pendingStore
+        self.callbackURL = callbackURL
         self.now = now
+    }
+
+    /// The email a sign-in message was sent to, plus the PKCE verifier that binds the
+    /// emailed link to this device. Held in Keychain until sign-in finishes.
+    private struct PendingSignIn: Codable {
+        var email: String
+        var verifier: String
+    }
+
+    private var pending: PendingSignIn? {
+        get {
+            pendingStore.load().flatMap { try? JSONDecoder().decode(PendingSignIn.self, from: $0) }
+        }
+        set {
+            if let newValue, let data = try? JSONEncoder().encode(newValue) {
+                try? pendingStore.save(data)
+            } else {
+                pendingStore.clear()
+            }
+        }
     }
 
     // MARK: Launch
@@ -51,7 +77,7 @@ final class AuthModel {
             let stored = try? WireJSON.decoder().decode(AuthSession.self, from: data)
         else {
             store.clear()
-            state = pending.email.map { .awaitingCode(email: $0) } ?? .signedOut
+            state = pending.map { .awaitingCode(email: $0.email) } ?? .signedOut
             return
         }
         session = stored
@@ -72,11 +98,51 @@ final class AuthModel {
 
     func requestCode(email: String) async {
         await run {
-            try await self.client.requestCode(email: email)
+            let pkce = PKCE.generate()
+            try await self.client.requestCode(email: email, codeChallenge: pkce.challenge)
             let address = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            self.pending.email = address
+            self.pending = PendingSignIn(email: address, verifier: pkce.verifier)
             self.state = .awaitingCode(email: address)
         }
+    }
+
+    /// Goes to the code step without sending another email, for someone who already
+    /// has a code for this address. A link cannot finish this attempt; only a code can.
+    func enterCode(for email: String) {
+        let address = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard address.contains("@"), !isWorking else {
+            errorMessage = Self.message(for: .invalidEmail)
+            return
+        }
+        errorMessage = nil
+        pending = PendingSignIn(email: address, verifier: PKCE.generate().verifier)
+        state = .awaitingCode(email: address)
+    }
+
+    /// Handles the app being opened from the emailed link. Returns false when the URL
+    /// is not a sign-in callback, so the caller can route it elsewhere.
+    @discardableResult
+    func handleCallback(_ url: URL) async -> Bool {
+        guard let callback = AuthCallback.parse(url, expected: callbackURL) else { return false }
+        if case .signedIn = state { return true }
+        switch callback {
+        case .failure(.invalidCode):
+            errorMessage = "That link has expired or was already used. Send a new one."
+        case .failure(let error):
+            errorMessage = Self.message(for: error)
+        case .code(let code):
+            guard let waiting = pending else {
+                errorMessage = "Start sign-in on this iPhone, then open the link from the new email."
+                return true
+            }
+            await run {
+                let fresh = try await self.client.exchange(authCode: code, codeVerifier: waiting.verifier)
+                try self.persist(fresh)
+                self.pending = nil
+                self.state = .signedIn(userId: fresh.userId, email: fresh.email)
+            }
+        }
+        return true
     }
 
     func verify(code: String) async {
@@ -84,14 +150,14 @@ final class AuthModel {
         await run {
             let fresh = try await self.client.verify(email: email, code: code)
             try self.persist(fresh)
-            self.pending.email = nil
+            self.pending = nil
             self.state = .signedIn(userId: fresh.userId, email: fresh.email)
         }
     }
 
     /// Returns to the email step, e.g. to fix a typo.
     func changeEmail() {
-        pending.email = nil
+        pending = nil
         errorMessage = nil
         state = .signedOut
     }
@@ -162,7 +228,7 @@ final class AuthModel {
         refreshTask = nil
         session = nil
         store.clear()
-        pending.email = nil
+        pending = nil
         errorMessage = message
         state = .signedOut
         onSignedOut?()
@@ -185,30 +251,11 @@ final class AuthModel {
     static func message(for error: AuthError) -> String {
         switch error {
         case .invalidEmail: "Enter a valid email address."
-        case .invalidCode: "That code is wrong or has expired. Check it or send a new one."
+        case .invalidCode: "That code is wrong or has expired. Check it or send a new email."
         case .rateLimited: "Too many attempts. Wait a minute and try again."
         case .sessionExpired: "Your session ended. Sign in again."
         case .offline: "You're offline. Check your connection and try again."
         case .server(let message): message
-        }
-    }
-}
-
-/// Remembers the email a code was sent to, so an interrupted sign-in can resume.
-/// Not a credential; cleared on verification and sign-out.
-@MainActor
-final class PendingEmailStore {
-    private let defaults: UserDefaults
-    private let key = "spectr.auth.pendingEmail"
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-    }
-
-    var email: String? {
-        get { defaults.string(forKey: key) }
-        set {
-            if let newValue { defaults.set(newValue, forKey: key) } else { defaults.removeObject(forKey: key) }
         }
     }
 }

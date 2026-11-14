@@ -51,6 +51,10 @@ targets:
         SpectrLinkHost: $(SPECTR_LINK_HOST)
         SpectrSupabaseURL: $(SPECTR_SUPABASE_URL)
         SpectrSupabasePublishableKey: $(SPECTR_SUPABASE_PUBLISHABLE_KEY)
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER).auth
+            CFBundleURLSchemes:
+              - spectr
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.ios
