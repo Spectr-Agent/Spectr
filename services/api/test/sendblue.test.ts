@@ -198,7 +198,7 @@ describe("handleSendblueWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledTimes(1);
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      `Spectr is on it. Task ${first.body.taskId}.`,
+      "bet, on it",
       "reply-99DCC379-DD76-4712-BA65-11EFB33B8CD6",
     );
   });
@@ -246,7 +246,7 @@ describe("createSendblueReplier", () => {
 
     await replier(
       "+15555550100",
-      "Spectr is on it.",
+      "bet, on it",
       "reply-tsk_demo_001",
     );
 
@@ -260,7 +260,7 @@ describe("createSendblueReplier", () => {
     expect(JSON.parse(requestInit?.body as string)).toEqual({
       number: "+15555550100",
       from_number: "+15555550199",
-      content: "Spectr is on it.",
+      content: "bet, on it",
     });
   });
 

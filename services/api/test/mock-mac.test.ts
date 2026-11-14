@@ -255,7 +255,7 @@ describe("mock Mac end-to-end loop", () => {
     expect(harness.outbound.some((message) => message.mediaUrl)).toBe(true);
     expect(
       harness.outbound.find((message) => message.mediaUrl)?.content,
-    ).toContain("Instagram is open.");
+    ).toContain("done. instagram is open.");
     const mediaUrl = harness.outbound.find((message) => message.mediaUrl)
       ?.mediaUrl;
     expect(mediaUrl).toBeTruthy();

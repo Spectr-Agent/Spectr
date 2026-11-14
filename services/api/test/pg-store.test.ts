@@ -197,7 +197,7 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
       state: "cancelled",
       revision: 3,
       question: null,
-      summary: "Stopped by the user.",
+      summary: "stopped",
     });
     expect(task?.resultSentAt).not.toBeNull();
     expect(inbound.find((row) => row.kind === "correction")?.consumed_at).toBeNull();
@@ -222,7 +222,7 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     expect(next.taskId).not.toBe(old.taskId);
     expect(await store.getTask(old.taskId)).toMatchObject({
       state: "failed",
-      summary: "Timed out waiting for the Mac.",
+      summary: "lost connection to ur mac",
     });
   });
 
@@ -361,7 +361,7 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     expect(sendReply).toHaveBeenCalledTimes(1);
     expect(sendReply).toHaveBeenCalledWith(
       fromNumber,
-      expect.stringMatching(/^Spectr is on it\. Task tsk_/u),
+      "bet, on it",
       `reply-${providerMessageId}`,
     );
   });

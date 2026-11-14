@@ -50,7 +50,7 @@ describe("handleInboundMessage", () => {
     expect(first.taskId).toBe(second.taskId);
     expect(deps.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      `Spectr is on it. Task ${first.taskId}.`,
+      "bet, on it",
       "reply-msg_demo_001",
     );
   });
@@ -139,7 +139,7 @@ describe("handleInboundMessage", () => {
     expect(sendReply).toHaveBeenNthCalledWith(
       2,
       "+15555550100",
-      "Got it, updating the task.",
+      "got u, switching it up",
       "reply-message-correction",
     );
 
@@ -160,7 +160,7 @@ describe("handleInboundMessage", () => {
     expect(sendReply).toHaveBeenNthCalledWith(
       3,
       "+15555550100",
-      "Got it.",
+      "ok bet",
       "reply-message-answer",
     );
 
@@ -175,11 +175,11 @@ describe("handleInboundMessage", () => {
     expect(stopped).toMatchObject({ kind: "stop", taskId: task.taskId });
     expect(record.state).toBe("cancelled");
     expect(record.revision).toBe(3);
-    expect(record.summary).toBe("Stopped by the user.");
+    expect(record.summary).toBe("stopped");
     expect(sendReply).toHaveBeenNthCalledWith(
       4,
       "+15555550100",
-      "Stopped.",
+      "stopped",
       "reply-message-stop",
     );
   });

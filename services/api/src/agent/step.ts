@@ -444,7 +444,7 @@ async function persist(
     options.deviceId,
   );
   if (latest?.state === "cancelled") {
-    return terminalResponse(latest, latest.summary ?? "Stopped by the user.");
+    return terminalResponse(latest, latest.summary ?? "stopped");
   }
   throw apiError(
     409,
@@ -465,7 +465,7 @@ async function notifyQuestion(
   }
   await options.notifier.sendQuestion(
     task,
-    question,
+    question.toLowerCase(),
     `question-${task.taskId}-${step}`,
   );
 }
@@ -494,8 +494,9 @@ async function notifyResult(
   if (!claimed.replyHandle) {
     return;
   }
-  const text =
-    state === "succeeded" ? `Done: ${summary}` : `Couldn't finish: ${summary}`;
+  const text = (
+    state === "succeeded" ? `done. ${summary}` : `couldn't do it. ${summary}`
+  ).toLowerCase();
   const baseUrl =
     options.publicUrl ?? "https://spectr-api.vercel.app";
   const mediaUrl = signedScreenshotUrl(taskId, options.linkSecret, baseUrl);
@@ -614,7 +615,7 @@ export async function runAgentStep(
   const inbound = await options.store.getUnconsumedInboundMessages(task.taskId);
   const consumedInboundIds = inbound.map((message) => message.providerMessageId);
   if (task.stepCount >= MAX_AGENT_STEPS) {
-    const summary = "Stopped after 40 steps without finishing.";
+    const summary = "took too many steps, gave up";
     const messages = trimImages(task.agentMessages);
     const response = finishedResponse(
       task.taskId,
@@ -694,7 +695,7 @@ export async function runAgentStep(
         error instanceof AnthropicHttpError &&
         NON_RETRYABLE_ANTHROPIC_STATUSES.has(error.status)
       ) {
-        const summary = `Couldn't reach the agent (HTTP ${error.status}).`;
+        const summary = `couldn't reach the agent (http ${error.status})`;
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
@@ -756,7 +757,8 @@ export async function runAgentStep(
         });
         continue;
       }
-      const summary = assistantText(response.content) || "Claude did not finish the task.";
+      const summary =
+        assistantText(response.content) || "the agent bailed before finishing";
       const failureSummary = summary.slice(0, 300);
       const finished = finishedResponse(
         task.taskId,
