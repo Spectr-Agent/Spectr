@@ -215,6 +215,43 @@ struct AgentLoopTests {
 private struct ScriptedPairing: PairingClient {
     var result: Result<Void, PairingError>
     func validate(token: String) async throws(PairingError) { try result.get() }
+    func startPairing(name: String) async throws(PairingError) -> PairingTicket { throw .unreachable }
+    func pollPairing(_ ticket: PairingTicket) async throws(PairingError) -> PairingPoll { .pending }
+}
+
+/// Hands out codes in order and answers polls from a script, per code.
+private final class CodePairing: PairingClient, @unchecked Sendable {
+    private let lock = NSLock()
+    private var codes: [String]
+    private var polls: [String: [PairingPoll]]
+    private(set) var issued: [String] = []
+
+    init(codes: [String], polls: [String: [PairingPoll]]) {
+        self.codes = codes
+        self.polls = polls
+    }
+
+    func validate(token: String) async throws(PairingError) {}
+
+    func startPairing(name: String) async throws(PairingError) -> PairingTicket {
+        let code: String? = lock.withLock {
+            guard !codes.isEmpty else { return nil }
+            let next = codes.removeFirst()
+            issued.append(next)
+            return next
+        }
+        guard let code else { throw .unreachable }
+        return PairingTicket(pairingId: "pair_\(code)", code: code, pollSecret: "secret", expiresAt: .distantFuture)
+    }
+
+    func pollPairing(_ ticket: PairingTicket) async throws(PairingError) -> PairingPoll {
+        lock.withLock {
+            guard var queue = polls[ticket.code], !queue.isEmpty else { return .pending }
+            let next = queue.removeFirst()
+            polls[ticket.code] = queue
+            return next
+        }
+    }
 }
 
 @MainActor
@@ -255,6 +292,35 @@ struct PairingControllerTests {
             client: ScriptedPairing(result: .success(())), credentials: MemoryDeviceCredentialStore())
         controller.connect(token: "   ")
         #expect(controller.state == .unpaired)
+    }
+
+    @Test func aPairingCodeEnteredOnTheIPhoneStoresTheIssuedDevice() async {
+        let store = MemoryDeviceCredentialStore()
+        let client = CodePairing(
+            codes: ["K7P4QX"], polls: ["K7P4QX": [.pending, .paired(deviceId: "mac-abc", token: "spd_new")]])
+        let controller = PairingController(client: client, credentials: store)
+        controller.pollInterval = .milliseconds(1)
+        controller.startCodePairing(name: "Test Mac")
+        await controller.waitUntilSettled()
+        #expect(controller.state == .paired(PairedPhone(deviceId: "mac-abc", phoneName: nil)))
+        #expect(store.load() == StoredDevice(deviceId: "mac-abc", deviceCredential: "spd_new", phoneName: nil))
+    }
+
+    @Test func anExpiredCodeIsReplacedWithoutTheOwnerDoingAnything() async {
+        let client = CodePairing(
+            codes: ["AAAAAA", "BBBBBB"],
+            polls: ["AAAAAA": [.expired], "BBBBBB": [.paired(deviceId: "mac-b", token: "spd_b")]])
+        let controller = PairingController(client: client, credentials: MemoryDeviceCredentialStore())
+        controller.pollInterval = .milliseconds(1)
+        controller.startCodePairing(name: "Test Mac")
+        await controller.waitUntilSettled()
+        #expect(client.issued == ["AAAAAA", "BBBBBB"])
+        #expect(controller.state.phone?.deviceId == "mac-b")
+    }
+
+    @Test func pairingCodesAreShownInTwoGroups() {
+        let ticket = PairingTicket(pairingId: "p", code: "K7P4QX", pollSecret: "s", expiresAt: .distantFuture)
+        #expect(ticket.displayCode == "K7P 4QX")
     }
 
     @Test func aRevokedTokenForgetsTheDevice() async {

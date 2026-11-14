@@ -8,11 +8,32 @@ enum PairingError: Error, Equatable {
     case invalidToken
 }
 
-/// Checks a device token with the backend. The backend issues tokens with
-/// `services/api/scripts/issue-device-token.mjs` and authenticates every Mac request
-/// with them; there is no code-based pairing route yet.
+/// A pairing code this Mac is showing, and the secret only this Mac holds to collect
+/// its device token once the owner enters the code in the Spectr iPhone app.
+struct PairingTicket: Equatable, Sendable, Codable {
+    var pairingId: String
+    var code: String
+    var pollSecret: String
+    var expiresAt: Date
+
+    /// "K7P4QX" shown as "K7P 4QX".
+    var displayCode: String {
+        code.count == 6 ? "\(code.prefix(3)) \(code.suffix(3))" : code
+    }
+}
+
+enum PairingPoll: Equatable, Sendable {
+    case pending
+    case paired(deviceId: String, token: String)
+    case expired
+}
+
+/// Talks to the backend about this Mac's identity: pairing codes (`/api/mac/pair`) and,
+/// for setups done by hand, checking a token issued with `issue-device-token.mjs`.
 protocol PairingClient: Sendable {
     func validate(token: String) async throws(PairingError)
+    func startPairing(name: String) async throws(PairingError) -> PairingTicket
+    func pollPairing(_ ticket: PairingTicket) async throws(PairingError) -> PairingPoll
 }
 
 /// The device identity this Mac holds after pairing.
@@ -82,6 +103,8 @@ final class MemoryDeviceCredentialStore: DeviceCredentialStore, @unchecked Senda
 /// Used when the app has no valid API origin: every attempt reports "unreachable".
 struct UnavailablePairingClient: PairingClient {
     func validate(token: String) async throws(PairingError) { throw .unreachable }
+    func startPairing(name: String) async throws(PairingError) -> PairingTicket { throw .unreachable }
+    func pollPairing(_ ticket: PairingTicket) async throws(PairingError) -> PairingPoll { throw .unreachable }
 }
 
 /// Validates a token by asking `GET /api/mac/task` with it.
@@ -97,6 +120,57 @@ struct HTTPPairingClient: PairingClient {
         } catch {
             throw .unreachable
         }
+    }
+
+    func startPairing(name: String) async throws(PairingError) -> PairingTicket {
+        struct Body: Decodable {
+            var pairingId: String
+            var code: String
+            var pollSecret: String
+            var expiresAt: String
+        }
+        let (data, status) = try await post("api/mac/pair", ["name": name])
+        guard status == 200, let body = try? JSONDecoder().decode(Body.self, from: data),
+            let expires = Self.date(body.expiresAt)
+        else { throw .unreachable }
+        return PairingTicket(
+            pairingId: body.pairingId, code: body.code, pollSecret: body.pollSecret, expiresAt: expires)
+    }
+
+    func pollPairing(_ ticket: PairingTicket) async throws(PairingError) -> PairingPoll {
+        struct Body: Decodable {
+            var status: String
+            var deviceId: String?
+            var deviceToken: String?
+        }
+        let (data, status) = try await post(
+            "api/mac/pair-status", ["pairingId": ticket.pairingId, "pollSecret": ticket.pollSecret])
+        if status == 410 { return .expired }
+        guard status == 200, let body = try? JSONDecoder().decode(Body.self, from: data) else { throw .unreachable }
+        if body.status == "paired", let deviceId = body.deviceId, let token = body.deviceToken {
+            return .paired(deviceId: deviceId, token: token)
+        }
+        return .pending
+    }
+
+    private func post(_ path: String, _ body: [String: String]) async throws(PairingError) -> (Data, Int) {
+        var request = URLRequest(url: origin.appending(path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15
+        request.httpBody = try? JSONEncoder().encode(body)
+        do {
+            let (data, response) = try await transport.send(request)
+            return (data, response.statusCode)
+        } catch {
+            throw .unreachable
+        }
+    }
+
+    private static func date(_ text: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
 }
 
@@ -150,6 +224,65 @@ final class PairingController {
             }
         }
     }
+
+    /// Shows a pairing code and waits for the owner to enter it in the Spectr iPhone app.
+    /// A code that expires is replaced with a new one, so the screen never goes stale.
+    func startCodePairing(name: String = Host.current().localizedName ?? "Mac") {
+        if case .showingCode = state { return }
+        guard state.phone == nil else { return }
+        task?.cancel()
+        state = .requesting
+        task = Task {
+            while !Task.isCancelled {
+                let ticket: PairingTicket
+                do {
+                    ticket = try await client.startPairing(name: name)
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    state = .failed(.unreachable)
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                state = .showingCode(ticket)
+                switch await waitForApproval(ticket) {
+                case .paired(let deviceId, let token):
+                    do {
+                        try credentials.save(StoredDevice(deviceId: deviceId, deviceCredential: token, phoneName: nil))
+                    } catch {
+                        state = .failed(.unreachable)
+                        return
+                    }
+                    state = .paired(PairedPhone(deviceId: deviceId, phoneName: nil))
+                    return
+                case .expired:
+                    continue
+                case .pending:
+                    return
+                }
+            }
+        }
+    }
+
+    /// Polls until the code is used or expires. Returns `.pending` only when cancelled.
+    private func waitForApproval(_ ticket: PairingTicket) async -> PairingPoll {
+        var failures = 0
+        while !Task.isCancelled {
+            try? await Task.sleep(for: pollInterval)
+            guard !Task.isCancelled else { break }
+            do {
+                let result = try await client.pollPairing(ticket)
+                failures = 0
+                if result != .pending { return result }
+            } catch {
+                // A brief network drop keeps the code on screen; a long one starts over.
+                failures += 1
+                if failures >= 15 { return .expired }
+            }
+        }
+        return .pending
+    }
+
+    var pollInterval: Duration = .seconds(2)
 
     func cancel() {
         task?.cancel()
