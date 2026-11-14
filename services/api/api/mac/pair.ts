@@ -1,3 +1,3 @@
-import { createMacPairingRoutes } from "../../src/app/mac-pairing.js";
+import { createMacPairingDispatcher } from "../../src/app/mac-pairing.js";
 
-export const POST = createMacPairingRoutes(() => process.env).start;
+export const POST = createMacPairingDispatcher(() => process.env);

@@ -307,3 +307,20 @@ describe("helpers", () => {
     expect(activityFor({ state: "succeeded", last_step_response: null, step_count: 4 })).toBeNull();
   });
 });
+
+describe("single-function dispatch", () => {
+  it("routes /api/app/* by path or rewrite parameter, and refuses unknown routes", async () => {
+    const { createAppDispatcher } = await import("../../src/app/routes.js");
+    const dispatch = createAppDispatcher(() => env, () => ({}) as postgres.Sql, {
+      verifyUser: async () => ({ userId: OWNER, email: null }),
+      makeAppStore: () => new FakeAppStore(),
+      rooms: null,
+      now: () => NOW,
+    });
+    expect((await dispatch(get("/api/app/home", "t"))).status).toBe(200);
+    expect((await dispatch(get("/api/app?route=home", "t"))).status).toBe(200);
+    expect((await dispatch(get("/api/app/task?id=tsk_1", "t"))).status).toBe(200);
+    expect((await dispatch(get("/api/app/nope", "t"))).status).toBe(404);
+    expect((await dispatch(send("GET", "/api/app/message", undefined, "t").clone())).status).toBe(404);
+  });
+});

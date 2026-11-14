@@ -261,3 +261,31 @@ export function createAppApi(
 
   return { home, task, message, stop, live, pair, phone };
 }
+
+/**
+ * One function for every `/api/app/*` route (the Vercel Hobby plan caps a deployment at
+ * twelve functions). vercel.json rewrites `/api/app/:route` here with `?route=`.
+ */
+export function createAppDispatcher(
+  getEnv: () => RouteEnvironment,
+  makeSql?: MakeSql,
+  overrides?: AppRouteOverrides,
+): Handler {
+  const api = createAppApi(getEnv, makeSql, overrides);
+  const table: Record<string, Handler | undefined> = {
+    "GET home": api.home,
+    "GET task": api.task,
+    "POST message": api.message,
+    "POST stop": api.stop,
+    "POST live": api.live,
+    "POST pair": api.pair,
+    "POST phone": api.phone,
+    "DELETE phone": api.phone,
+  };
+  return async (request) => {
+    const url = new URL(request.url);
+    const route = url.searchParams.get("route") ?? url.pathname.split("/").filter(Boolean).at(-1) ?? "";
+    const handler = table[`${request.method} ${route}`];
+    return handler ? handler(request) : appError(404, "notFound", "Unknown route.");
+  };
+}

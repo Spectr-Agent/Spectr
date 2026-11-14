@@ -65,3 +65,13 @@ export function createMacPairingRoutes(
 
   return { start, status };
 }
+
+/** Both pairing routes in one function; vercel.json rewrites `/api/mac/pair-status` here. */
+export function createMacPairingDispatcher(getEnv: () => RouteEnvironment, makeSql?: MakeSql) {
+  const routes = createMacPairingRoutes(getEnv, makeSql);
+  return async (request: Request): Promise<Response> => {
+    const url = new URL(request.url);
+    const status = url.searchParams.has("status") || url.pathname.endsWith("/pair-status");
+    return status ? routes.status(request) : routes.start(request);
+  };
+}
