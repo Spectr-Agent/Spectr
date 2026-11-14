@@ -19,7 +19,7 @@ A judge texts their paired Mac, watches a real app respond, changes the instruct
 | Priority | In scope |
 | --- | --- |
 | Ship | Pair one Mac; receive a blue-bubble request; stream one authorized window to the native iPhone app; run a small set of Keynote presentation actions; accept a spoken or typed correction; stop; return a verified result. Demo app: Keynote with a fictional five-slide deck. |
-| Next | Private remote-unlock feasibility, background callbacks, cellular hardening, more native-app actions. |
+| Next | Private remote-unlock feasibility, background callbacks, cellular hardening, more native-app actions. Stretch: Chert FaceTime channel (see R12). |
 | Last | VM, hosted browser, browser automation (Browserbase, Playwright). |
 | Out | Cloud file sync. |
 
@@ -51,6 +51,14 @@ A judge texts their paired Mac, watches a real app respond, changes the instruct
 | --- | --- |
 | R9 | Check a homework deadline on one supported course portal; return assignment name, exact deadline, time zone and source link. |
 | R10 | Prepare a job application on a team-owned form: attach the chosen résumé, ask for missing answers, show the completed form, and require confirmation before submitting. |
+
+### Stretch — Chert FaceTime channel
+
+Only after the P0 demo works end to end. It does not replace Sendblue, the iPhone app or the LiveKit viewer.
+
+| ID | Requirement |
+| --- | --- |
+| R12 | A judge FaceTimes a Chert line, speaks an instruction, and sees the authorized Mac window as the call's outgoing video. Spectr can also FaceTime the user back when it needs a decision. Qualifies for "Best Use of FaceTime (Chert)" only if a real FaceTime call happens in the demo. |
 
 ### Last — VM and general browser automation
 

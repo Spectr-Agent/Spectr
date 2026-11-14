@@ -162,6 +162,17 @@ Fixtures to publish: create, command, event, correction, result, error; task exa
 5. Only observed Mac state marks an action successful.
 6. After a worker restart between claim and result, surface the last known state; never replay a relative slide advance.
 
+## Stretch: Chert FaceTime channel
+
+Not part of the P0 build. [Chert](https://www.trychert.com/emory) bridges a real FaceTime call to a LiveKit room. Spectr's agent would join that room as the speaking participant, publish the authorized Mac window frames as its video track, and send transcribed instructions through the existing task API, so commands, revisions and verified results are unchanged. Chert can't share or control a screen itself; the Mac helper still does that. Outbound calls (`POST /api/v1/calls`) could cover the "call back for a decision" case.
+
+Constraints to check before committing to it:
+- Free trial: 50 FaceTime minutes, calls up to 5 minutes, one call at a time on the shared line, only verified phones; 48 hours if started by Nov 18.
+- The agent must speak within 10 seconds of the call connecting.
+- The CLI is a beta (`@trychert/facetime`).
+- Unverified: whether Keynote frames stay readable over FaceTime video. Spike this first.
+- `CHERT_API_KEY` stays server-side, like the other provider keys.
+
 ## Security
 
 - Verify Sendblue webhook authentication. Bind the sender to a paired owner.

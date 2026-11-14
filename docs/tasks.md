@@ -202,6 +202,16 @@ Coordinate the model provider and server-side key with Poorav. Agree on tool and
 - [ ] Get a verified Sendblue tester on the free shared line.
 - [ ] Test the LiveKit stream over cellular; if venue Wi-Fi blocks peer traffic, use the rehearsed hotspot.
 
+## Stretch: Chert FaceTime (after P0 works)
+
+No owner yet; pick one only once the P0 demo runs end to end.
+
+- [ ] Start the Chert trial (48 hours if started by Nov 18) and verify the demo phones.
+- [ ] Spike: publish the Mac window as the agent's video track on a FaceTime call and check that slide text is readable.
+- [ ] Route the transcribed call instruction into the existing task API; reply with the ElevenLabs voice.
+- [ ] Optional: FaceTime the user back when the agent needs a decision.
+- [ ] Select "Best Use of FaceTime (Chert)" on Devpost and include a live FaceTime call in the demo.
+
 ## Blockers
 
 Keep blockers on the owner's section, one line each: `blocked on ___ / need ___ from ___ / fallback ___`. Escalate at the next integration check. Blockers affecting the first live frame or first real action take precedence.
