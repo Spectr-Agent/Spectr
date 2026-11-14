@@ -11,6 +11,7 @@ struct LiveView: View {
 
     @State private var draft = ""
     @State private var panelExpanded = true
+    @State private var zoom: CGFloat = 1
     @State private var didStartCall = false
 
     var body: some View {
@@ -18,7 +19,6 @@ struct LiveView: View {
             Color.black.ignoresSafeArea()
             screen
                 .ignoresSafeArea(edges: .horizontal)
-                .onTapGesture { withAnimation(.snappy) { panelExpanded.toggle() } }
         }
         .safeAreaInset(edge: .top) { topBar }
         .safeAreaInset(edge: .bottom) { panel }
@@ -50,16 +50,19 @@ struct LiveView: View {
         switch live.phase {
         case .live, .reconnecting:
             if let track = live.screen {
-                SwiftUIVideoView(track, layoutMode: .fit, pinchToZoomOptions: [.zoomIn, .resetOnRelease])
-                    .overlay(alignment: .topTrailing) {
-                        if live.phase == .reconnecting {
-                            Label("Reconnecting…", systemImage: "wifi.exclamationmark")
-                                .font(.caption.weight(.semibold))
-                                .padding(8)
-                                .background(.ultraThinMaterial, in: .capsule)
-                                .padding()
-                        }
+                ZoomableView(scale: $zoom, onSingleTap: { withAnimation(.snappy) { panelExpanded.toggle() } }) {
+                    SwiftUIVideoView(track, layoutMode: .fit)
+                }
+                .overlay(alignment: .topLeading) { zoomControls }
+                .overlay(alignment: .topTrailing) {
+                    if live.phase == .reconnecting {
+                        Label("Reconnecting…", systemImage: "wifi.exclamationmark")
+                            .font(.caption.weight(.semibold))
+                            .padding(8)
+                            .background(.ultraThinMaterial, in: .capsule)
+                            .padding()
                     }
+                }
             } else {
                 message(
                     "Reconnecting to your Mac…", detail: nil, symbol: "wifi.exclamationmark", spinning: true)
@@ -80,6 +83,37 @@ struct LiveView: View {
                     .frame(maxWidth: 220)
             }
         }
+    }
+
+    /// Zoom level with one-tap reset and step buttons; pinch and double-tap work too.
+    private var zoomControls: some View {
+        HStack(spacing: 2) {
+            Button {
+                withAnimation(.snappy) { zoom = max(1, zoom / 1.5) }
+            } label: {
+                Image(systemName: "minus.magnifyingglass").frame(width: 36, height: 36)
+            }
+            .disabled(zoom <= 1)
+            .accessibilityLabel("Zoom out")
+            Button {
+                withAnimation(.snappy) { zoom = 1 }
+            } label: {
+                Text(zoom > 1.05 ? String(format: "%.1f×", zoom) : "1×")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .frame(minWidth: 40, minHeight: 36)
+            }
+            .accessibilityLabel("Reset zoom")
+            Button {
+                withAnimation(.snappy) { zoom = min(ZoomableView<EmptyView>.maxScale, zoom * 1.5) }
+            } label: {
+                Image(systemName: "plus.magnifyingglass").frame(width: 36, height: 36)
+            }
+            .disabled(zoom >= ZoomableView<EmptyView>.maxScale)
+            .accessibilityLabel("Zoom in")
+        }
+        .foregroundStyle(.white)
+        .background(.ultraThinMaterial, in: .capsule)
+        .padding(12)
     }
 
     private func message(_ title: String, detail: String?, symbol: String, spinning: Bool) -> some View {
