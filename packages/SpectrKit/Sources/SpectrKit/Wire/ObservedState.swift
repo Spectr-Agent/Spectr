@@ -27,10 +27,36 @@ public struct ObservedState: Codable, Sendable, Equatable {
         }
     }
 
+    /// An element the planner may target, valid until the next observation.
+    public struct ElementSummary: Codable, Sendable, Equatable {
+        public var id: String
+        public var role: String
+        public var title: String?
+        /// Frame in the focused window's coordinate space (points, top-left origin).
+        public var x: Double
+        public var y: Double
+        public var width: Double
+        public var height: Double
+
+        public init(
+            id: String, role: String, title: String?, x: Double, y: Double, width: Double, height: Double
+        ) {
+            self.id = id
+            self.role = role
+            self.title = title
+            self.x = x
+            self.y = y
+            self.width = width
+            self.height = height
+        }
+    }
+
     public var frontmostBundleId: String?
     public var frontmostAppName: String?
     public var windowTitle: String?
     public var focusedElement: Element?
+    /// Present only on explicit `observe` results, capped in size.
+    public var elements: [ElementSummary]?
     public var verification: Verification
 
     public init(
@@ -38,12 +64,14 @@ public struct ObservedState: Codable, Sendable, Equatable {
         frontmostAppName: String?,
         windowTitle: String?,
         focusedElement: Element?,
+        elements: [ElementSummary]? = nil,
         verification: Verification
     ) {
         self.frontmostBundleId = frontmostBundleId
         self.frontmostAppName = frontmostAppName
         self.windowTitle = windowTitle
         self.focusedElement = focusedElement
+        self.elements = elements
         self.verification = verification
     }
 }

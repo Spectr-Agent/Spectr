@@ -76,6 +76,11 @@ public struct CommandLedger: Codable, Sendable, Equatable {
             .map(\.command)
     }
 
+    /// Forgets one command that never ran (e.g. its "started" mark could not be persisted).
+    public mutating func removeEntry(_ commandId: String) {
+        entries.removeValue(forKey: commandId)
+    }
+
     /// Drops all state, e.g. after the device is revoked.
     public mutating func removeAll() {
         entries.removeAll()
