@@ -1,0 +1,8 @@
+{
+  "commandId": "cmd_demo_001",
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "revision": 1,
+  "action": { "type": "openApp", "bundleId": "com.apple.Notes" },
+  "issuedAt": "2026-11-13T12:00:10.000Z"
+}

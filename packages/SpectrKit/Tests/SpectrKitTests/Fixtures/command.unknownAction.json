@@ -1,0 +1,9 @@
+{
+  "commandId": "cmd_demo_009",
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "revision": 4,
+  "action": { "type": "runShell", "script": "echo not allowed" },
+  "issuedAt": "2026-11-13T12:04:00.000Z",
+  "futureField": { "ignored": true }
+}

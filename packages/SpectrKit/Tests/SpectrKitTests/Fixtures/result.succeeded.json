@@ -1,0 +1,15 @@
+{
+  "commandId": "cmd_demo_002",
+  "taskId": "tsk_demo_001",
+  "revision": 2,
+  "outcome": "succeeded",
+  "observed": {
+    "frontmostBundleId": "com.apple.Notes",
+    "frontmostAppName": "Notes",
+    "windowTitle": "Notes",
+    "focusedElement": { "role": "AXTextArea", "value": "milk" },
+    "verification": "accessibility"
+  },
+  "error": null,
+  "observedAt": "2026-11-13T12:01:02.000Z"
+}
