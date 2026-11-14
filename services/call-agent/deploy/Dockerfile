@@ -1,6 +1,11 @@
 # Build context: services/ (the agent imports ../../api/src).
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production
+# LiveKit's native client (rtc-node) verifies TLS against the system root store,
+# which the slim image does not ship.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY api/package.json api/package-lock.json api/
 COPY call-agent/package.json call-agent/package-lock.json call-agent/
