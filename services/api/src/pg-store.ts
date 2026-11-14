@@ -83,7 +83,7 @@ export class PostgresTaskStore implements TaskStore {
     ownerId: string;
     deviceId: string;
     text: string;
-    replyProvider: "sendblue" | "chert";
+    replyProvider: "sendblue" | "chert" | "call";
     replyHandle: string;
     now: Date;
   }): Promise<{ taskId: string; kind: InboundKind; created: boolean }> {
