@@ -1,0 +1,136 @@
+# Single source of truth for the native Xcode project.
+# Generate with `make bootstrap` (XcodeGen 2.46.0). Spectr.xcodeproj is not checked in.
+name: Spectr
+options:
+  bundleIdPrefix: dev.spectr
+  deploymentTarget:
+    iOS: "26.0"
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Release: Config/Release.xcconfig
+
+packages:
+  SpectrKit:
+    path: ../packages/SpectrKit
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift
+    exactVersion: 2.19.0
+
+settings:
+  base:
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  SpectrIOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: ios/SpectrIOS
+    dependencies:
+      - package: SpectrKit
+      - package: LiveKit
+    info:
+      path: ios/SpectrIOS/Info.plist
+      properties:
+        CFBundleDisplayName: Spectr
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        SpectrEnvironment: $(SPECTR_ENVIRONMENT)
+        SpectrAPIOrigin: $(SPECTR_API_ORIGIN)
+        SpectrLinkHost: $(SPECTR_LINK_HOST)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.ios
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+
+  SpectrIOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [ios/SpectrIOSTests]
+    dependencies:
+      - target: SpectrIOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.ios.tests
+
+  SpectrMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: mac/SpectrMac
+    dependencies:
+      - package: SpectrKit
+      - package: LiveKit
+    info:
+      path: mac/SpectrMac/Info.plist
+      properties:
+        CFBundleDisplayName: Spectr
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        SpectrEnvironment: $(SPECTR_ENVIRONMENT)
+        SpectrAPIOrigin: $(SPECTR_API_ORIGIN)
+        SpectrLinkHost: $(SPECTR_LINK_HOST)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        # Not sandboxed: Accessibility control and synthetic input are unavailable to
+        # sandboxed apps. Hardened runtime stays on.
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+
+  SpectrMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [mac/SpectrMacTests]
+    dependencies:
+      - target: SpectrMac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.mac.tests
+
+schemes:
+  SpectrIOS:
+    build:
+      targets:
+        SpectrIOS: all
+        SpectrIOSTests: [test]
+    test:
+      config: Debug
+      targets: [SpectrIOSTests]
+      gatherCoverageData: true
+    run:
+      config: Debug
+    archive:
+      config: Release
+  SpectrMac:
+    build:
+      targets:
+        SpectrMac: all
+        SpectrMacTests: [test]
+    test:
+      config: Debug
+      targets: [SpectrMacTests]
+      gatherCoverageData: true
+    run:
+      config: Debug
+    archive:
+      config: Release

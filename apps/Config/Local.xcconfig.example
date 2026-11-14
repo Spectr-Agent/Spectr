@@ -1,0 +1,7 @@
+// Copy to Config/Local.xcconfig (gitignored) and fill in. Never put secrets here:
+// these values ship inside the app bundle.
+SPECTR_BUNDLE_PREFIX = com.example
+DEVELOPMENT_TEAM =
+// Use the deployed API origin, or http:/$()/localhost:3000 for Debug only.
+SPECTR_API_ORIGIN = https:/$()/api.example.test
+SPECTR_LINK_HOST = links.example.test
