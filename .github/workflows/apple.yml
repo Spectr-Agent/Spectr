@@ -1,0 +1,60 @@
+name: Apple native
+
+on:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - ".swift-format"
+      - "Makefile"
+      - ".github/workflows/apple.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - ".swift-format"
+      - "Makefile"
+      - ".github/workflows/apple.yml"
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    # No secrets, no signing, no paid providers. Fixture-backed tests only.
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then echo "No Xcode 26 on this runner image"; exit 1; fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - uses: actions/cache@v4
+        with:
+          path: apps/build/SourcePackages
+          key: spm-${{ hashFiles('apps/Package.resolved') }}
+
+      - name: Lint
+        run: make lint
+
+      - name: Shared package tests
+        run: make test-kit
+
+      - name: iOS simulator tests
+        run: make test-ios
+
+      - name: macOS tests
+        run: make test-mac
+
+      - name: Release configuration check
+        run: make check-release

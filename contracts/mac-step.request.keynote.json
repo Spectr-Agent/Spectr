@@ -1,0 +1,17 @@
+{
+  "taskId": "tsk_demo_001",
+  "afterStep": 2,
+  "screenshot": {
+    "mediaType": "image/png",
+    "data": "aGVsbG8=",
+    "width": 1920,
+    "height": 1080
+  },
+  "results": [
+    {
+      "actionId": "toolu_demo_key",
+      "ok": true
+    }
+  ],
+  "observedSlide": 5
+}

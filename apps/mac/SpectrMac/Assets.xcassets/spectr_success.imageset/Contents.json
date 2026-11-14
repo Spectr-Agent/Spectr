@@ -1,0 +1,18 @@
+{
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "images": [
+    {
+      "filename": "spectr_success.png",
+      "idiom": "universal",
+      "scale": "1x"
+    },
+    {
+      "filename": "spectr_success@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    }
+  ]
+}

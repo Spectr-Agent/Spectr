@@ -23,9 +23,12 @@ These fixtures are fictional examples of Spectr's frozen wire format. Swift targ
 | `event.json` | `Event` | Record a completed command result |
 | `error.staleRevision.json` | `ApiError` | Reject an outdated revision |
 | `mac-step.request.json` | `MacStepRequest` | Send a screenshot and previous action results to the Mac agent endpoint |
+| `mac-step.request.keynote.json` | `MacStepRequest` | Same, with the optional `observedSlide` a Keynote task reports |
 | `mac-step.response.actions.json` | `MacStepResponse` | Return a validated batch of Mac actions |
 | `mac-step.response.waiting.json` | `MacStepResponse` | Pause until the user answers a question |
 | `mac-step.response.finished.json` | `MacStepResponse` | Report a terminal task result |
 | `mac-task.response.json` | `MacTaskResponse` | Return the paired Mac's active task |
 | `error.staleStep.json` | `ApiError` | Reject a step based on stale task state |
 | `inbound-message.json` | `InboundMessage` | Normalized provider-neutral inbound message |
+
+Spoken replies have their own fixtures and client notes in [`voice/`](voice/README.md).

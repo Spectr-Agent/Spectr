@@ -44,6 +44,7 @@ const schemaByFile: Record<string, { parse(input: unknown): unknown }> = {
   "event.json": EventSchema,
   "error.staleRevision.json": ApiErrorSchema,
   "mac-step.request.json": MacStepRequestSchema,
+  "mac-step.request.keynote.json": MacStepRequestSchema,
   "mac-step.response.actions.json": MacStepResponseSchema,
   "mac-step.response.waiting.json": MacStepResponseSchema,
   "mac-step.response.finished.json": MacStepResponseSchema,

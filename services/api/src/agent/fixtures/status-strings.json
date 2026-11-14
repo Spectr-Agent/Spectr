@@ -1,0 +1,226 @@
+[
+  {
+    "key": "listening",
+    "kind": "working",
+    "mascot": "spectr_listening",
+    "template": "Listening.",
+    "params": []
+  },
+  {
+    "key": "thinking",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "On it.",
+    "params": []
+  },
+  {
+    "key": "checkingScreen",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Checking the screen.",
+    "params": []
+  },
+  {
+    "key": "openingApp",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Opening {app}.",
+    "params": [
+      "app"
+    ]
+  },
+  {
+    "key": "openingSite",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Opening {site}.",
+    "params": [
+      "site"
+    ]
+  },
+  {
+    "key": "clicking",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Clicking.",
+    "params": []
+  },
+  {
+    "key": "typing",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Typing.",
+    "params": []
+  },
+  {
+    "key": "pressingKeys",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Pressing {keys}.",
+    "params": [
+      "keys"
+    ]
+  },
+  {
+    "key": "scrolling",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Scrolling {direction}.",
+    "params": [
+      "direction"
+    ]
+  },
+  {
+    "key": "dragging",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Dragging.",
+    "params": []
+  },
+  {
+    "key": "waitingForPage",
+    "kind": "working",
+    "mascot": "spectr_working",
+    "template": "Waiting for the page.",
+    "params": []
+  },
+  {
+    "key": "question",
+    "kind": "waiting",
+    "mascot": "spectr_waiting_for_answer",
+    "template": "{question}",
+    "params": [
+      "question"
+    ]
+  },
+  {
+    "key": "confirm",
+    "kind": "waiting",
+    "mascot": "spectr_waiting_for_answer",
+    "template": "{action} Reply yes to go ahead.",
+    "params": [
+      "action"
+    ]
+  },
+  {
+    "key": "login",
+    "kind": "waiting",
+    "mascot": "spectr_waiting_for_answer",
+    "template": "Please log in on the Mac, then reply done.",
+    "params": []
+  },
+  {
+    "key": "done",
+    "kind": "done",
+    "mascot": "spectr_success",
+    "template": "Done: {summary}",
+    "params": [
+      "summary"
+    ]
+  },
+  {
+    "key": "failed",
+    "kind": "failed",
+    "mascot": "spectr_error",
+    "template": "Couldn't finish: {summary}",
+    "params": [
+      "summary"
+    ]
+  },
+  {
+    "key": "stopped",
+    "kind": "stopped",
+    "mascot": "spectr_stopped",
+    "template": "Stopped.",
+    "params": []
+  },
+  {
+    "key": "slideMismatch",
+    "kind": "failed",
+    "mascot": "spectr_error",
+    "template": "I asked for slide {target} but the Mac shows slide {observed}. Try again?",
+    "params": [
+      "target",
+      "observed"
+    ]
+  },
+  {
+    "key": "declined",
+    "kind": "failed",
+    "mascot": "spectr_error",
+    "template": "Claude declined this task, so I stopped.",
+    "params": []
+  },
+  {
+    "key": "stepLimit",
+    "kind": "failed",
+    "mascot": "spectr_error",
+    "template": "This took too many steps.",
+    "params": []
+  },
+  {
+    "key": "macOffline",
+    "kind": "device",
+    "mascot": "spectr_error",
+    "template": "Your Mac is offline. Last seen {lastSeen}.",
+    "params": [
+      "lastSeen"
+    ]
+  },
+  {
+    "key": "macLocked",
+    "kind": "device",
+    "mascot": "spectr_error",
+    "template": "Your Mac is locked. Unlock it to continue.",
+    "params": []
+  },
+  {
+    "key": "macAsleep",
+    "kind": "device",
+    "mascot": "spectr_error",
+    "template": "Your Mac is asleep. Wake it to continue.",
+    "params": []
+  },
+  {
+    "key": "liveViewStale",
+    "kind": "device",
+    "mascot": "spectr_screen_capture_denied",
+    "template": "The live view stopped updating. Reconnecting.",
+    "params": []
+  },
+  {
+    "key": "screenRecordingDenied",
+    "kind": "device",
+    "mascot": "spectr_screen_capture_denied",
+    "template": "Spectr can't see the screen. Allow Screen Recording for Spectr in System Settings.",
+    "params": []
+  },
+  {
+    "key": "accessibilityDenied",
+    "kind": "device",
+    "mascot": "spectr_permission_automation",
+    "template": "Spectr can't click or type. Allow Accessibility for Spectr in System Settings.",
+    "params": []
+  },
+  {
+    "key": "micDenied",
+    "kind": "device",
+    "mascot": "spectr_mic_denied",
+    "template": "Spectr can't hear you. Allow the microphone, or type instead.",
+    "params": []
+  },
+  {
+    "key": "linkExpired",
+    "kind": "device",
+    "mascot": "spectr_link_expired",
+    "template": "This link expired. Text Spectr again for a new one.",
+    "params": []
+  },
+  {
+    "key": "phoneNotPaired",
+    "kind": "device",
+    "mascot": "spectr_unpaired_phone",
+    "template": "This phone isn't paired with a Mac yet.",
+    "params": []
+  }
+]
