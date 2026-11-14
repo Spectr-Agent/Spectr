@@ -47,6 +47,18 @@ chert dev --agent spectr-call       # with the three LIVEKIT_ variables exported
 
 Known limit: Chert does not yet pass the caller's identity, so a line is bound to one owner with `SPECTR_FACETIME_OWNER_PHONE`.
 
+## Production
+
+The agent runs on LiveKit Cloud as agent `CA_MqsA9odeGLc5` (us-east). Calls do not depend on anyone's laptop.
+
+```sh
+services/call-agent/deploy/deploy.sh   # deploys committed HEAD; needs lk + the three LIVEKIT_ variables
+lk agent status                        # run inside a folder holding deploy/livekit.toml
+lk agent logs
+```
+
+Its secrets (`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `POSTGRES_URL`, `SPECTR_CALL_AGENT_NAME`) are stored on LiveKit Cloud; LiveKit injects its own URL and keys. `POSTGRES_URL` is the `spectr` Supabase project, the same database the Vercel API uses. Stop any local `npm run dev` copy when testing production, or calls may be routed to it.
+
 ## Tests
 
 ```sh
