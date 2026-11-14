@@ -246,3 +246,21 @@ describe("app calls and number linking", () => {
     expect(NOT_LINKED).toContain("Setup");
   });
 });
+
+describe("FaceTime calls answered by the webhook", () => {
+  it("trusts only a well-formed owner from the dispatch", async () => {
+    const { webhookOwner } = await import("../src/medium.js");
+    const owner = { ownerId: "589aefe5-4901-4118-a761-90f5d86a737f", deviceId: "mac-jared" };
+    expect(webhookOwner(JSON.stringify({ spectr_owner: owner }))).toEqual(owner);
+    expect(webhookOwner(JSON.stringify({ spectr_owner: { ownerId: "x", deviceId: "mac" } }))).toBeNull();
+    expect(webhookOwner("{}")).toBeNull();
+  });
+
+  it("greets only once Chert reports the bridge ready, and stops when the call is over", async () => {
+    const { callBridgeReady } = await import("../src/medium.js");
+    expect(callBridgeReady({ status: "ringing", facetime_call_events: [] })).toBe("waiting");
+    expect(callBridgeReady({ status: "active", facetime_call_events: [{ type: "accepted" }] })).toBe("waiting");
+    expect(callBridgeReady({ status: "active", facetime_call_events: [{ type: "bridge_ready", source: "worker" }] })).toBe("ready");
+    expect(callBridgeReady({ status: "ended" })).toBe("over");
+  });
+});

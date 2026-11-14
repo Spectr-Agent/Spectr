@@ -12,6 +12,7 @@ import { createSendblueWebhookRoute } from "../src/sendblue/route.js";
 import { createMacLiveKitRoute } from "../src/livekit/mac-token.js";
 import { createAppApi } from "../src/app/routes.js";
 import { createMacPairingRoutes } from "../src/app/mac-pairing.js";
+import { createFaceTimeRoute } from "../src/facetime/incoming.js";
 
 const env = () => process.env;
 const makeSql = (url: string) => postgres(url, { prepare: false, max: 1 });
@@ -64,6 +65,7 @@ const routes = new Map<string, (request: Request) => Promise<Response>>([
   ["POST /api/app/phone", app.phone],
   ["DELETE /api/app/phone", app.phone],
   ["POST /api/mac/pair", macPairing.start],
+  ["POST /api/chert/facetime", createFaceTimeRoute(env, makeSql)],
   ["POST /api/mac/pair-status", macPairing.status],
 ]);
 

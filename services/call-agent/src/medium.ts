@@ -52,6 +52,35 @@ export function appCallerIdentity(metadata: string | undefined | null): string |
   }
 }
 
+/** The owner and Mac the Vercel FaceTime webhook resolved for this call, if any. */
+export function webhookOwner(metadata: string | undefined | null): { ownerId: string; deviceId: string } | null {
+  if (!metadata) return null;
+  try {
+    const owner = (JSON.parse(metadata) as { spectr_owner?: { ownerId?: unknown; deviceId?: unknown } }).spectr_owner;
+    if (typeof owner?.ownerId !== "string" || !/^[0-9a-f-]{36}$/iu.test(owner.ownerId)) return null;
+    if (typeof owner.deviceId !== "string" || !/^[A-Za-z0-9_-]{1,64}$/u.test(owner.deviceId)) return null;
+    return { ownerId: owner.ownerId.toLowerCase(), deviceId: owner.deviceId };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a Chert call event list shows the bridge is up. In webhook mode nothing writes
+ * `chert_bridge_ready` into the room, so the agent reads the call from Chert instead.
+ */
+export function callBridgeReady(call: unknown): "ready" | "waiting" | "over" {
+  const record = (call ?? {}) as { status?: unknown; facetime_call_events?: unknown };
+  const status = String(record.status ?? "");
+  if (["ended", "failed", "rejected"].includes(status)) return "over";
+  const events = Array.isArray(record.facetime_call_events) ? record.facetime_call_events : [];
+  const ready = events.some((event) => {
+    const item = event as { type?: unknown; event?: unknown; name?: unknown; source?: unknown };
+    return [item.type, item.event, item.name].includes("bridge_ready") && (item.source === undefined || item.source === "worker");
+  });
+  return status === "active" && ready ? "ready" : "waiting";
+}
+
 export type CallerClaim =
   | { medium: "phone"; phone: string }
   | { medium: "facetime"; phone: string | null }

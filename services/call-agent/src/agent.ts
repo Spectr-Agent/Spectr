@@ -9,7 +9,15 @@ import { createElevenLabsClient } from "../../api/src/voice/elevenlabs.js";
 import { CallSession } from "./call.js";
 import { loadEnv } from "./config.js";
 import { NOT_LINKED } from "./conversation.js";
-import { appCallerIdentity, bridgeReady, claimCaller, mediumOf, parseChertJob } from "./medium.js";
+import {
+  appCallerIdentity,
+  bridgeReady,
+  callBridgeReady,
+  claimCaller,
+  mediumOf,
+  parseChertJob,
+  webhookOwner,
+} from "./medium.js";
 import { startScreenRelay, type ScreenRelay } from "./screen-relay.js";
 import { createSpeaker } from "./speech.js";
 import { PostgresTaskGateway, type Caller } from "./tasks.js";
@@ -73,7 +81,11 @@ export default defineAgent({
 
     let caller: Caller | null = null;
     let justLinked = false;
-    if (claim.medium === "phone" || (claim.medium === "facetime" && claim.phone)) {
+    const owner = webhookOwner(ctx.job.metadata);
+    if (claim.medium === "facetime" && owner) {
+      // Answered by Spectr's FaceTime webhook, which already resolved the line's owner.
+      caller = await gateway.byOwnerDevice(owner.ownerId, owner.deviceId).catch(() => null);
+    } else if (claim.medium === "phone" || (claim.medium === "facetime" && claim.phone)) {
       caller = await gateway.byPhone(claim.phone as string).catch(() => null);
       if (!caller && claim.medium === "phone") {
         // The owner may have just asked to link this number in the app.
@@ -145,16 +157,62 @@ export default defineAgent({
       // FaceTime drops a call that hears nothing within 10 s of bridge_ready, and
       // speaking before it is ready is lost: greet exactly once on the signal.
       let started = false;
-      const check = () => {
-        if (started || !bridgeReady(ctx.room.metadata)) return;
+      const begin = () => {
+        if (started) return;
         started = true;
         ctx.room.off(RoomEvent.RoomMetadataChanged, check);
         void start();
       };
+      const check = () => {
+        if (bridgeReady(ctx.room.metadata)) begin();
+      };
       ctx.room.on(RoomEvent.RoomMetadataChanged, check);
       check();
+      // Webhook-answered calls: nobody writes the room signal, so read the call from Chert.
+      if (chert?.callId && env.CHERT_API_KEY && env.CHERT_PROJECT_ID && pollsBridge(ctx.job.metadata)) {
+        void watchChertCall(chert.callId, env.CHERT_API_KEY, env.CHERT_PROJECT_ID, () => started, begin, () =>
+          ctx.shutdown("FaceTime call ended"),
+        );
+      }
     } else {
       await start();
     }
   },
 });
+
+function pollsBridge(metadata: string | undefined | null): boolean {
+  try {
+    return (JSON.parse(metadata ?? "{}") as { spectr_poll_bridge?: unknown }).spectr_poll_bridge === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Reads the call from Chert every 500 ms until the bridge is ready (greet) or the call is over. */
+async function watchChertCall(
+  callId: string,
+  apiKey: string,
+  projectId: string,
+  isStarted: () => boolean,
+  onReady: () => void,
+  onOver: () => void,
+): Promise<void> {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline && !isStarted()) {
+    try {
+      const response = await fetch(`https://facetime.trychert.com/api/v1/calls/${encodeURIComponent(callId)}`, {
+        headers: { authorization: `Bearer ${apiKey}`, "x-chert-project-id": projectId },
+      });
+      if (response.ok) {
+        const body = (await response.json()) as Record<string, unknown>;
+        const state = callBridgeReady(body.call ?? body.data ?? body);
+        if (state === "ready") return onReady();
+        if (state === "over") return onOver();
+      }
+    } catch {
+      // Keep trying until the deadline; a brief network error shouldn't drop the call.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  if (!isStarted()) onOver();
+}
