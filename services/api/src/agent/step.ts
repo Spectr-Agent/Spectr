@@ -11,8 +11,11 @@ import type {
   AgentTaskRecord,
   PendingInboundMessage,
 } from "./types.js";
+import { profileContext } from "./onboarding/context.js";
+import { shouldSendProgress } from "./onboarding/updates.js";
+import type { OnboardingStore } from "./onboarding/store.js";
 import { slideMismatchSummary, targetSlide } from "./slides.js";
-import { status } from "./status.js";
+import { status, statusForResponse } from "./status.js";
 import {
   anthropicRequest,
   AnthropicHttpError,
@@ -53,6 +56,11 @@ export interface StepNotifier {
     question: string,
     idempotencyKey: string,
   ): Promise<void>;
+  sendProgress?(
+    task: AgentTaskRecord,
+    text: string,
+    idempotencyKey: string,
+  ): Promise<void>;
   sendResult(
     task: AgentTaskRecord,
     text: string,
@@ -67,6 +75,7 @@ export interface RunAgentStepOptions {
   request: MacStepRequest;
   callClaude: CallClaude;
   notifier?: StepNotifier;
+  profiles?: Pick<OnboardingStore, "getProfile">;
   model?: string;
   now?: () => Date;
   clock?: () => number;
@@ -514,6 +523,29 @@ async function notifyResultSafely(
   }
 }
 
+async function loadProfile(options: RunAgentStepOptions, ownerId: string) {
+  return (await options.profiles?.getProfile(ownerId).catch(() => null)) ?? null;
+}
+
+async function sendProgressSafely(
+  options: RunAgentStepOptions,
+  task: AgentTaskRecord,
+  response: MacStepResponse,
+): Promise<void> {
+  if (!options.notifier?.sendProgress || response.kind !== "actions") return;
+  try {
+    const profile = await loadProfile(options, task.ownerId);
+    if (!shouldSendProgress(profile?.updates ?? null, response.step)) return;
+    await options.notifier.sendProgress(
+      task,
+      statusForResponse(response),
+      `progress-${task.taskId}-${response.step}`,
+    );
+  } catch (error) {
+    console.error("Progress notification failed", notificationErrorMessage(error));
+  }
+}
+
 function upstreamError(revision: number): ApiErrorException {
   return new ApiErrorException(502, {
     error: {
@@ -630,6 +662,8 @@ export async function runAgentStep(
         });
       }
     }
+    const note = profileContext(await loadProfile(options, task.ownerId));
+    if (note) firstTurnContent.unshift({ type: "text", text: note });
     firstTurnContent.push(imageBlock(options.request));
     messages = [{ role: "user", content: firstTurnContent }];
     consumed = inbound.map((message) => message.providerMessageId);
@@ -907,6 +941,7 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
+      if (saved === actionResponse) await sendProgressSafely(options, task, saved);
       return saved;
     }
 

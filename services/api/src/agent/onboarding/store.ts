@@ -1,10 +1,11 @@
 // Where onboarding progress and saved profiles live, keyed by the verified
 // iMessage identity. One person's data is never reachable with another's key.
-// The in-memory version is for tests and local runs; Poorav's database can
-// implement the same interface.
+// The in-memory version is for tests and local runs; pg-store.ts keeps the
+// same data in Postgres.
 
-import type { Profile } from "./profile.js";
-import type { QuestionId } from "./questions.js";
+import { z } from "zod";
+import { ProfileSchema, type Profile } from "./profile.js";
+import { QUESTION_ORDER, type QuestionId } from "./questions.js";
 
 export type OnboardingState =
   | {
@@ -19,6 +20,21 @@ export type OnboardingState =
   | { step: "confirming"; draft: Profile }
   /** Picking which answer to change. */
   | { step: "changing"; draft: Profile };
+
+/** For stores that keep state as JSON: checks it again on the way out. */
+export const OnboardingStateSchema = z.discriminatedUnion("step", [
+  z
+    .object({
+      step: z.literal("asking"),
+      question: z.enum(QUESTION_ORDER as unknown as [QuestionId, ...QuestionId[]]),
+      draft: ProfileSchema,
+      awaitingOther: z.boolean(),
+      returnToConfirm: z.boolean(),
+    })
+    .strict(),
+  z.object({ step: z.literal("confirming"), draft: ProfileSchema }).strict(),
+  z.object({ step: z.literal("changing"), draft: ProfileSchema }).strict(),
+]);
 
 export interface OnboardingStore {
   getState(identity: string): Promise<OnboardingState | null>;

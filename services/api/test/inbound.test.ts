@@ -44,7 +44,7 @@ describe("handleInboundMessage", () => {
     expect(deps.sendReply).toHaveBeenCalledTimes(1);
     expect(first.status).toBe("created");
     expect(second.status).toBe("duplicate");
-    if (first.status === "ignored" || second.status === "ignored") {
+    if (first.status === "ignored" || first.status === "onboarding" || second.status === "ignored" || second.status === "onboarding") {
       throw new Error("Expected known senders to create a task");
     }
     expect(first.taskId).toBe(second.taskId);
@@ -81,7 +81,7 @@ describe("handleInboundMessage", () => {
 
     expect(retry.status).toBe("duplicate");
     expect(replay.status).toBe("duplicate");
-    if (retry.status === "ignored") {
+    if (retry.status === "ignored" || retry.status === "onboarding") {
       throw new Error("Expected the retry sender to be known");
     }
     expect(store.tasks.size).toBe(1);
@@ -123,7 +123,7 @@ describe("handleInboundMessage", () => {
       },
       deps,
     );
-    if (task.status === "ignored") {
+    if (task.status === "ignored" || task.status === "onboarding") {
       throw new Error("Expected a task to be created");
     }
 
@@ -196,7 +196,7 @@ describe("handleInboundMessage", () => {
       },
       deps,
     );
-    if (task.status === "ignored") {
+    if (task.status === "ignored" || task.status === "onboarding") {
       throw new Error("Expected a task to be created");
     }
 

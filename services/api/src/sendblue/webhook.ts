@@ -42,6 +42,9 @@ export async function handleSendblueWebhook(
     if (outcome.status === "ignored") {
       return { status: 200, body: { ok: true, outcome: "ignored" } };
     }
+    if (outcome.status === "onboarding") {
+      return { status: 200, body: { ok: true, outcome: "onboarding" } };
+    }
     return {
       status: 200,
       body: { ok: true, outcome: outcome.status, taskId: outcome.taskId },
