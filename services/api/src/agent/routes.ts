@@ -7,6 +7,7 @@ import {
   MacTaskResponseSchema,
 } from "../contracts.js";
 import { PostgresTaskStore } from "../pg-store.js";
+import { PostgresOnboardingStore } from "./onboarding/pg-store.js";
 import { createChertReplier } from "../chert/client.js";
 import { createSendblueReplier } from "../sendblue/client.js";
 import { createAnthropicCaller } from "./anthropic.js";
@@ -267,6 +268,7 @@ export function createMacStepRoute(
           overrides?.callClaude ??
           createAnthropicCaller(env.ANTHROPIC_API_KEY!),
         notifier: notifier(env, overrides),
+        profiles: new PostgresOnboardingStore(connection),
         model: env.ANTHROPIC_MODEL ?? "claude-opus-5-5",
         linkSecret: env.SPECTR_LINK_SECRET,
         publicUrl: env.SPECTR_PUBLIC_URL,

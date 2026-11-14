@@ -11,6 +11,8 @@ import type {
   AgentTaskRecord,
   PendingInboundMessage,
 } from "./types.js";
+import { profileContext } from "./onboarding/context.js";
+import type { OnboardingStore } from "./onboarding/store.js";
 import { slideMismatchSummary, targetSlide } from "./slides.js";
 import { status } from "./status.js";
 import {
@@ -67,6 +69,7 @@ export interface RunAgentStepOptions {
   request: MacStepRequest;
   callClaude: CallClaude;
   notifier?: StepNotifier;
+  profiles?: Pick<OnboardingStore, "getProfile">;
   model?: string;
   now?: () => Date;
   clock?: () => number;
@@ -630,6 +633,10 @@ export async function runAgentStep(
         });
       }
     }
+    const note = profileContext(
+      await options.profiles?.getProfile(task.ownerId).catch(() => null) ?? null,
+    );
+    if (note) firstTurnContent.unshift({ type: "text", text: note });
     firstTurnContent.push(imageBlock(options.request));
     messages = [{ role: "user", content: firstTurnContent }];
     consumed = inbound.map((message) => message.providerMessageId);
