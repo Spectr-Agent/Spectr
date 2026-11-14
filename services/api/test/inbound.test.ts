@@ -50,7 +50,7 @@ describe("handleInboundMessage", () => {
     expect(first.taskId).toBe(second.taskId);
     expect(deps.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      `Spectr is on it. FaceTime this number to watch. Task ${first.taskId}.`,
+      `Spectr is on it. Task ${first.taskId}.`,
       `reply-${first.taskId}`,
     );
   });

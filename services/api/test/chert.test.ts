@@ -189,7 +189,7 @@ describe("handleChertWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledTimes(1);
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      `Spectr is on it. FaceTime this number to watch. Task ${first.body.taskId}.`,
+      `Spectr is on it. Task ${first.body.taskId}.`,
       `reply-${first.body.taskId}`,
     );
   });

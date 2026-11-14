@@ -47,7 +47,7 @@ export function createChertWebhookRoute(
           secret: webhookSecret,
           inbound: {
             store: new PostgresTaskStore(connection),
-            resolveSender: createSenderResolver(connection),
+            resolveSender: createSenderResolver(connection, "chert"),
             sendReply: createChertReplier({
               apiKey,
               projectId,

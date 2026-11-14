@@ -15,6 +15,7 @@ const sql = postgres(
 const ownerId = "00000000-0000-4000-8000-000000000001";
 const deviceId = "dev_test_mac";
 const fromNumber = "+15555550100";
+const sendblueFromNumber = "+15555550101";
 
 function readFixture(): string {
   return readFileSync(
@@ -54,6 +55,10 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     await db`
       insert into public.messaging_identities (owner_id, provider, handle)
       values (${ownerId}, 'chert', ${fromNumber})
+    `;
+    await db`
+      insert into public.messaging_identities (owner_id, provider, handle)
+      values (${ownerId}, 'sendblue', ${sendblueFromNumber})
     `;
   });
 
@@ -132,39 +137,29 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     expect(duplicate.command).toEqual(command);
   });
 
-  it("resolves only active Chert identities with an active Mac", async () => {
-    const resolveSender = createSenderResolver(db);
+  it("resolves only active Sendblue identities with an active Mac", async () => {
+    const resolveSender = createSenderResolver(db, "sendblue");
 
-    expect(await resolveSender(fromNumber)).toEqual({
+    expect(await resolveSender(sendblueFromNumber)).toEqual({
       ownerId,
       deviceId,
     });
     expect(await resolveSender("+15555550999")).toBeNull();
+    expect(await resolveSender(fromNumber)).toBeNull();
 
     await db`
       update public.devices
       set revoked_at = now()
       where id = ${deviceId}
     `;
-    expect(await resolveSender(fromNumber)).toBeNull();
-
-    await db`
-      update public.devices
-      set revoked_at = null
-      where id = ${deviceId}
-    `;
-    await db`
-      insert into public.messaging_identities (owner_id, provider, handle)
-      values (${ownerId}, 'sendblue', '+15555550101')
-    `;
-    expect(await resolveSender("+15555550101")).toBeNull();
+    expect(await resolveSender(sendblueFromNumber)).toBeNull();
   });
 
   it("deduplicates a signed webhook delivery and persists the reply marker", async () => {
     const secret = "pg-store-test-webhook-secret";
     const rawBody = readFixture();
     const timestamp = Math.floor(Date.now() / 1000);
-    const resolveSender = createSenderResolver(db);
+    const resolveSender = createSenderResolver(db, "chert");
     const sendReply = vi.fn(
       async (_toNumber: string, _text: string, _idempotencyKey: string) => {},
     );

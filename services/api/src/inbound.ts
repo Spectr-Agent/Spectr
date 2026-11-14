@@ -55,7 +55,7 @@ export async function handleInboundMessage(
   if (!(await deps.store.isReplySent(task.taskId))) {
     await deps.sendReply(
       message.fromNumber,
-      `Spectr is on it. FaceTime this number to watch. Task ${task.taskId}.`,
+      `Spectr is on it. Task ${task.taskId}.`,
       `reply-${task.taskId}`,
     );
     await deps.store.markReplySent(task.taskId);

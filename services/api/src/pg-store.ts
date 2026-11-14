@@ -144,7 +144,7 @@ export class PostgresTaskStore implements TaskStore {
 
 export function createSenderResolver(
   sql: postgres.Sql,
-  provider = "chert",
+  provider: string,
 ): InboundDeps["resolveSender"] {
   return async (fromNumber) => {
     const [row] = await sql`
