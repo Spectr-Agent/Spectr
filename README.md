@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center">your computer, for everyone.<br>text it or call it. it does the work.</p>
+<p align="center">your computer, on call.<br>text it. call it. facetime it. it does the rest, for anyone.</p>
 
 ## why spectr
 
