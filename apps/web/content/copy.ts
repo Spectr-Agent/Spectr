@@ -43,6 +43,7 @@ export const copy = {
     previous: "previous",
     next: "next",
     carousel: "use case carousel",
+    research: "research carousel",
     logoAlt: "spectr",
     callScreen: "the mac screen, shown on the call",
     slides: "slides",

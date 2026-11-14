@@ -9,7 +9,7 @@ const IDS = copy.slides.map((slide) => slide.id);
 export function SlideNav() {
   const active = useActiveSlide(IDS);
   return (
-    <div className={`slidenav${active === "research" ? " light" : ""}`} role="navigation" aria-label={copy.a11y.slides}>
+    <div className="slidenav" role="navigation" aria-label={copy.a11y.slides}>
       {copy.slides.map((slide) => (
         <a key={slide.id} href={`#${slide.id}`} aria-label={slide.label} aria-current={active === slide.id ? "true" : undefined} className={active === slide.id ? "on" : undefined} />
       ))}

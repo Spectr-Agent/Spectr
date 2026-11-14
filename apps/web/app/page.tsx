@@ -13,7 +13,6 @@ export default function Page() {
   return (
     <>
       <Nav />
-      <SlideNav />
       <main>
         <Hero />
         <HowItWorks />
@@ -24,6 +23,7 @@ export default function Page() {
         <MoreResearch />
         <Closing />
       </main>
+      <SlideNav />
     </>
   );
 }
