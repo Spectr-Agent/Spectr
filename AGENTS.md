@@ -77,3 +77,23 @@ Chert (iMessage + FaceTime) is the backup channel.
 ## Handoffs
 
 When you hand off work, include the changed paths, the verification command, the observed result, and one remaining blocker with its owner. Separate what passed on real hardware from simulator checks, fixtures and untested assumptions.
+
+## Native apps (Swift) — layout, tooling and rules
+
+This section covers Jared's native workstream. It was added when the native branch was merged and does not change the team architecture above; where the two disagree, see the reconciliation notes in the native PR.
+
+| Path | What it is |
+| --- | --- |
+| `apps/project.yml` | XcodeGen spec, the single source of truth for the Xcode project (`make bootstrap` generates `apps/Spectr.xcodeproj`, which is not checked in) |
+| `apps/Config/` | Base/Debug/Release xcconfigs; per-developer values go in gitignored `apps/Config/Local.xcconfig` |
+| `apps/ios/` | SwiftUI iPhone app and tests |
+| `apps/mac/` | SwiftUI menu-bar Mac helper and tests |
+| `packages/SpectrKit/` | Shared Swift package: wire models, auth client, command ledger, stream health |
+| `docs/native/` | Native status ledger, contract notes, auth hardening list |
+| `tools/dev-agent/` | Local-only Debug planner for the Mac action lab (stopgap until the Mac uses `/api/mac/step`) |
+| `Makefile`, `.swift-format`, `.github/workflows/apple.yml` | Native build, lint and CI; they never touch TypeScript or SQL |
+
+- Commands: `make bootstrap`, `make lint`, `make test-kit`, `make test-ios`, `make test-mac`, `make check-release`.
+- Native code never holds provider secrets. The Supabase publishable key is a public client value; the secret key, LiveKit secret, Resend key and `ANTHROPIC_API_KEY` stay server-side or in a developer's local env file.
+- The Mac executes only a closed, validated action set; it refuses terminals, script editors and password managers, and never types into password fields.
+- Release builds must not contain test data, Debug tools or development servers; `make check-release` enforces this.
