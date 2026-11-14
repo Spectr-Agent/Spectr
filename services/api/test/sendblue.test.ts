@@ -35,7 +35,12 @@ function makeInboundHarness(
     async (_toNumber: string, _text: string, _idempotencyKey: string) => {},
   );
   const resolveSender = vi.fn(async (_fromNumber: string) => sender);
-  const inbound: InboundDeps = { store, sendReply, resolveSender };
+  const inbound: InboundDeps = {
+    store,
+    provider: "sendblue",
+    sendReply,
+    resolveSender,
+  };
   return { store, sendReply, resolveSender, inbound };
 }
 
@@ -132,7 +137,7 @@ describe("normalizeSendblueMessage", () => {
 describe("handleSendblueWebhook", () => {
   it("rejects a bad secret without calling the store", async () => {
     const harness = makeInboundHarness();
-    const createTask = vi.spyOn(harness.store, "createTaskFromMessage");
+    const routeInbound = vi.spyOn(harness.store, "routeInbound");
     const response = await handleSendblueWebhook(
       {
         rawBody: JSON.stringify(readFixture()),
@@ -145,7 +150,7 @@ describe("handleSendblueWebhook", () => {
       status: 401,
       body: { ok: false, error: "invalidSignature" },
     });
-    expect(createTask).not.toHaveBeenCalled();
+    expect(routeInbound).not.toHaveBeenCalled();
     expect(harness.resolveSender).not.toHaveBeenCalled();
     expect(harness.sendReply).not.toHaveBeenCalled();
   });
@@ -194,7 +199,7 @@ describe("handleSendblueWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
       `Spectr is on it. Task ${first.body.taskId}.`,
-      `reply-${first.body.taskId}`,
+      "reply-99DCC379-DD76-4712-BA65-11EFB33B8CD6",
     );
   });
 

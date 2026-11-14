@@ -13,7 +13,7 @@ export function createSendblueReplier(cfg: {
     "",
   );
 
-  return async (toNumber, text, _idempotencyKey) => {
+  return async (toNumber, text, _idempotencyKey, mediaUrl) => {
     let response: Response;
     try {
       response = await fetcher(`${baseUrl}/api/send-message`, {
@@ -27,6 +27,7 @@ export function createSendblueReplier(cfg: {
           number: toNumber,
           from_number: cfg.fromNumber,
           content: text,
+          ...(mediaUrl ? { media_url: mediaUrl } : {}),
         }),
       });
     } catch {

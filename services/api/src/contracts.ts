@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const idSchema = z.string().min(1);
 const positiveIntSchema = z.number().int().min(1);
+const nonNegativeIntSchema = z.number().int().min(0);
 const timestampSchema = z.string().datetime();
 
 export const TaskStateSchema = z.enum([
@@ -40,6 +41,263 @@ export const ActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("stop") }).strict(),
 ]);
 export type Action = z.infer<typeof ActionSchema>;
+
+const modifierSchema = z.enum(["cmd", "option", "ctrl", "shift"]);
+const modifiersSchema = z
+  .array(modifierSchema)
+  .max(4)
+  .refine((modifiers) => new Set(modifiers).size === modifiers.length);
+const coordinateSchema = z.number().int().min(0);
+const keyComboSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .refine((combo) => {
+    if (combo === "+") {
+      return true;
+    }
+    const parts = combo.split("+");
+    if (parts.some((part) => part.length === 0)) {
+      return false;
+    }
+    const key = parts.pop()!;
+    const modifiers = parts;
+    if (
+      modifiers.some(
+        (modifier) =>
+          !["cmd", "option", "ctrl", "shift"].includes(modifier),
+      ) ||
+      new Set(modifiers).size !== modifiers.length
+    ) {
+      return false;
+    }
+    if (
+      [
+        "return",
+        "tab",
+        "escape",
+        "space",
+        "delete",
+        "forwardDelete",
+        "up",
+        "down",
+        "left",
+        "right",
+        "home",
+        "end",
+        "pageUp",
+        "pageDown",
+      ].includes(key) ||
+      /^f(?:[1-9]|1[0-2])$/u.test(key)
+    ) {
+      return true;
+    }
+    return (
+      [...key].length === 1 &&
+      !/[\p{Cc}\p{Cf}]/u.test(key)
+    );
+  });
+
+const httpUrlSchema = z
+  .string()
+  .min(1)
+  .max(2048)
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        url.hostname.length > 0
+      );
+    } catch {
+      return false;
+    }
+  });
+
+export const MacActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("screenshot") }).strict(),
+  z
+    .object({
+      type: z.literal("click"),
+      x: coordinateSchema,
+      y: coordinateSchema,
+      button: z.enum(["left", "right", "middle"]),
+      clicks: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      modifiers: modifiersSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mouseMove"),
+      x: coordinateSchema,
+      y: coordinateSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("drag"),
+      fromX: coordinateSchema,
+      fromY: coordinateSchema,
+      toX: coordinateSchema,
+      toY: coordinateSchema,
+      modifiers: modifiersSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("scroll"),
+      x: coordinateSchema.nullable(),
+      y: coordinateSchema.nullable(),
+      direction: z.enum(["up", "down", "left", "right"]),
+      amount: z.number().int().min(1).max(50),
+      modifiers: modifiersSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("type"),
+      text: z
+        .string()
+        .min(1)
+        .max(2000)
+        .refine((value) => !/[\u0000-\u0008\u000b-\u001f\u007f]/u.test(value)),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("key"),
+      keys: keyComboSchema,
+      repeat: z.number().int().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("wait"),
+      seconds: z.number().min(0).max(10),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("openApp"),
+      name: z
+        .string()
+        .min(1)
+        .max(80)
+        .regex(/^[\p{L}\p{N} .&'()+-]+$/u),
+    })
+    .strict(),
+  z
+    .object({ type: z.literal("openUrl"), url: httpUrlSchema })
+    .strict(),
+]);
+export type MacAction = z.infer<typeof MacActionSchema>;
+
+export const MacStepScreenshotSchema = z
+  .object({
+    mediaType: z.enum(["image/png", "image/jpeg"]),
+    data: z
+      .string()
+      .min(1)
+      .max(4_000_000)
+      .regex(
+        /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/,
+      ),
+    width: positiveIntSchema,
+    height: positiveIntSchema,
+  })
+  .strict()
+  .superRefine((screenshot, ctx) => {
+    if (Math.max(screenshot.width, screenshot.height) > 2576) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Screenshot long edge must be at most 2576 pixels",
+      });
+    }
+    if (
+      Math.ceil(screenshot.width / 28) *
+        Math.ceil(screenshot.height / 28) >
+      4784
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Screenshot exceeds the Anthropic image block limit",
+      });
+    }
+  });
+
+export const MacStepRequestSchema = z
+  .object({
+    taskId: idSchema,
+    afterStep: nonNegativeIntSchema,
+    screenshot: MacStepScreenshotSchema,
+    results: z
+      .array(
+        z
+          .object({
+            actionId: idSchema,
+            ok: z.boolean(),
+            error: z.string().max(500).optional(),
+            output: z.string().max(1000).optional(),
+          })
+          .strict(),
+      )
+      .max(50),
+  })
+  .strict();
+export type MacStepRequest = z.infer<typeof MacStepRequestSchema>;
+
+const MacStepActionResultSchema = z
+  .object({
+    actionId: idSchema,
+    action: MacActionSchema,
+  })
+  .strict();
+
+export const MacStepResponseSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("actions"),
+      taskId: idSchema,
+      step: nonNegativeIntSchema,
+      revision: positiveIntSchema,
+      actions: z.array(MacStepActionResultSchema).min(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("waiting"),
+      taskId: idSchema,
+      step: nonNegativeIntSchema,
+      question: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("finished"),
+      taskId: idSchema,
+      step: nonNegativeIntSchema,
+      state: z.enum(["succeeded", "failed", "cancelled"]),
+      summary: z.string(),
+    })
+    .strict(),
+]);
+export type MacStepResponse = z.infer<typeof MacStepResponseSchema>;
+
+export const MacTaskResponseSchema = z
+  .object({
+    task: z
+      .object({
+        taskId: idSchema,
+        revision: positiveIntSchema,
+        state: TaskStateSchema,
+        instruction: z.string(),
+        step: nonNegativeIntSchema,
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+export type MacTaskResponse = z.infer<typeof MacTaskResponseSchema>;
 
 export const CommandSchema = z
   .object({
@@ -157,11 +415,14 @@ export type PostInstructionResponse = z.infer<
 
 export const ErrorCodeSchema = z.enum([
   "staleRevision",
+  "staleStep",
   "notFound",
   "forbidden",
   "invalidRequest",
   "deviceOffline",
   "duplicate",
+  "upstreamError",
+  "misconfigured",
 ]);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 

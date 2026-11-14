@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/mac/step.ts": {
+      "maxDuration": 300
+    }
+  }
+}

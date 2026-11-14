@@ -1,0 +1,11 @@
+{
+  "taskId": "tsk_demo_001",
+  "afterStep": 0,
+  "screenshot": {
+    "mediaType": "image/png",
+    "data": "aGVsbG8=",
+    "width": 1920,
+    "height": 1080
+  },
+  "results": []
+}

@@ -47,6 +47,7 @@ export function createSendblueWebhookRoute(
           secret,
           inbound: {
             store: new PostgresTaskStore(connection),
+            provider: "sendblue",
             resolveSender: createSenderResolver(connection, "sendblue"),
             sendReply: createSendblueReplier({
               apiKeyId,

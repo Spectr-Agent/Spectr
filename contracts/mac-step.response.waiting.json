@@ -1,0 +1,6 @@
+{
+  "kind": "waiting",
+  "taskId": "tsk_demo_001",
+  "step": 2,
+  "question": "Should I send this message?"
+}

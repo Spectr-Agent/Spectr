@@ -1,0 +1,41 @@
+{
+  "kind": "actions",
+  "taskId": "tsk_demo_001",
+  "step": 1,
+  "revision": 1,
+  "actions": [
+    {
+      "actionId": "tool_open_url",
+      "action": {
+        "type": "openUrl",
+        "url": "https://instagram.com"
+      }
+    },
+    {
+      "actionId": "tool_click",
+      "action": {
+        "type": "click",
+        "x": 420,
+        "y": 340,
+        "button": "left",
+        "clicks": 1,
+        "modifiers": []
+      }
+    },
+    {
+      "actionId": "tool_type",
+      "action": {
+        "type": "type",
+        "text": "hello"
+      }
+    },
+    {
+      "actionId": "tool_key",
+      "action": {
+        "type": "key",
+        "keys": "cmd+l",
+        "repeat": 1
+      }
+    }
+  ]
+}

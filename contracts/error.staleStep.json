@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "staleStep",
+    "message": "Expected step 2, received 1.",
+    "currentRevision": 1
+  }
+}
