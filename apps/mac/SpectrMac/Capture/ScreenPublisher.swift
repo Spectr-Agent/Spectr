@@ -34,22 +34,38 @@ final class ScreenPublisher {
         guard task == nil, state != .live else { return }
         generation += 1
         let session = generation
+        let fetchGrant = grant
         state = .connecting
         task = Task {
             do {
                 let grant = try await grant()
-                let room = Room()
+                // Dynacast stops sending video while nobody is watching, so an always-on
+                // share costs almost no upload until the iPhone opens it.
+                let room = Room(roomOptions: RoomOptions(dynacast: true))
                 try await room.connect(url: grant.url, token: grant.token)
                 let track = await LocalVideoTrack.createBufferTrack(name: "spectr-screen", source: .screenShareVideo)
-                try await room.localParticipant.publish(
-                    videoTrack: track, options: VideoPublishOptions(simulcast: false))
                 guard session == self.generation, let capturer = track.capturer as? BufferCapturer else {
                     await room.disconnect()
                     return
                 }
-                self.room = room
+                // Frames must flow before publishing: LiveKit waits for the first frame
+                // to learn the track's size, and would otherwise wait forever.
                 self.sink.setTarget { buffer in capturer.capture(buffer) }
+                do {
+                    try await room.localParticipant.publish(
+                        videoTrack: track, options: VideoPublishOptions(simulcast: false))
+                } catch {
+                    if session == self.generation { self.sink.setTarget(nil) }
+                    await room.disconnect()
+                    throw error
+                }
+                guard session == self.generation else {
+                    await room.disconnect()
+                    return
+                }
+                self.room = room
                 self.state = .live
+                self.watch(room, session: session, grant: fetchGrant)
             } catch let error as MacAgentError {
                 guard session == self.generation else { return }
                 self.state = .failed(Self.message(for: error))
@@ -58,6 +74,25 @@ final class ScreenPublisher {
                 self.state = .failed("Couldn't start streaming this Mac's screen.")
             }
             self.task = nil
+        }
+    }
+
+    /// LiveKit resumes brief drops itself; after a full disconnect (a long network
+    /// outage, sleep) this starts a fresh session with a new grant.
+    private func watch(
+        _ room: Room, session: Int,
+        grant: @escaping @Sendable () async throws(MacAgentError) -> MacLiveKitGrant
+    ) {
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                guard let self, session == self.generation else { return }
+                if room.connectionState == .disconnected {
+                    self.stop()
+                    self.start(grant: grant)
+                    return
+                }
+            }
         }
     }
 

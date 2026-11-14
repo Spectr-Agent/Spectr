@@ -124,6 +124,10 @@ struct HelperState: Equatable, Sendable {
     var canStopTask = false
     /// Why the backend agent loop can't make progress right now, if it can't.
     var agentNotice: String?
+    /// Share the whole screen automatically so the Mac can be watched from away.
+    var alwaysShareScreen = true
+    /// Keep the display awake while connected.
+    var keepAwake = true
 
     enum Problem: Equatable, Sendable {
         case misconfigured(String)
@@ -234,6 +238,9 @@ struct HelperState: Equatable, Sendable {
 struct HelperActions {
     var openSetup: () -> Void = {}
     var chooseWindow: () -> Void = {}
+    var shareScreen: () -> Void = {}
+    var setAlwaysShareScreen: (Bool) -> Void = { _ in }
+    var setKeepAwake: (Bool) -> Void = { _ in }
     var stopSharing: () -> Void = {}
     var stopTask: () -> Void = {}
     var connectDevice: (String) -> Void = { _ in }

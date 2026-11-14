@@ -60,8 +60,85 @@ final class MacEnvironment {
             self?.syncAgent()
             self?.syncPublisher()
         }
-        capture.onStatusChange = { [weak self] _ in self?.syncPublisher() }
+        capture.onStatusChange = { [weak self] status in
+            // macOS's own "Stop Sharing" counts as the owner stopping.
+            if status == .stopped(.userStopped) { self?.sharingPausedByUser = true }
+            self?.syncPublisher()
+        }
         syncAgent()
+    }
+
+    // MARK: Always-on sharing
+
+    private let keepAwakeAssertion = KeepAwake()
+    private var supervisor: Task<Void, Never>?
+    /// The owner stopped sharing in this session; don't restart it behind their back.
+    private(set) var sharingPausedByUser = false
+
+    /// Share the whole screen automatically whenever possible, so the Mac can be watched
+    /// from anywhere without anyone at it.
+    var alwaysShareScreen: Bool = UserDefaults.standard.object(forKey: "SpectrAlwaysShareScreen") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(alwaysShareScreen, forKey: "SpectrAlwaysShareScreen")
+            superviseSharing()
+        }
+    }
+
+    /// Keep the display awake while this Mac is connected.
+    var keepAwake: Bool = UserDefaults.standard.object(forKey: "SpectrKeepAwake") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(keepAwake, forKey: "SpectrKeepAwake")
+            superviseSharing()
+        }
+    }
+
+    /// Starts the background loop that keeps sharing and keep-awake in the wanted state.
+    /// Restarts sharing after sleep, a display change, a dropped stream or a newly
+    /// granted permission. Not started under tests.
+    func startBackgroundWork() {
+        guard supervisor == nil else { return }
+        let wake = NSWorkspace.shared.notificationCenter
+        for name in [
+            NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
+            NSWorkspace.sessionDidBecomeActiveNotification,
+        ] {
+            wake.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.superviseSharing() }
+            }
+        }
+        supervisor = Task { [weak self] in
+            while !Task.isCancelled {
+                self?.superviseSharing()
+                try? await Task.sleep(for: .seconds(4))
+            }
+        }
+    }
+
+    func superviseSharing() {
+        keepAwakeAssertion.set(keepAwake && pairing.state.phone != nil)
+        guard alwaysShareScreen, !sharingPausedByUser, pairing.state.phone != nil, CGPreflightScreenCaptureAccess()
+        else { return }
+        switch capture.status {
+        case .idle, .stopped(.windowGone), .stopped(.failed), .stopped(.permissionDenied):
+            capture.shareEntireScreen()
+        case .stopped(.userStopped), .choosing, .starting, .sharing:
+            break
+        }
+    }
+
+    func shareScreen() {
+        sharingPausedByUser = false
+        capture.shareEntireScreen()
+    }
+
+    func chooseWindow() {
+        sharingPausedByUser = false
+        capture.chooseSource()
+    }
+
+    func stopSharingByUser() {
+        sharingPausedByUser = true
+        capture.stopSharing()
     }
 
     /// Streams the screen while something is shared and this Mac is connected; stops
@@ -120,7 +197,9 @@ final class MacEnvironment {
             share: capture.shareState(at: now),
             activity: agent?.activity ?? taskSession?.activity,
             canStopTask: (agent?.activity ?? taskSession?.activity)?.phase == .working,
-            agentNotice: agentNotice
+            agentNotice: agentNotice,
+            alwaysShareScreen: alwaysShareScreen,
+            keepAwake: keepAwake
         )
     }
 

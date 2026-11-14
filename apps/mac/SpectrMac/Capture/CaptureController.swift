@@ -5,8 +5,9 @@ import Observation
 @preconcurrency import ScreenCaptureKit
 import SpectrKit
 
-/// Captures exactly what the user picks in the system sharing picker (one window or,
-/// if they choose, one display) and keeps a low-rate preview for the menu.
+/// Captures the main display (shared automatically once Screen Recording is allowed) or
+/// exactly what the user picks in the system sharing picker, and keeps a low-rate
+/// preview for the menu.
 ///
 /// Publishing to LiveKit attaches to `FrameSink` in Phase 3; capture never widens scope
 /// on its own. If the picked window closes, sharing stops and says so.
@@ -51,6 +52,8 @@ final class CaptureController: NSObject {
 
     var isSharing: Bool { status == .sharing || status == .starting }
 
+    static let maxStreamWidth: CGFloat = 1920
+
     // MARK: User intents
 
     func chooseSource() {
@@ -71,6 +74,30 @@ final class CaptureController: NSObject {
         tearDown(reason: .userStopped)
     }
 
+    /// Shares the main display without the picker. Needs Screen Recording permission;
+    /// Spectr's own windows are left out of the picture.
+    func shareEntireScreen() {
+        guard status != .choosing, !isSharing else { return }
+        status = .starting
+        Task {
+            do {
+                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+                guard status == .starting, stream == nil else { return }
+                let main = CGMainDisplayID()
+                guard let display = content.displays.first(where: { $0.displayID == main }) ?? content.displays.first
+                else {
+                    status = .stopped(.failed("There's no display to share."))
+                    return
+                }
+                let own = content.applications.filter { $0.bundleIdentifier == Bundle.main.bundleIdentifier }
+                start(with: SCContentFilter(display: display, excludingApplications: own, exceptingWindows: []))
+            } catch {
+                guard status == .starting else { return }
+                status = .stopped(Self.reason(for: error))
+            }
+        }
+    }
+
     // MARK: Stream lifecycle
 
     private func start(with filter: SCContentFilter) {
@@ -83,9 +110,15 @@ final class CaptureController: NSObject {
         source = describe(filter)
 
         let configuration = SCStreamConfiguration()
-        let scale = CGFloat(filter.pointPixelScale)
-        configuration.width = max(2, Int(filter.contentRect.width * scale))
-        configuration.height = max(2, Int(filter.contentRect.height * scale))
+        // Stream at most 1920 px wide: sharp on a phone, light enough for cellular.
+        // Agent screenshots are taken separately and are not affected.
+        let pixels = CGSize(
+            width: filter.contentRect.width * CGFloat(filter.pointPixelScale),
+            height: filter.contentRect.height * CGFloat(filter.pointPixelScale))
+        let fit = min(1, Self.maxStreamWidth / max(pixels.width, 1))
+        configuration.width = max(2, Int(pixels.width * fit))
+        configuration.height = max(2, Int(pixels.height * fit))
+        configuration.scalesToFit = true
         configuration.minimumFrameInterval = CMTime(value: 1, timescale: 15)
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
         configuration.showsCursor = true
@@ -150,6 +183,7 @@ final class CaptureController: NSObject {
 
     private func tearDown(reason: StopReason) {
         tearDownStream()
+        frameSink.clear()
         SCContentSharingPicker.shared.remove(self)
         SCContentSharingPicker.shared.isActive = false
         preview = nil

@@ -63,8 +63,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var actions: HelperActions {
         var actions = HelperActions(
             openSetup: { [weak self] in self?.showSetup() },
-            chooseWindow: { [environment] in environment.capture.chooseSource() },
-            stopSharing: { [environment] in environment.capture.stopSharing() },
+            chooseWindow: { [environment] in environment.chooseWindow() },
+            shareScreen: { [environment] in environment.shareScreen() },
+            setAlwaysShareScreen: { [environment] in environment.alwaysShareScreen = $0 },
+            setKeepAwake: { [environment] in environment.keepAwake = $0 },
+            stopSharing: { [environment] in environment.stopSharingByUser() },
             stopTask: { [environment] in environment.stopTask() },
             connectDevice: { [environment] token in environment.pairing.connect(token: token) },
             startPairing: { [environment] in environment.pairing.startCodePairing() },
@@ -83,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !isUnderTest else { return }
+        environment.startBackgroundWork()
         // Stay quiet once set up; only a first run or a broken permission opens a window.
         if !environment.state().isSetUp { showSetup() }
         #if DEBUG
