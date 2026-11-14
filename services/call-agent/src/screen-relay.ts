@@ -19,6 +19,8 @@ import {
 import { AccessToken } from "livekit-server-sdk";
 
 export const macRoomName = (deviceId: string) => `spectr-mac-${deviceId}`;
+export const RELAY_MAX_BITRATE = 5_000_000n;
+export const RELAY_MAX_FPS = 15;
 
 export interface LiveKitServerConfig {
   url: string;
@@ -73,6 +75,9 @@ export async function startScreenRelay(options: {
     track = LocalVideoTrack.createVideoTrack("spectr-mac-screen", source);
     await options.callRoom.localParticipant?.publishTrack(track, {
       source: TrackSource.SOURCE_CAMERA,
+      simulcast: false,
+      // Text on a screen needs bits, not frames: re-encode the Mac's screen sharply.
+      videoEncoding: { maxBitrate: RELAY_MAX_BITRATE, maxFramerate: RELAY_MAX_FPS },
     } as never);
   };
 

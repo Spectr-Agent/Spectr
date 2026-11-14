@@ -20,7 +20,7 @@ import {
 } from "./medium.js";
 import { startScreenRelay, type ScreenRelay } from "./screen-relay.js";
 import { createSpeaker } from "./speech.js";
-import { PostgresTaskGateway, type Caller } from "./tasks.js";
+import { PostgresTaskGateway, toE164, type Caller } from "./tasks.js";
 
 let sql: postgres.Sql | undefined;
 const APP_JOIN_TIMEOUT_MS = 45_000;
@@ -50,6 +50,27 @@ export default defineAgent({
     const chert = parseChertJob(ctx.job.metadata);
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
+
+    // FaceTime: put the Mac's screen in the room before anyone calls, so the caller sees
+    // it the moment the call connects instead of a gray connecting screen. A warm room
+    // has no caller yet, but its owner is known from the line.
+    let relay: ScreenRelay | undefined;
+    if (chert && chert.video !== false) {
+      const early = webhookOwner(ctx.job.metadata);
+      const lineOwner = early
+        ? await gateway.byOwnerDevice(early.ownerId, early.deviceId).catch(() => null)
+        : env.SPECTR_FACETIME_OWNER_PHONE
+          ? await gateway.byPhone(toE164(env.SPECTR_FACETIME_OWNER_PHONE) ?? "").catch(() => null)
+          : null;
+      if (lineOwner) {
+        relay = await startScreenRelay({
+          config: { url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET },
+          deviceId: lineOwner.deviceId,
+          callId: chert.callId ?? ctx.job.id,
+          callRoom: ctx.room,
+        }).catch(() => undefined);
+      }
+    }
     // A Chert warm room exists before any caller: stay silent until one arrives. An app
     // call happens in the Mac's own room, so wait for the app user, never the Mac.
     const appIdentity = appCallerIdentity(ctx.job.metadata);
@@ -99,7 +120,6 @@ export default defineAgent({
     const speak = createSpeaker(createElevenLabsClient({ apiKey: env.ELEVENLABS_API_KEY }));
     let session: voice.AgentSession | undefined;
     let call: CallSession | undefined;
-    let relay: ScreenRelay | undefined;
 
     const say = (text: string) => session?.say(text, { audio: speak(text), allowInterruptions: true, addToChatCtx: false });
     const hangUp = (afterMs = 2_500) => setTimeout(() => ctx.shutdown("caller finished"), afterMs);
@@ -142,7 +162,7 @@ export default defineAgent({
         hangUp(6_000);
         return;
       }
-      if (claim.medium === "facetime" && chert?.video !== false) {
+      if (claim.medium === "facetime" && chert?.video !== false && !relay) {
         relay = await startScreenRelay({
           config: { url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET },
           deviceId: caller.deviceId,

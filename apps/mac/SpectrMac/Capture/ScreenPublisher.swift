@@ -52,8 +52,7 @@ final class ScreenPublisher {
                 // to learn the track's size, and would otherwise wait forever.
                 self.sink.setTarget { buffer in capturer.capture(buffer) }
                 do {
-                    try await room.localParticipant.publish(
-                        videoTrack: track, options: VideoPublishOptions(simulcast: false))
+                    try await room.localParticipant.publish(videoTrack: track, options: Self.publishOptions)
                 } catch {
                     if session == self.generation { self.sink.setTarget(nil) }
                     await room.disconnect()
@@ -108,6 +107,15 @@ final class ScreenPublisher {
         room = nil
         state = .idle
     }
+
+    /// A screen is mostly text and barely moves: spend the bandwidth on sharpness. A high
+    /// bitrate at no more than 15 fps, and under congestion drop frames, never resolution.
+    static let publishOptions = VideoPublishOptions(
+        encoding: VideoEncoding(maxBitrate: 5_000_000, maxFps: 15),
+        screenShareEncoding: VideoEncoding(maxBitrate: 5_000_000, maxFps: 15),
+        simulcast: false,
+        degradationPreference: .maintainResolution
+    )
 
     private static func message(for error: MacAgentError) -> String {
         switch error {
