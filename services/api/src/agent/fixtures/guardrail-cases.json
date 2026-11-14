@@ -1,0 +1,225 @@
+{
+  "actions": [
+    {
+      "name": "screenshot",
+      "action": {
+        "type": "screenshot"
+      },
+      "status": "Checking the screen."
+    },
+    {
+      "name": "click",
+      "action": {
+        "type": "click",
+        "x": 420,
+        "y": 340,
+        "button": "left",
+        "clicks": 1,
+        "modifiers": []
+      },
+      "status": "Clicking."
+    },
+    {
+      "name": "double-click",
+      "action": {
+        "type": "click",
+        "x": 420,
+        "y": 340,
+        "button": "left",
+        "clicks": 2,
+        "modifiers": []
+      },
+      "status": "Clicking."
+    },
+    {
+      "name": "right-click",
+      "action": {
+        "type": "click",
+        "x": 420,
+        "y": 340,
+        "button": "right",
+        "clicks": 1,
+        "modifiers": []
+      },
+      "status": "Clicking."
+    },
+    {
+      "name": "move",
+      "action": {
+        "type": "mouseMove",
+        "x": 600,
+        "y": 120
+      },
+      "status": "On it."
+    },
+    {
+      "name": "drag",
+      "action": {
+        "type": "drag",
+        "fromX": 100,
+        "fromY": 200,
+        "toX": 500,
+        "toY": 200,
+        "modifiers": []
+      },
+      "status": "Dragging."
+    },
+    {
+      "name": "scroll",
+      "action": {
+        "type": "scroll",
+        "x": 640,
+        "y": 400,
+        "direction": "down",
+        "amount": 3,
+        "modifiers": []
+      },
+      "status": "Scrolling down."
+    },
+    {
+      "name": "type",
+      "action": {
+        "type": "type",
+        "text": "running late, be there at 7"
+      },
+      "status": "Typing."
+    },
+    {
+      "name": "hotkey",
+      "action": {
+        "type": "key",
+        "keys": "cmd+l",
+        "repeat": 1
+      },
+      "status": "Pressing Command-L."
+    },
+    {
+      "name": "key repeat",
+      "action": {
+        "type": "key",
+        "keys": "tab",
+        "repeat": 3
+      },
+      "status": "Pressing Tab."
+    },
+    {
+      "name": "wait",
+      "action": {
+        "type": "wait",
+        "seconds": 2
+      },
+      "status": "Waiting for the page."
+    },
+    {
+      "name": "open app",
+      "action": {
+        "type": "openApp",
+        "name": "Messages"
+      },
+      "status": "Opening Messages."
+    },
+    {
+      "name": "open url",
+      "action": {
+        "type": "openUrl",
+        "url": "https://www.instagram.com/direct/inbox/"
+      },
+      "status": "Opening instagram.com."
+    }
+  ],
+  "responses": [
+    {
+      "name": "confirm before sending",
+      "note": "Claude asks before sending, posting, buying, submitting or deleting. The Mac does nothing until the owner replies yes.",
+      "response": {
+        "kind": "waiting",
+        "taskId": "tsk_demo_001",
+        "step": 4,
+        "question": "Send \"running late\" to Sam in Messages? Reply yes to go ahead."
+      },
+      "status": "Send \"running late\" to Sam in Messages? Reply yes to go ahead."
+    },
+    {
+      "name": "login pause",
+      "note": "Spectr never types passwords or 2FA codes. The owner logs in on the Mac while watching live, then replies done.",
+      "response": {
+        "kind": "waiting",
+        "taskId": "tsk_demo_001",
+        "step": 2,
+        "question": "Instagram wants you to log in. Please log in on the Mac, then reply done."
+      },
+      "status": "Instagram wants you to log in. Please log in on the Mac, then reply done."
+    },
+    {
+      "name": "unclear request",
+      "note": "Claude asks one short question instead of guessing.",
+      "response": {
+        "kind": "waiting",
+        "taskId": "tsk_demo_001",
+        "step": 1,
+        "question": "Which app or website do you mean?"
+      },
+      "status": "Which app or website do you mean?"
+    },
+    {
+      "name": "done",
+      "note": "Only reported when the final screenshot shows the result.",
+      "response": {
+        "kind": "finished",
+        "taskId": "tsk_demo_001",
+        "step": 6,
+        "state": "succeeded",
+        "summary": "Your Instagram DMs are open."
+      },
+      "status": "Done: Your Instagram DMs are open."
+    },
+    {
+      "name": "failed honestly",
+      "note": "The final screen doesn't show the goal, so Spectr says what it saw.",
+      "response": {
+        "kind": "finished",
+        "taskId": "tsk_demo_001",
+        "step": 5,
+        "state": "failed",
+        "summary": "I couldn't find that restaurant."
+      },
+      "status": "Couldn't finish: I couldn't find that restaurant."
+    },
+    {
+      "name": "wrong slide",
+      "note": "Keynote example: the Mac reported a different slide than asked.",
+      "response": {
+        "kind": "finished",
+        "taskId": "tsk_demo_001",
+        "step": 3,
+        "state": "failed",
+        "summary": "I asked for slide 5 but the Mac shows slide 3. Try again?"
+      },
+      "status": "Couldn't finish: I asked for slide 5 but the Mac shows slide 3. Try again?"
+    },
+    {
+      "name": "declined",
+      "note": "Claude's safety filter declined the task.",
+      "response": {
+        "kind": "finished",
+        "taskId": "tsk_demo_001",
+        "step": 1,
+        "state": "failed",
+        "summary": "Claude declined this task, so I stopped."
+      },
+      "status": "Couldn't finish: Claude declined this task, so I stopped."
+    },
+    {
+      "name": "stopped",
+      "note": "The owner said stop. Pending steps are dropped.",
+      "response": {
+        "kind": "finished",
+        "taskId": "tsk_demo_001",
+        "step": 3,
+        "state": "cancelled",
+        "summary": "Stopped by the user."
+      },
+      "status": "Stopped."
+    }
+  ]
+}
