@@ -37,9 +37,9 @@ export class CallSession {
   ) {}
 
   /** Greets, and picks up a task that is already running for this Mac. */
-  async begin(): Promise<void> {
+  async begin(options: { justLinked?: boolean } = {}): Promise<void> {
     this.current = await this.tasks.activeTask(this.caller).catch(() => null);
-    this.output.say(greeting(this.medium));
+    this.output.say(greeting(this.medium, options.justLinked));
     this.startPolling();
   }
 

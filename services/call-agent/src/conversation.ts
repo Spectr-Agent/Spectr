@@ -65,14 +65,18 @@ export function acknowledgement(kind: InboundKind): string {
   }
 }
 
-export function greeting(medium: CallMedium): string {
-  return medium === "facetime"
-    ? "Hi, this is Spectr. You're looking at your Mac. What should I do?"
-    : "Hi, this is Spectr. What should I do on your Mac?";
+export function greeting(medium: CallMedium, justLinked = false): string {
+  const hello =
+    medium === "facetime"
+      ? "Hi, this is Spectr. You're looking at your Mac. What should I do?"
+      : medium === "app"
+        ? "Hi, it's Spectr. I'm on your Mac with you. What should I do?"
+        : "Hi, this is Spectr. What should I do on your Mac?";
+  return justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello;
 }
 
 export const NOT_LINKED =
-  "This number isn't linked to a Spectr account yet. Text Spectr from your phone to set it up. Goodbye.";
+  "This number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.";
 export const GOODBYE = "Okay. Bye.";
 export const ROUTE_FAILED = "Sorry, I couldn't reach your Mac's task list. Try again in a moment.";
 

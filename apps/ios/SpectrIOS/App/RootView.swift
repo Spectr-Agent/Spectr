@@ -8,11 +8,8 @@ struct RootView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
             switch environment.startup {
-            case .ready(_, let auth):
-                SignedContent(auth: auth)
-                    #if DEBUG
-                        .safeAreaInset(edge: .bottom) { DemoEntry() }
-                    #endif
+            case .ready(let configuration, let auth):
+                SignedContent(auth: auth, origin: configuration.apiOrigin)
             case .misconfigured(let error):
                 ConfigurationProblemView(error: error)
             }
@@ -23,6 +20,7 @@ struct RootView: View {
 /// Routes between restoring, sign-in and the signed-in home.
 private struct SignedContent: View {
     let auth: AuthModel
+    let origin: URL
 
     var body: some View {
         Group {
@@ -34,8 +32,9 @@ private struct SignedContent: View {
                 SignInView(auth: auth)
             case .awaitingCode(let email):
                 CodeEntryView(auth: auth, email: email)
-            case .signedIn(_, let email):
-                HomeView(auth: auth, email: email)
+            case .signedIn(let userId, let email):
+                MainView(auth: auth, email: email, origin: origin)
+                    .id(userId)
             }
         }
         .task { await auth.restore() }
@@ -81,35 +80,3 @@ struct ConfigurationProblemView: View {
         }
     }
 }
-
-#if DEBUG
-    /// Debug-only entry to the task screen backed by labeled test data.
-    private struct DemoEntry: View {
-        @State private var session: TaskSession?
-
-        var body: some View {
-            Button {
-                let service = DemoTaskService()
-                Task { await service.begin() }
-                session = TaskSession(
-                    taskId: "tsk_demo_001", macName: "Demo Mac", service: service,
-                    media: DemoLiveViewSource(), isTestData: true
-                )
-            } label: {
-                Text("Preview task screen with test data")
-                    .font(.footnote.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 36)
-            }
-            .buttonStyle(.bordered)
-            .padding(.horizontal, Theme.spacing * 2)
-            .padding(.bottom, Theme.spacing)
-            .fullScreenCover(item: $session) { session in
-                TaskView(session: session) { self.session = nil }
-            }
-        }
-    }
-
-    extension TaskSession: Identifiable {
-        nonisolated var id: String { taskId }
-    }
-#endif

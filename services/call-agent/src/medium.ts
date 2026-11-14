@@ -41,6 +41,17 @@ export function bridgeReady(roomMetadata: string | undefined | null): boolean {
   }
 }
 
+/** The identity the app caller joins with, from the dispatch the API created. */
+export function appCallerIdentity(metadata: string | undefined | null): string | null {
+  if (!metadata) return null;
+  try {
+    const value = (JSON.parse(metadata) as { spectr_app_identity?: unknown }).spectr_app_identity;
+    return typeof value === "string" && /^user:[0-9a-f-]{36}$/iu.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export type CallerClaim =
   | { medium: "phone"; phone: string }
   | { medium: "facetime"; phone: string | null }

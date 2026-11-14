@@ -67,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopSharing: { [environment] in environment.capture.stopSharing() },
             stopTask: { [environment] in environment.stopTask() },
             connectDevice: { [environment] token in environment.pairing.connect(token: token) },
+            startPairing: { [environment] in environment.pairing.startCodePairing() },
             requestScreenRecording: { [environment] in environment.requestScreenRecording() },
             requestAccessibility: { [environment] in environment.requestAccessibility() },
             relaunch: { [environment] in environment.relaunch() },

@@ -92,61 +92,6 @@ struct CodeEntryView: View {
 }
 
 /// Signed in. Until pairing exists on the backend, this states that honestly.
-struct HomeView: View {
-    let auth: AuthModel
-    let email: String?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacing * 2.5) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Your Mac")
-                        .font(.largeTitle.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Text(email.map { "Signed in as \($0)" } ?? "Signed in")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-
-                if !auth.sessionIsSaved {
-                    Label(
-                        "This device couldn't save your sign-in. You'll need to sign in again next time you open Spectr.",
-                        systemImage: "exclamationmark.triangle"
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(Theme.critical)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-
-                VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
-                    Label("No Mac paired", systemImage: "laptopcomputer.slash")
-                        .font(.headline)
-                        .foregroundStyle(Theme.ink)
-                    Text(
-                        "Spectr needs a Mac that is awake, unlocked and running the Spectr menu-bar app. "
-                            + "Pairing isn't available yet in this build."
-                    )
-                    .font(.callout)
-                    .foregroundStyle(Theme.inkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(Theme.spacing * 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.surface, in: .rect(cornerRadius: Theme.cornerRadius))
-                .overlay { RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline) }
-
-                Button("Sign out", role: .destructive) {
-                    Task { await auth.signOut() }
-                }
-                .frame(minHeight: 44)
-            }
-            .padding(Theme.spacing * 2.5)
-            .frame(maxWidth: 520, alignment: .leading)
-            .frame(maxWidth: .infinity)
-        }
-    }
-}
-
 // MARK: Shared pieces
 
 private struct AuthScaffold<Content: View>: View {

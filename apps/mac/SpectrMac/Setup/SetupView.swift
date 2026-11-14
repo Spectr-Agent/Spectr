@@ -163,7 +163,7 @@ private struct StepDetail: View {
     private var whatToDo: String {
         switch step {
         case .pair:
-            "Paste this Mac's device token below. The backend owner issues it with services/api/scripts/issue-device-token.mjs."
+            "On your iPhone, open Spectr, tap Pair a Mac and enter the code below."
         case .screenRecording:
             "Open System Settings › Privacy & Security › Screen & System Audio Recording and turn on Spectr."
         case .control:
@@ -176,7 +176,7 @@ private struct StepDetail: View {
     private var why: String {
         switch step {
         case .pair:
-            "The token ties this Mac to your account, so only your tasks run here. It is kept in this Mac's Keychain and can be revoked."
+            "Pairing ties this Mac to your account, so only your tasks run here. Its key is kept in this Mac's Keychain."
         case .screenRecording:
             "Without it, nothing reaches your iPhone: the live view stays blank. Spectr only ever captures the window you pick."
         case .control:
@@ -193,7 +193,7 @@ private struct StepDetail: View {
     private var howYoullKnow: String {
         switch step {
         case .pair:
-            "Spectr checks the token with the backend right away. This step checks itself off when it's accepted."
+            "This step checks itself off the moment your iPhone accepts the code. Codes refresh on their own."
         case .screenRecording:
             "Come back to this window; Spectr rechecks on its own. If macOS asks you to quit and reopen Spectr, setup resumes right here."
         case .control:
@@ -262,45 +262,77 @@ private struct StepDetail: View {
     @ViewBuilder private var pairingControl: some View {
         switch state.pairing {
         case .paired:
-            DoneRow(text: "Connected. Tasks for your account run on this Mac.")
+            DoneRow(text: "Paired. Tasks for your account run on this Mac.")
         case .requesting:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Checking the token…").foregroundStyle(.secondary)
+                Text("Getting a pairing code…").foregroundStyle(.secondary)
+            }
+        case .showingCode(let ticket):
+            VStack(alignment: .leading, spacing: 10) {
+                Text(ticket.displayCode)
+                    .font(.system(size: 44, weight: .semibold, design: .monospaced))
+                    .kerning(4)
+                    .textSelection(.enabled)
+                    .accessibilityLabel("Pairing code \(ticket.code.map(String.init).joined(separator: " "))")
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Waiting for your iPhone…").foregroundStyle(.secondary)
+                }
+                tokenFallback
             }
         case .unpaired, .failed:
             VStack(alignment: .leading, spacing: 8) {
                 if case .failed(let failure) = state.pairing {
                     Label(
                         failure == .invalidToken
-                            ? "The backend didn't accept that token. It may be mistyped, revoked or for another server."
+                            ? "This Mac was disconnected from your account. Pair it again."
                             : state.configurationError.map { "This build can't reach a Spectr server. \($0)" }
-                                ?? "Couldn't reach the Spectr server. Check the internet connection and the server address.",
+                                ?? "Couldn't reach Spectr. Check this Mac's internet connection.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
                 }
-                SecureField("Device token (spd_…)", text: $token)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 360)
-                    .onSubmit { actions.connectDevice(token) }
-                    .accessibilityLabel("Device token")
                 HStack {
-                    Button("Connect") {
-                        actions.connectDevice(token)
-                        token = ""
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Get a Pairing Code", action: actions.startPairing)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                     if let useLabDevice = actions.useLabDevice {
                         Button("Use Local Lab Device (Debug)", action: useLabDevice)
                             .controlSize(.large)
                     }
                 }
+                tokenFallback
+            }
+            .onAppear {
+                // First run: show a code straight away instead of a button.
+                if state.pairing == .unpaired { actions.startPairing() }
             }
         }
+    }
+
+    /// For Macs set up by hand with `issue-device-token.mjs`.
+    private var tokenFallback: some View {
+        DisclosureGroup("Use a device token instead") {
+            HStack {
+                SecureField("Device token (spd_…)", text: $token)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 300)
+                    .onSubmit { connectToken() }
+                    .accessibilityLabel("Device token")
+                Button("Connect", action: connectToken)
+                    .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.top, 4)
+        }
+        .font(.callout)
+        .frame(maxWidth: 420, alignment: .leading)
+    }
+
+    private func connectToken() {
+        actions.connectDevice(token)
+        token = ""
     }
 }
 

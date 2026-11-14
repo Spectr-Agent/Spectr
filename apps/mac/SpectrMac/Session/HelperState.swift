@@ -73,8 +73,10 @@ enum PairingFailure: Equatable, Sendable {
 
 enum PairingState: Equatable, Sendable {
     case unpaired
-    /// Checking a device token with the backend.
+    /// Checking a device token, or asking the backend for a pairing code.
     case requesting
+    /// Showing a code for the owner to enter in the Spectr iPhone app.
+    case showingCode(PairingTicket)
     case paired(PairedPhone)
     case failed(PairingFailure)
 
@@ -235,6 +237,7 @@ struct HelperActions {
     var stopSharing: () -> Void = {}
     var stopTask: () -> Void = {}
     var connectDevice: (String) -> Void = { _ in }
+    var startPairing: () -> Void = {}
     var requestScreenRecording: () -> Void = {}
     var requestAccessibility: () -> Void = {}
     var relaunch: () -> Void = {}

@@ -9,12 +9,13 @@ import { createElevenLabsClient } from "../../api/src/voice/elevenlabs.js";
 import { CallSession } from "./call.js";
 import { loadEnv } from "./config.js";
 import { NOT_LINKED } from "./conversation.js";
-import { bridgeReady, claimCaller, mediumOf, parseChertJob } from "./medium.js";
+import { appCallerIdentity, bridgeReady, claimCaller, mediumOf, parseChertJob } from "./medium.js";
 import { startScreenRelay, type ScreenRelay } from "./screen-relay.js";
 import { createSpeaker } from "./speech.js";
 import { PostgresTaskGateway, type Caller } from "./tasks.js";
 
 let sql: postgres.Sql | undefined;
+const APP_JOIN_TIMEOUT_MS = 45_000;
 
 /** The agent itself never answers: finished turns go to the task pipeline. */
 class SpectrVoice extends voice.Agent {
@@ -41,8 +42,24 @@ export default defineAgent({
     const chert = parseChertJob(ctx.job.metadata);
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
-    // A Chert warm room exists before any caller: stay silent until one arrives.
-    const participant: RemoteParticipant = await ctx.waitForParticipant();
+    // A Chert warm room exists before any caller: stay silent until one arrives. An app
+    // call happens in the Mac's own room, so wait for the app user, never the Mac.
+    const appIdentity = appCallerIdentity(ctx.job.metadata);
+    let participant: RemoteParticipant;
+    if (appIdentity) {
+      // The app asked for this call; if it never joins (lost network), don't linger.
+      const joined = await Promise.race([
+        ctx.waitForParticipant(appIdentity),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), APP_JOIN_TIMEOUT_MS)),
+      ]);
+      if (!joined) {
+        ctx.shutdown("app caller never joined");
+        return;
+      }
+      participant = joined;
+    } else {
+      participant = await ctx.waitForParticipant();
+    }
     const claim = claimCaller({
       jobMetadata: ctx.job.metadata,
       roomName: ctx.room.name ?? "",
@@ -55,8 +72,14 @@ export default defineAgent({
     });
 
     let caller: Caller | null = null;
+    let justLinked = false;
     if (claim.medium === "phone" || (claim.medium === "facetime" && claim.phone)) {
       caller = await gateway.byPhone(claim.phone as string).catch(() => null);
+      if (!caller && claim.medium === "phone") {
+        // The owner may have just asked to link this number in the app.
+        caller = await gateway.claimPhoneLink(claim.phone).catch(() => null);
+        justLinked = caller !== null;
+      }
     } else if (claim.medium === "app") {
       caller = await gateway.byOwnerDevice(claim.ownerId, claim.deviceId).catch(() => null);
     }
@@ -115,7 +138,7 @@ export default defineAgent({
           callRoom: ctx.room,
         }).catch(() => undefined);
       }
-      await call.begin();
+      await call.begin({ justLinked });
     };
 
     if (claim.medium === "facetime") {

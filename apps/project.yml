@@ -55,6 +55,12 @@ targets:
           - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER).auth
             CFBundleURLSchemes:
               - spectr
+        NSMicrophoneUsageDescription: Spectr listens while you talk to it, so you can tell your Mac what to do hands-free.
+        UIBackgroundModes:
+          - audio
+        LSApplicationQueriesSchemes:
+          - tel
+          - sms
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(SPECTR_BUNDLE_PREFIX).spectr.ios

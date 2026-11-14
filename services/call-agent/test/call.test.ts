@@ -227,3 +227,22 @@ describe("caller identification", () => {
     expect(NOT_LINKED).toMatch(/isn't linked/u);
   });
 });
+
+describe("app calls and number linking", () => {
+  it("reads the app caller's identity only from a well-formed dispatch", async () => {
+    const { appCallerIdentity } = await import("../src/medium.js");
+    expect(appCallerIdentity(JSON.stringify({ spectr_app_identity: "user:589aefe5-4901-4118-a761-90f5d86a737f" }))).toBe(
+      "user:589aefe5-4901-4118-a761-90f5d86a737f",
+    );
+    expect(appCallerIdentity(JSON.stringify({ spectr_app_identity: "mac-mac-1" }))).toBeNull();
+    expect(appCallerIdentity("not json")).toBeNull();
+    expect(appCallerIdentity(undefined)).toBeNull();
+  });
+
+  it("confirms a newly linked number before the usual greeting", async () => {
+    const { greeting, NOT_LINKED } = await import("../src/conversation.js");
+    expect(greeting("phone", true)).toMatch(/^You're all set, this number is now linked/u);
+    expect(greeting("app")).toContain("on your Mac with you");
+    expect(NOT_LINKED).toContain("Setup");
+  });
+});

@@ -1,0 +1,6 @@
+{
+  "name": "spectr-call-deploy",
+  "private": true,
+  "description": "Build context marker for lk agent deploy; real dependencies are in call-agent/package.json and installed by the Dockerfile",
+  "dependencies": { "@livekit/agents": "1.10.0" }
+}

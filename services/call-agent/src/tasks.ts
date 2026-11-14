@@ -27,6 +27,8 @@ export interface CallerDirectory {
   byPhone(phone: string): Promise<Caller | null>;
   /** A signed-in app user calling from the Spectr app about one of their Macs. */
   byOwnerDevice(ownerId: string, deviceId: string): Promise<Caller | null>;
+  /** Links a number with a pending request from the app; null when there is none. */
+  claimPhoneLink(phone: string): Promise<Caller | null>;
 }
 
 export class PostgresTaskGateway implements TaskGateway, CallerDirectory {
@@ -64,6 +66,29 @@ export class PostgresTaskGateway implements TaskGateway, CallerDirectory {
   async byPhone(phone: string): Promise<Caller | null> {
     const found = await this.resolveSendblue(phone);
     return found ? { ...found, handle: phone } : null;
+  }
+
+  /**
+   * Links a number the signed-in owner asked to link from the Spectr app, when that number
+   * calls within the request's lifetime. Returns the caller once linked, or null.
+   */
+  async claimPhoneLink(phone: string, now = new Date()): Promise<Caller | null> {
+    const linked = await this.sql.begin(async (tx) => {
+      const [request] = await tx`
+        select owner_id from public.phone_link_requests
+        where phone = ${phone} and expires_at > ${now}
+        for update
+      `;
+      if (!request) return false;
+      await tx`
+        insert into public.messaging_identities (owner_id, provider, handle)
+        values (${request.owner_id}, 'sendblue', ${phone})
+        on conflict (provider, handle) do nothing
+      `;
+      await tx`delete from public.phone_link_requests where phone = ${phone}`;
+      return true;
+    });
+    return linked ? this.byPhone(phone) : null;
   }
 
   async byOwnerDevice(ownerId: string, deviceId: string): Promise<Caller | null> {
