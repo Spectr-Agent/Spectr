@@ -32,17 +32,17 @@ export const GUARDRAIL_CASES: ReadonlyArray<{ name: string; note: string; respon
   {
     name: "confirm before sending",
     note: "Claude asks before sending, posting, buying, submitting or deleting. The Mac does nothing until the owner replies yes.",
-    response: { kind: "waiting", taskId: TASK, step: 4, question: status("confirm", { action: "Send \"running late\" to Sam in Messages?" }) },
+    response: { kind: "waiting", taskId: TASK, step: 4, question: status("confirm", { action: "Shall I send \"running late\" to Sam in Messages?" }) },
   },
   {
     name: "login pause",
     note: "Spectr never types passwords or 2FA codes. The owner logs in on the Mac while watching live, then replies done.",
-    response: { kind: "waiting", taskId: TASK, step: 2, question: `Instagram wants you to log in. ${status("login")}` },
+    response: { kind: "waiting", taskId: TASK, step: 2, question: `Instagram would like you to sign in. ${status("login")}` },
   },
   {
     name: "unclear request",
     note: "Claude asks one short question instead of guessing.",
-    response: { kind: "waiting", taskId: TASK, step: 1, question: "Which app or website do you mean?" },
+    response: { kind: "waiting", taskId: TASK, step: 1, question: "Which one did you have in mind?" },
   },
   {
     name: "done",

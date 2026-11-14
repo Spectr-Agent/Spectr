@@ -1247,7 +1247,7 @@ describe("runAgentStep", () => {
       `https://spectr-api.vercel.app/api/tasks/screenshot?task=${taskId}&sig=${expectedSignature}`,
     );
     expect(vi.mocked(notifier.sendResult).mock.calls[0]?.[1]).toBe(
-      "Done: The page is open.",
+      "The page is open.",
     );
   });
 
