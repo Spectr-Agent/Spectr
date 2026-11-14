@@ -2,29 +2,31 @@
 
 See [requirements.md](requirements.md) and [design.md](design.md).
 
-## Ownership
+## Ownership changes from the build plan
 
-Colby doesn't have a Mac, so he can't build or test Swift. Chert is now the main channel: texts arrive through a Chert line, and FaceTime is the main way to talk to and watch the Mac. The iPhone app becomes a fallback.
+Colby doesn't have a Mac, so he can't build or test Swift.
 
-- **Jared** owns all Swift work. The Mac helper comes first. The iPhone app shrinks to a fallback viewer with Stop and a typed correction; voice moved to the FaceTime call.
-- **Colby** owns the FaceTime call agent (TypeScript): LiveKit Agents worker, speech-to-text, the ElevenLabs Spectr voice, and the Mac window as the call's video. He also keeps the LiveKit token endpoint.
-- **Poorav** owns the backend and Chert: account and line, the `message.received` webhook, replies, Supabase, the task API, and the mock Mac.
-- **Sweeya** owns the agent planner, guardrails and brand, and takes back the parser and utterance tests, now including spoken phrasing.
+- **Jared** now owns all Swift work: the iPhone app **and** the Mac menu-bar helper.
+- **Colby** moves to TypeScript and takes some of Poorav's and Sweeya's work so they have room to support Jared:
+  - From Poorav: the LiveKit room-token endpoint, the `apple-app-site-association` file, and the diagnostic trail.
+  - From Sweeya: the labeled utterance set, the deterministic fallback parser, and its Vitest suite.
+  - New: a TypeScript mock Mac device, so the API and agent can be tested end to end without a Mac.
+  - New: Spectr's voice with the ElevenLabs API, using a British, JARVIS-like male voice.
 
 | Owner | Build area | First handoff |
 | --- | --- | --- |
-| Jared | Mac helper + fallback iPhone app · Swift/SwiftUI | Selected Keynote window publishes to the Mac room. |
-| Poorav | Backend + Chert · TypeScript | One text to the Chert line creates one task and one reply. |
-| Colby | Call agent + voice · TypeScript | A FaceTime call is answered in the Spectr voice and shows the Mac window. |
-| Sweeya | Agent · guardrails · brand | A spoken correction selects the new target; logo goes to Jared. |
+| Jared | iPhone + Mac · Swift/SwiftUI | Selected Keynote window streams to the Watch live screen. |
+| Poorav | Backend · TypeScript | One message creates one authenticated task. |
+| Colby | Backend + agent support + voice · TypeScript | Room token issued for a task; mock Mac returns a receipt; first reply spoken in the Spectr voice. |
+| Sweeya | Agent · guardrails · brand | A correction selects the new target; logo goes to Jared. |
 
-Critical path: Jared's Mac stream and Colby's call agent. Unblock them first: fixtures, tokens and the Chert line come before anything else.
+Because Jared now carries both native targets, Swift work is on the critical path. Unblock him first: fixtures, tokens and a working link come before anything else on the TypeScript side.
 
 ## Team stack
 
-- **Jared:** Swift/SwiftUI, Xcode, ScreenCaptureKit, LiveKit Swift SDK, URLSession/Codable, Keychain, Keynote AppleScript automation.
-- **Poorav:** Node.js/TypeScript, Vercel, Chert messaging and calls API, Supabase Auth/Postgres, Zod, Vitest.
-- **Colby:** Node.js/TypeScript, LiveKit Agents (Node) and server SDK, Chert CLI (`chert dev`), speech-to-text, ElevenLabs. Can work in a Coder workspace.
+- **Jared:** Swift/SwiftUI, Xcode, AVFoundation + Speech, ScreenCaptureKit, LiveKit Swift SDK (publisher and receiver), URLSession/Codable, Keychain, Keynote AppleScript automation.
+- **Poorav:** Node.js/TypeScript, Vercel, Sendblue, Supabase Auth/Postgres, Zod, Vitest.
+- **Colby:** Node.js/TypeScript, LiveKit Node server SDK, ElevenLabs API, Zod, Vitest.
 - **Sweeya:** TypeScript, structured model outputs, Zod, Vitest, SVG/PNG brand assets.
 
 ## Feature owners
@@ -32,50 +34,57 @@ Critical path: Jared's Mac stream and Colby's call agent. Unblock them first: fi
 | # | Feature | Owners |
 | --- | --- | --- |
 | **P0** | | |
-| 1 | Pair the Mac and bind the owner's phone | Poorav + Jared |
-| 2 | FaceTime Spectr and see the Mac's screen | Colby + Jared |
+| 1 | Pair iPhone and Mac; only the owner can start a session or send a command | Poorav + Jared |
+| 2 | Call your Mac and see its screen over cellular (push-to-talk first) | Jared + Colby (tokens) |
 | 3 | Make the Mac do real work: "go to slide five", read back, report | Jared + Sweeya |
-| 4 | Start by iMessage through Chert, get the verified result in the thread | Poorav |
-| 5 | Change your mind or stop, by voice or text; report a lost connection | All four |
-| **Fallback** | | |
-| 6 | iPhone app watches the Mac room, with Stop and a typed correction | Jared + Colby (tokens) |
+| 4 | Start the same task by iMessage, get the verified result in the thread | Poorav + Jared |
+| 5 | Change your mind or stop; report a lost connection | All four |
 | **P1** | | |
-| 7 | Natural conversation with interruption in the Spectr voice | Colby + Sweeya |
-| 8 | Call back for a decision over FaceTime | Poorav + Colby |
-| 9 | Take over an awake, locked Mac (validate first) | Jared + Poorav |
+| 6 | Continuous voice with interruption (ElevenLabs voice) | Jared + Sweeya + Colby |
+| 7 | Call back for a decision | Poorav + Jared |
+| 8 | Take over an awake, locked Mac (validate first) | Jared + Poorav |
 | **P2** | | |
-| 10 | Check a homework deadline | Sweeya + Colby |
-| 11 | Prepare a job application | Sweeya + Poorav |
+| 9 | Check a homework deadline | Sweeya + Colby |
+| 10 | Prepare a job application | Sweeya + Poorav |
 | **Last** | | |
-| 12 | Hosted execution / cloud browser | Poorav + Colby |
+| 11 | Hosted execution / cloud browser | Poorav + Colby |
 
 ## Milestones
 
-1. **First integration:** a text to the Chert line creates a task and gets a reply.
-2. **Second:** a FaceTime call to the line shows the Mac's actual Keynote window.
-3. **Third:** a spoken "slide four" changes the Mac, and Spectr reads back the verified slide.
+1. **First integration:** one text produces a task ID on Jared's iPhone screen.
+2. **Second:** the iPhone shows the Mac's actual Keynote window over LiveKit.
+3. **Third:** Sweeya's command changes the Mac, and the backend returns a verified receipt.
 4. All four rehearse together before adding anything else.
 
-**Demo gate:** three consecutive runs where the judge picks the slide on a real FaceTime call and verifies it.
+**Demo gate:** three consecutive runs where the judge picks the slide and verifies it on both screens.
 
 ## Schedule
 
-- **Friday:** freeze contracts, Chert line + one text round trip, stream one real frame to the Mac room, answer one FaceTime call.
-- **Saturday:** Mac window on the call, spoken correction and Stop, fallback app; test on venue Wi-Fi and cellular.
-- **Sunday:** freeze scope, run failure cases, rehearse, log actual pass counts. Make sure the Chert trial is still active for judging.
+- **Friday:** freeze contracts, one message round trip, stream one real frame, move one slide.
+- **Saturday:** integrate the full path, voice correction and Stop; test on venue Wi-Fi and cellular.
+- **Sunday:** freeze scope, run failure cases, rehearse, log actual pass counts.
 
 ---
 
-## Jared — Mac helper and fallback iPhone app (Swift)
+## Jared — iPhone and Mac (Swift)
 
-Outcome: an awake, paired Mac shares the selected window and proves each command changed it; the iPhone app can take over watching if FaceTime fails.
+Outcome: a judge goes from Messages to a live Mac window, speaks a correction, and stops the session from one SwiftUI screen; an awake, paired Mac shares the selected window and proves the command changed it.
 
-### Mac helper — first PR · publish the window
+Do the Mac helper's capture and stream first. The second milestone and every live-frame check depend on it.
+
+### Mac helper — first PR · publish a LiveKit screen-share track
 
 - [ ] Create the SwiftUI `MenuBarExtra` target with Pair, Select window, Start sharing, Stop, and a sharing indicator.
 - [ ] Store device credentials in Keychain; show permission recovery after denial.
-- [ ] Capture the selected Keynote window with ScreenCaptureKit and publish it to the Mac room (`mac-<deviceId>`) with the pinned LiveKit Swift SDK, using Colby's token.
-- [ ] Change slides by hand and confirm Colby's agent (or the LiveKit sandbox viewer) sees fresh frames. Keep frames large enough for slide text to stay readable after FaceTime compression.
+- [ ] Capture the selected Keynote window with ScreenCaptureKit and publish it as a screen-share track (pinned LiveKit Swift SDK).
+- [ ] Open slide one, change to slide two locally, and verify the frame changes on the phone.
+
+### iPhone — first PR · join a session
+
+- [ ] Pin the same LiveKit Swift release as the Mac target.
+- [ ] Add simulator fixtures for an expired link, an unpaired phone and a paired phone. Route a valid task link to a single task screen.
+- [ ] Fetch a viewer token, join the task room, render the screen-share track. Show Connecting until the first decoded frame and Stalled when frames stop.
+- [ ] Verify a manual slide change with the Mac on Wi-Fi and the iPhone on cellular.
 
 ### Mac helper — second PR · execute and verify
 
@@ -84,12 +93,14 @@ Outcome: an awake, paired Mac shares the selected window and proves each command
 - [ ] Handle denied permission, screen lock, disconnect, cancellation and stale commands. Disconnect the helper and confirm the stream is marked stale.
 - [ ] Verify the Automation permission and signing/sandbox setup early. Add Accessibility only if needed.
 
-### iPhone — fallback viewer
+### iPhone — second PR · steer the Mac
 
-- [ ] Pin the same LiveKit Swift release as the Mac target.
-- [ ] In-app task opener (Universal Links only if time allows). Fetch a subscribe token and render the Mac room's track. Connecting until the first decoded frame; Stalled when frames stop.
-- [ ] Stop and a typed correction with `taskId` and expected revision; Stop takes priority over pending actions.
-- [ ] Verify a manual slide change with the Mac on Wi-Fi and the iPhone on cellular.
+- [ ] Pair the iPhone; redeem a Watch live link only after authentication (Universal Links + Associated Domains; keep an in-app task opener for development).
+- [ ] Build connecting, live, interrupted, stopped and reconnecting states from the shared fixtures.
+- [ ] Push-to-talk (AVFoundation + Apple Speech), visible transcript and typed fallback. Send the final transcript once with `taskId` and expected revision; disable repeat sends while awaiting acknowledgement; keep the typed correction on network failure.
+- [ ] Play Spectr's spoken replies from Colby's speech endpoint; Stop or a new instruction interrupts playback.
+- [ ] Stop takes priority over pending actions. Tap Stop mid-action, reconnect, relaunch: show the last verified slide and the cancelled state.
+- [ ] Test touch targets, orientation and bad-network recovery on the real phone. Record a short on-device test for the team.
 
 ### Rehearsal
 
@@ -97,111 +108,109 @@ Outcome: an awake, paired Mac shares the selected window and proves each command
 
 ### Handoff and blockers
 
-Needs: Mac room token from Colby, claim/result path and fixtures from Poorav, action fixtures and the logo from Sweeya. If capture stalls while the process still responds, report stream unavailable. Done when the judge's chosen slide is on the Mac and on the call.
+Needs: session token/link fixture from Poorav, room URL, publisher/viewer tokens and the speech endpoint from Colby, action fixtures, transcript examples and the logo from Sweeya. If mic permission fails, a typed correction keeps the same task. If capture stalls while the process still responds, report stream unavailable. Done when both screens show the judge's chosen slide.
 
 ---
 
-## Poorav — Backend and Chert (TypeScript)
+## Poorav — Backend (TypeScript)
 
-Outcome: one inbound iMessage creates one authorized task and one result, even after a retry, and the call agent can drive the same task.
+Outcome: one inbound iMessage creates one authorized task and one result, even after a retry.
 
-### First PR · freeze the wire format (done)
+### First PR · freeze the wire format
 
-- [x] Fixtures in `contracts/`, strict Zod schemas, unique provider message ID and command ID, replay test.
+- [ ] Commit fixtures in `contracts/` for create, command, event, correction, result and error: `accepted`, `waitingForUser`, `succeeded`, `cancelled`, a stale-revision error, and an `observedSlide` receipt.
+- [ ] Add unique constraints on provider message ID and command ID. Replay one inbound event twice and assert one task and one outbound reply.
 
-### Second PR · Chert line and messaging
+### Second PR · prove isolation and recovery
 
-- [ ] Start the Chert trial at a time that still covers judging (48 hours from activation). Verify the demo phones. Create the project API key and webhook secret; keep them in server env vars only.
-- [ ] Rename the `messaging_identities.provider` default from `sendblue` to `chert` in a new migration.
-- [ ] `message.received` webhook: verify the signature over the raw body, map `event_id` → `providerMessageId` and the sender handle → `fromNumber`, then reuse `handleInboundMessage`. Use a recorded webhook fixture in Vitest. If trial projects can't use webhooks, read Chert's event stream instead.
-- [ ] Replies through Chert's API with an `Idempotency-Key`: "Spectr is on it. FaceTime this number to watch." and the verified result. Never resend an `unknown` send with a new key.
-
-### Third PR · isolation and recovery
-
-- [ ] Expiring pairing codes, device revocation and tenant-scoped RLS policies. Prove a different owner can't read or drive the task.
-- [ ] "Current task for owner" endpoint for the call agent; persist tasks, revisions and events; reject stale results.
-- [ ] Mock Mac (moved from Colby): a small script that claims commands and posts receipts with a fake `observedSlide`, with "wrong slide" and disconnect modes. Use it for the duplicate, stale-revision and Stop cases before Jared's helper is ready.
-- [ ] Task-ID-only diagnostic trail (no message content, no PII).
+- [ ] Wire Sendblue inbound and outbound on a verified demo phone; verify webhook auth and bind the sender to the paired owner.
+- [ ] Implement expiring pairing codes and viewer links, device revocation, and tenant-scoped RLS policies. Expire a watch link and prove a different owner cannot redeem it. Test revoke while the device is connected.
+- [ ] Persist tasks, revisions and events; reject stale results. Persist the task before acknowledging the webhook.
 - [ ] Restart the worker between claim and result; surface the last known state without replaying a relative slide advance.
 
-### P1 · call back for a decision
-
-- [ ] Outbound FaceTime with `POST /api/v1/calls` (`customer_managed`, our room, a per-call bridge token). Wait for `bridge_ready` before speaking.
-
 ### Handoff and blockers
 
-Give Colby the task API and the current-task endpoint, Jared the claim/result path, and Sweeya the action boundary. Done when a duplicate text makes one action and a second user can't drive it.
+Give Jared a working link and an authenticated claim/result path for the Mac helper; give Sweeya the action boundary. If provider access is delayed, use a labeled local webhook fixture and keep the real-device gate open. Done when a duplicate request makes one action and a second user can't open it.
 
 ---
 
-## Colby — FaceTime call agent and voice (TypeScript)
+## Colby — Backend and agent support (TypeScript)
 
-Outcome: a judge FaceTimes Spectr, hears the Spectr voice, sees the Mac window, and changes the slide by speaking.
+Outcome: the live session is authorized end to end, and the API and agent can be tested without a Mac.
 
-### LiveKit tokens (kept)
+### From Poorav · LiveKit tokens and app links
 
-- [ ] Token endpoint with the LiveKit Node server SDK: Mac gets publish on its Mac room; the call agent and iPhone get subscribe-only. Verify ownership; short-lived, room-scoped.
-- [ ] Reject a second user's token request (Vitest).
+- [ ] Room-token endpoint with the LiveKit Node server SDK. Verify task and paired-device ownership; issue short-lived tokens scoped to the task room. Mac: screen-share publish. iPhone: subscribe-only.
+- [ ] Reject a second user's request for the room (Vitest).
+- [ ] Serve `apple-app-site-association` over HTTPS for Jared's Universal Links.
+- [ ] Task-ID-only diagnostic trail (no message content, no PII).
 
-### Call agent — first PR · answer FaceTime
+### From Sweeya · deterministic parser and utterance tests
 
-- [ ] `services/call-agent/`: LiveKit Agents (Node) worker with dispatch name `spectr-agent`, from `chert new --video` as a starting point.
-- [ ] Connect it with `chert dev --agent spectr-agent` (pinned CLI version). Both processes stay running; use a laptop or Coder workspace.
-- [ ] Greet within 10 seconds of `chert_bridge_ready` room metadata, not on room join.
-- [ ] Spike first: publish the Mac room's window frames as the agent's video track and check on a real call that slide text is readable. Report the result to the team early Saturday; if unreadable, the iPhone fallback becomes the viewer.
+- [ ] Label at least eight utterances as JSON pairs: open, absolute slide, relative advance, correction, ambiguous target, out-of-range slide, stop, unsupported app.
+- [ ] Deterministic parser for the supported actions (offline fallback if model access fails), validated with Sweeya's Zod schemas.
+- [ ] Vitest suite running the utterance pairs against both the parser and the model planner with mocked device state.
 
-### Call agent — second PR · talk to the Mac
+### New · mock Mac device
 
-- [ ] Transcribe `facetime-remote-audio` with the chosen speech-to-text provider. Post final transcripts to the task API as instruction or stop, with `taskId` and `expectedRevision`.
-- [ ] Spectr voice: pick a British, JARVIS-like male voice (calm, crisp, slightly formal) from the ElevenLabs library, play two or three for the team, lock one, and pin its voice ID, model and settings. `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` in `.env.example` (names only).
-- [ ] Speak only status/completion text derived from `observedSlide`. If ElevenLabs fails, fall back to a stock voice so the call never goes silent.
-- [ ] Barge-in: the judge's speech stops playback; a new instruction supersedes the pending one.
-- [ ] Show a "view stalled" card and say so when Mac frames stop. If the call drops, the next call reattaches to the active task.
-- [ ] No call recordings or transcripts stored by default.
+- [ ] Small TypeScript script that pairs as a device, claims commands, and posts receipts with a fake `observedSlide`. Support a "wrong slide" mode and a disconnect mode.
+- [ ] Use it to run the duplicate-webhook, stale-revision and Stop cases before Jared's helper is ready.
+
+### New · Spectr voice (ElevenLabs)
+
+- [ ] Pick a British, JARVIS-like male voice (calm, crisp, slightly formal) from the ElevenLabs voice library. Play two or three candidates for the team and lock one. Pin its voice ID, model and voice settings in config.
+- [ ] Add `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` to `.env.example` (names only). The key stays server-side.
+- [ ] Speech endpoint in `services/api/src/voice/`: takes a reply on a task the caller owns and streams back ElevenLabs audio. Reject other owners' tasks.
+- [ ] Only speak the agent's status/completion text (already derived from `observedSlide`). Don't store audio or transcripts by default.
+- [ ] Fallback: if ElevenLabs errors or times out, return quickly so the iPhone shows the reply as text.
+- [ ] Vitest with a mocked ElevenLabs client: ownership check, timeout fallback, and that the pinned voice ID is always used.
+- [ ] Give Jared the endpoint, audio format and a sample clip for playback.
 
 ### Handoff and blockers
 
-Needs: Mac room publishing from Jared, task API and current-task endpoint from Poorav, short spoken status strings from Sweeya, and the speech-to-text provider decision. Done when a real FaceTime call shows the Mac and a spoken correction lands.
+Agree on token and receipt payloads with Poorav and Jared. Give Jared room URLs and tokens as early as Friday; LiveKit tokens block the first live frame. Done when a second user's token request is rejected, the mock Mac passes the correction and Stop cases, and a reply plays on the iPhone in the Spectr voice.
 
 ---
 
 ## Sweeya — Agent, guardrails, brand (TypeScript)
 
-Outcome: Spectr interprets a natural request, spoken or texted, asks when uncertain, and honors a correction without performing the previous action twice.
+Outcome: Spectr interprets a natural request, asks when uncertain, and honors a correction without performing the previous action twice.
 
 ### First PR · define the action vocabulary
 
 - [ ] Send Jared the Spectr logo and character: an SVG master and transparent PNG that read at small size on light and dark backgrounds. Time-box polish until the live workflow works.
-- [ ] Define typed actions with Zod in `services/api/src/agent/`, matching the frozen fixtures.
+- [ ] Define typed actions with Zod in `services/api/src/agent/` and share them with Colby for the parser.
 - [ ] Map "next" to an absolute target using observed slide state. If the current slide is unknown, request state before producing a command.
 - [ ] Validate slide bounds, target device, revision and permissions. Ask one short question when the target is unclear. Refuse requests outside the authorized demo app.
-
-### Parser and utterance tests (back from Colby)
-
-- [ ] Label at least eight utterances as JSON pairs: open, absolute slide, relative advance, correction, ambiguous target, out-of-range slide, stop, unsupported app. Include spoken phrasing with fillers and mis-transcriptions ("go to slide for").
-- [ ] Deterministic parser for the supported actions (offline fallback if model access fails).
-- [ ] Vitest running the pairs against both the parser and the model planner with mocked device state.
 
 ### Second PR · prove a correction wins
 
 - [ ] Feed "slide three" then "actually five" before execution; assert the pending old revision is discarded. Repeat after execution and issue a new command.
-- [ ] Generate completion text only from `observedSlide`, short enough to speak. If the Mac reports slide three after requesting five, return an actionable failure.
-- [ ] Exercise duplicate answers, interruptions and failed execution.
-- [ ] Give Colby short spoken status strings and Jared the same strings for the fallback app.
+- [ ] Generate completion text only from `observedSlide`. If the Mac reports slide three after requesting five, return an actionable failure.
+- [ ] Exercise duplicate speech/text answers, interruptions and failed execution.
+- [ ] Give Jared short status strings and fixtures.
 
 ### Handoff and blockers
 
-Coordinate the model provider and server-side key with Poorav, and the speech-to-text provider with Colby. Done when the judge can change their mind mid-call and only the final authorized action wins.
+Coordinate the model provider and server-side key with Poorav. Agree on tool and error payloads with Poorav and Jared. Done when the judge can change their mind mid-task and only the final authorized action wins.
 
 ---
 
 ## Kickoff decisions
 
 - [ ] Pick the sample deck, demo Mac (Jared's) and demo phone.
-- [ ] Decide when to start the Chert trial so the 48 hours cover judging; verify the demo phones.
-- [ ] Pick the model provider and the speech-to-text provider.
+- [ ] Get a verified Sendblue tester on the free shared line.
 - [ ] Test the LiveKit stream over cellular; if venue Wi-Fi blocks peer traffic, use the rehearsed hotspot.
-- [ ] Select "Best Use of FaceTime (Chert)" on Devpost; the demo must include a live FaceTime call.
+
+## Backup: Chert (optional FaceTime stretch, after P0 works)
+
+Chert is the backup for texting if Sendblue fails; FaceTime is an optional stretch. Trial onboarding stalled at phone verification on 2026-11-13; Chert webhook code is kept on branch `devin/1794623817-chert-inbound`.
+
+- [ ] Use Chert for texting only if Sendblue fails and phone verification is completed.
+- [ ] Spike: publish the Mac window as the agent's video track on a FaceTime call and check that slide text is readable.
+- [ ] Route the transcribed call instruction into the existing task API; reply with the ElevenLabs voice.
+- [ ] Optional: FaceTime the user back when the agent needs a decision.
+- [ ] Select "Best Use of FaceTime (Chert)" on Devpost and include a live FaceTime call in the demo.
 
 ## Blockers
 

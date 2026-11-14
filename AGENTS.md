@@ -4,7 +4,7 @@ This file is the base prompt for any coding agent working in this repo. Read it 
 
 ## What Spectr is
 
-Spectr lets you text or FaceTime your Mac, tell it what to do in plain English, and watch its actual screen on the FaceTime call while it works. You can interrupt, correct the instruction, or stop the task. Texts and calls arrive through a Chert line (real iMessage and FaceTime). The native Spectr iPhone app is a fallback viewer.
+Spectr lets you text your Mac via Sendblue iMessage, tell it what to do in plain English, and use the native Spectr iPhone app for voice interaction and live viewing of the Mac screen over LiveKit. You can interrupt, correct the instruction, or stop the task.
 
 Requests like "check when my homework is due" or "help me apply to this internship" are **future workflows**. Nothing in this repo implements them yet.
 
@@ -12,33 +12,35 @@ Requests like "check when my homework is due" or "help me apply to this internsh
 
 The first end-to-end workflow uses Keynote on a real, awake Mac:
 
-1. A user says or texts "go to slide five."
-2. The Mac changes slides, and the iPhone shows the change live.
+1. A user says "go to slide five" in the iPhone app or texts it via Sendblue.
+2. The Mac changes slides, and the iPhone app shows the change live over LiveKit.
 3. The helper reports which slide is actually open.
-4. The user says "actually, slide two" and sees the correction take effect.
+4. The user says "actually, slide two" in the iPhone app or by text and sees the correction take effect.
 
 Keynote is only the first test case. Spectr is a general computer assistant, so pairing, task routing, screen streaming and correction must not depend on which app is being operated.
 
-The voice experience is a continuous, hands-free FaceTime call. VM and general browser automation are last priority.
+Voice and live screen viewing happen in the native iPhone app; push-to-talk is the first milestone. VM and general browser automation are last priority.
 
 ## Ownership and layout
 
-| Owner | Area | Path (planned) |
+| Owner | Build area | First handoff |
 | --- | --- | --- |
-| Jared | Mac helper (Swift): pairing, permissions, ScreenCaptureKit window capture, Keynote actions, result verification; fallback iPhone viewer (SwiftUI) | `apps/mac/SpectrMac/`, `apps/ios/SpectrIOS/` |
-| Colby | FaceTime call agent (TypeScript): LiveKit Agents worker, speech-to-text, ElevenLabs voice, Mac window as call video; LiveKit tokens | `services/call-agent/` |
-| Poorav | Backend (TypeScript/Node): Vercel API, Supabase persistence and auth, Chert line and messaging, task routing, shared contracts | `services/api/`, `supabase/migrations/`, `contracts/` |
-| Sweeya | Agent (TypeScript): intent interpretation, typed actions, clarification, guardrails, correction handling; Spectr logo and character | `services/api/src/agent/` |
+| Jared | iPhone + Mac · Swift/SwiftUI | Selected Keynote window streams to the Watch live screen. |
+| Poorav | Backend · TypeScript | One message creates one authenticated task. |
+| Colby | Backend + agent support + voice · TypeScript | Room token issued for a task; mock Mac returns a receipt; first reply spoken in the Spectr voice. |
+| Sweeya | Agent · guardrails · brand | A correction selects the new target; logo goes to Jared. |
 
-**Current repo state:** `contracts/`, `services/api/` (schemas, inbound dedup, tests) and the first Supabase migration exist. The Swift targets and the call agent are not built yet. Treat them as planned until they exist.
+**Current repo state:** `contracts/`, `services/api/`, and Supabase migrations exist. The Swift targets are not built yet. Treat them as planned until they exist.
 
 ## Architecture
 
-iMessage → Chert webhook → authenticated TypeScript backend → validated agent action → paired Mac helper → app on the Mac.
+Messages → Sendblue → authenticated TypeScript backend → validated agent action → paired Mac helper → app on the Mac.
 
-FaceTime → Chert → LiveKit call room → call agent (speech-to-text → task API; ElevenLabs voice and the Mac window back to the caller).
+Voice and live screen → native Spectr iPhone app (instructions to task API; Mac screen via LiveKit Cloud).
 
-**LiveKit Cloud** carries all media. Jared's Mac helper publishes the authorized window to the owner's Mac room with the pinned LiveKit Swift SDK (https://github.com/livekit/client-sdk-swift). Colby's call agent subscribes to it and republishes it as its video on the FaceTime call; the fallback iPhone app subscribes to the same room. Tokens are short-lived and room-scoped. Spectr's task API carries commands and verified results, Supabase holds task state, and the backend replies in the original iMessage thread. See `docs/design.md`.
+Chert (iMessage + FaceTime) is the backup channel.
+
+**LiveKit Cloud** carries the live screen from Jared's Mac helper to the native iPhone app. The Mac publishes the authorized window to the owner's Mac room with the pinned LiveKit Swift SDK (https://github.com/livekit/client-sdk-swift), and the iPhone app subscribes to it. Voice input stays in the iPhone app; the task API carries commands and verified results, Supabase holds task state, and the backend replies in the original iMessage thread. See `docs/design.md`.
 
 ## How agents should work together
 
