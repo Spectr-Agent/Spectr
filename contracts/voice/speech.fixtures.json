@@ -1,0 +1,48 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/api/tasks/{taskId}/speech",
+    "requestHeaders": {
+      "authorization": "Bearer <supabase access token>",
+      "content-type": "application/json"
+    }
+  },
+  "request": {
+    "seq": 7
+  },
+  "success": {
+    "status": 200,
+    "headers": {
+      "content-type": "audio/mpeg",
+      "cache-control": "no-store"
+    },
+    "bodyNote": "Chunked MP3 stream, 44.1 kHz 128 kbps. See sample_slide5.mp3."
+  },
+  "fallback": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "cache-control": "no-store"
+    },
+    "body": {
+      "fallback": true,
+      "text": "Done. Slide five is now on screen."
+    }
+  },
+  "unauthorized": {
+    "status": 401,
+    "body": { "error": "unauthorized" }
+  },
+  "invalidRequest": {
+    "status": 400,
+    "body": { "error": "invalid_request" }
+  },
+  "notFound": {
+    "status": 404,
+    "body": { "error": "not_found" }
+  },
+  "noStatusText": {
+    "status": 409,
+    "body": { "error": "no_status_text" }
+  }
+}
