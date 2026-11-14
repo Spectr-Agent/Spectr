@@ -9,6 +9,14 @@ public struct TaskEvent: Codable, Sendable, Equatable {
     public var data: JSONValue
     public var at: Date
 
+    public init(taskId: String, seq: Int, type: String, data: JSONValue, at: Date) {
+        self.taskId = taskId
+        self.seq = seq
+        self.type = type
+        self.data = data
+        self.at = at
+    }
+
     public static let knownTypes: Set<String> = [
         "taskCreated", "stateChanged", "commandIssued", "resultRecorded", "question", "error",
     ]

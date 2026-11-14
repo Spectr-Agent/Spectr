@@ -10,6 +10,9 @@ struct RootView: View {
             switch environment.startup {
             case .ready:
                 WelcomeView()
+                    #if DEBUG
+                        .safeAreaInset(edge: .bottom) { DemoEntry() }
+                    #endif
             case .misconfigured(let error):
                 ConfigurationProblemView(error: error)
             }
@@ -108,3 +111,35 @@ struct ConfigurationProblemView: View {
         }
     }
 }
+
+#if DEBUG
+    /// Debug-only entry to the task screen backed by labeled test data.
+    private struct DemoEntry: View {
+        @State private var session: TaskSession?
+
+        var body: some View {
+            Button {
+                let service = DemoTaskService()
+                Task { await service.begin() }
+                session = TaskSession(
+                    taskId: "tsk_demo_001", macName: "Demo Mac", service: service,
+                    media: DemoLiveViewSource(), isTestData: true
+                )
+            } label: {
+                Text("Preview with test data")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 50)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, Theme.spacing * 2)
+            .padding(.bottom, Theme.spacing)
+            .fullScreenCover(item: $session) { session in
+                TaskView(session: session) { self.session = nil }
+            }
+        }
+    }
+
+    extension TaskSession: Identifiable {
+        nonisolated var id: String { taskId }
+    }
+#endif
