@@ -4,23 +4,22 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { copy, heroScript } from "@/content/copy";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useThread } from "@/hooks/useThread";
+import { useCall } from "@/hooks/useCall";
 import { images } from "@/lib/images";
-import { PhoneThread } from "./PhoneThread";
+import { CallPhone } from "./CallPhone";
 import { Reveal } from "./Reveal";
 
 export function Hero() {
   const { hero } = copy;
-  const thread = useThread();
+  const call = useCall();
   const reduced = useReducedMotion();
   const [pose, setPose] = useState<"working" | "success">("working");
-  const { play } = thread;
+  const { play } = call;
 
   // The mascot works while Spectr replies, then swaps to the success pose when the result lands.
   const run = useCallback(() => {
     setPose(reduced ? "success" : "working");
     void play(heroScript, {
-      typeUser: false,
       onShow: (step) => {
         if (step.pose) setPose(step.pose);
       },
@@ -57,7 +56,7 @@ export function Hero() {
           </div>
           <div className="phonewrap">
             <div>
-              <PhoneThread thread={thread} />
+              <CallPhone call={call} />
             </div>
           </div>
           <button className="chipbtn replay" onClick={run}>

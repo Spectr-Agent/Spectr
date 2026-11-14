@@ -1,6 +1,6 @@
 # Spectr landing page (`apps/web`)
 
-A Next.js site for Spectr's early access waitlist. It is its own Vercel project and shares nothing with the backend in `services/api`.
+A Next.js site for Spectr's early access waitlist. FaceTime is the main feature on the page: you call Spectr, say what you need, and watch your Mac's screen on the call. Text is a small side option. It is its own Vercel project and shares nothing with the backend in `services/api`.
 
 ## Run it
 
@@ -20,18 +20,20 @@ Add `?rm=1` to the address to preview reduced motion, or `?rm=0` to force full m
 
 | Path | What it holds |
 | --- | --- |
-| `app/page.tsx` | The page: Nav, Hero, HowItWorks, UseCases, Safety, Demo, Faq, FinalCta, Footer |
+| `app/page.tsx` | The page: Nav, Hero, HowItWorks, UseCases, Safety, Demo, TextToo, Faq, FinalCta, Footer |
 | `app/globals.css` | All styles, ported from the prototype. The custom properties are unchanged |
 | `app/api/waitlist/route.ts` | `POST /api/waitlist` |
-| `content/copy.ts` | Every visible word, plus the three scripted phone threads |
+| `content/copy.ts` | Every visible word, plus the scripted calls (hero, four use cases, demo) |
 | `hooks/useReveal.ts` | One shot scroll reveal |
-| `hooks/useThread.ts` | The typing indicator engine. Starting a new script cancels the one running (a token per run) |
+| `hooks/useThread.ts` | The call engine: shows a script one spoken line at a time. Starting a new script cancels the one running (a token per run) |
+| `hooks/useCall.ts` | A thread plus what the Mac's screen is showing in the call video |
+| `hooks/useStartOnReveal.ts` | Starts a section's script once, shortly after it first scrolls into view |
 | `hooks/useReducedMotion.ts` | System setting, `?rm=`, and the prototype shell's `postMessage` toggle |
-| `components/` | One file per section, plus `PhoneThread`, `Shot` (the mini screenshots) and `Reveal` |
+| `components/` | One file per section, plus `CallPhone` (the FaceTime screen), `Scene` (the Mac screen in the call video) and `Reveal` |
 | `public/assets/` | The mascot and logo files the page uses |
 | `scripts/check-copy.mjs` | The copy checker |
 
-The mini screenshots, Mac screen and phone frames are HTML and CSS, not images.
+The call screen, the Mac windows in the video and the phone frames are HTML and CSS, not images.
 
 ### Images
 
@@ -122,6 +124,7 @@ Also: the design system README says "black, white and one light blue", while the
 - The waitlist form posts to the real route instead of showing a fake success.
 - The FAQ answers carry `aria-expanded`, `aria-controls` and `inert` while closed.
 - Fonts and images come from `next/font` and `next/image`.
+- **FaceTime redesign (this version).** The prototype was built around texting. The headline is now "your computer, on FaceTime", the hero and the use case cards show a FaceTime call with the Mac's screen as the video, and text moved to a small "Text works too" band. The old iMessage thread styles were removed. The approved prototype screens described the earlier text design and no longer apply.
 
 ## Open items (marked in the code)
 
@@ -129,18 +132,15 @@ Also: the design system README says "black, white and one light blue", while the
 2. **Pricing and launch date.** The last FAQ answer is placeholder copy with a visible tag. "OPEN ITEM 2".
 3. **Example thread details.** The names, times and files in the three scripted threads are made up. "OPEN ITEM 3".
 4. **Waitlist table.** Needs Sweeya and Poorav to approve. Until then signups are logged, not stored.
-5. **Honesty check on the use case cards.** Honesty rule: show only what works today. The cards "Brief replies" and "Short sentences and a text at each step" describe behavior that depends on saved preferences and progress texts. Those are still being built (onboarding is in a pull request, progress texts are not started). Either add a "Coming soon" label to those cards or wait until they work.
+5. **FaceTime is shown as working, but it is a scripted preview.** The calls on the page are made up. Sweeya decided FaceTime is the main feature and asked for it to be shown before it is built. The team's status table (`docs/native/STATUS.md`) says phone calls and FaceTime have not been tested end to end on a real call. Check that before the link is shared publicly, or add a label such as "Coming soon".
 6. **Link preview image.** There is no Open Graph image yet.
 
 ## What was checked
 
-The prototype and the approved screens were removed from `apps/web/_prototype` before the pull request. They are in the first commit of the `sweeya/landing-page` branch.
+Run against the production build (`next build`, then `next start`) in headless Chrome on a Mac. It was not run on Vercel, on a real phone, or in Safari. The prototype and the earlier approved screens were removed from `apps/web/_prototype`; they are in the first commit of the `sweeya/landing-page` branch.
 
-Run against the production build (`next build`, then `next start`) in headless Chrome on a Mac. It was not run on Vercel, on a real phone, or in Safari.
-
-- **Matches the approved screens.** At 1440 wide the page is 6971 px tall, the same as `spectr_desktop_1440.png`, and every 500 px band differs from it by 0.1 to 0.3 out of 255. At 390 wide the page is 8236 px tall, the same as the approved phone screen (which was captured at 2x), and every 1000 px band differs by 0.4 to 0.9.
-- **No console errors** on load or while using the page, and no sideways scroll at 390 or 1440.
-- **Carousel:** arrows, dots, keyboard, swipe both ways, a tiny drag that does nothing, a click on the side card, and rapid switching (the earlier thread is cancelled).
+- **Layout:** no sideways scroll at 390 or 1440, and no console errors on load or while using the page. The headline fits at 390.
+- **Carousel:** arrows, dots, keyboard, swipe both ways, a tiny drag that does nothing, a click on the side card, and rapid switching (the earlier call is cancelled).
 - **FAQ, mobile menu and waitlist form** (success, honeypot, rate limit).
-- **Reduced motion:** with the system setting, `?rm=1`, or the shell's `postMessage`, threads show in full at once, the mascot stays still, and nothing animates.
-- `npm run build`, `npm run check:copy`, `npm run typecheck` and `npm test` (43 tests) pass. `npm audit` reports 0 vulnerabilities in the production packages.
+- **Reduced motion** (system setting, `?rm=1`, the shell's `postMessage`): captions and the Mac screen show at once, the mascot stays still, and nothing animates.
+- `npm run build`, `npm run check:copy`, `npm run typecheck` and `npm test` (43 tests) pass.

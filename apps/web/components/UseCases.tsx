@@ -5,9 +5,9 @@ import { useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, 
 import { caseScripts, copy } from "@/content/copy";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
-import { useThread } from "@/hooks/useThread";
+import { useCall } from "@/hooks/useCall";
 import { images } from "@/lib/images";
-import { PhoneThread } from "./PhoneThread";
+import { CallPhone } from "./CallPhone";
 import { Reveal } from "./Reveal";
 
 const SWIPE_DISTANCE = 45;
@@ -15,16 +15,16 @@ const SWIPE_DISTANCE = 45;
 /** A carousel of example people. Each card types its own thread into the phone. */
 export function UseCases() {
   const { cases, a11y } = copy;
-  const thread = useThread();
+  const call = useCall();
   const reduced = useReducedMotion();
   const [current, setCurrent] = useState(0);
   const [swap, setSwap] = useState({ key: 0, on: false, direction: 1 as 1 | -1 });
   const currentRef = useRef(0);
   const swipeStart = useRef<number | null>(null);
-  const { play } = thread;
+  const { play } = call;
   const last = cases.cards.length - 1;
 
-  const runCase = useCallback((index: number) => void play(caseScripts[index]!, { typeUser: true }), [play]);
+  const runCase = useCallback((index: number) => void play(caseScripts[index]!), [play]);
   const onReveal = useStartOnReveal(() => runCase(currentRef.current), 500);
 
   const go = (index: number) => {
@@ -101,7 +101,7 @@ export function UseCases() {
           </div>
           <Reveal className="casephone" onReveal={onReveal}>
             <div>
-              <PhoneThread key={swap.key} thread={thread} swap={swap.on} direction={swap.direction} />
+              <CallPhone key={swap.key} call={call} swap={swap.on} direction={swap.direction} />
             </div>
           </Reveal>
         </div>

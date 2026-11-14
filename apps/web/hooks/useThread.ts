@@ -6,14 +6,12 @@ import { useReducedMotion } from "./useReducedMotion";
 
 export interface ShownMessage extends MessageStep {
   id: number;
-  /** False when reduced motion is on: the message appears without the bounce. */
+  /** False when reduced motion is on: the caption appears without the bounce. */
   animate: boolean;
 }
 
 export interface PlayOptions {
-  /** Type the person's messages into the composer first (use cases and demo). */
-  typeUser: boolean;
-  /** Runs when a message from Spectr appears. */
+  /** Runs when a line from Spectr appears. */
   onShow?: (step: MessageStep) => void;
   /** Runs for a scripted action. Return when it has finished. */
   onAction?: (action: string, alive: () => boolean, instant: boolean) => Promise<void>;
@@ -22,15 +20,13 @@ export interface PlayOptions {
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * The typing indicator engine behind every phone. `play` shows a script one
- * message at a time. Starting a new `play` cancels the one in progress: each
- * run holds a token and stops as soon as it is no longer the newest.
+ * The engine behind every call. `play` shows a script one line at a time, with a
+ * pause before Spectr speaks. Starting a new `play` cancels the one in progress:
+ * each run holds a token and stops as soon as it is no longer the newest.
  */
 export function useThread() {
   const [items, setItems] = useState<ShownMessage[]>([]);
   const [typing, setTyping] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [started, setStarted] = useState(false);
   const token = useRef(0);
   const nextId = useRef(0);
   const reduced = useReducedMotion();
@@ -53,14 +49,12 @@ export function useThread() {
   }, []);
 
   const play = useCallback(
-    async (script: Script, options: PlayOptions) => {
+    async (script: Script, options: PlayOptions = {}) => {
       token.current += 1;
       const mine = token.current;
       const alive = () => token.current === mine;
       setItems([]);
       setTyping(false);
-      setDraft("");
-      setStarted(true);
 
       for (const step of script) {
         if (!alive()) return;
@@ -75,24 +69,13 @@ export function useThread() {
           continue;
         }
         if (step.from === "me") {
-          if (options.typeUser) {
-            for (const character of step.text ?? "") {
-              if (!alive()) return;
-              setDraft((text) => text + character);
-              await sleep(34 + Math.random() * 28);
-            }
-            await sleep(320);
-            if (!alive()) return;
-            setDraft("");
-          } else {
-            await sleep(step.pre ?? 600);
-          }
+          await sleep(step.pre ?? 600);
           if (!alive()) return;
           add(step, true);
           await sleep(step.after ?? 600);
         } else {
           setTyping(true);
-          await sleep(step.typing ?? (step.shot ? 1100 : 900));
+          await sleep(step.typing ?? 900);
           if (!alive()) return;
           setTyping(false);
           add(step, true);
@@ -104,7 +87,7 @@ export function useThread() {
     [add],
   );
 
-  return { items, typing, draft, started, play };
+  return { items, typing, play };
 }
 
 export type Thread = ReturnType<typeof useThread>;

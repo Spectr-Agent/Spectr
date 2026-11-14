@@ -4,9 +4,9 @@ import { useCallback, useState } from "react";
 import { copy, demoScript } from "@/content/copy";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { useThread } from "@/hooks/useThread";
-import { PhoneThread } from "./PhoneThread";
+import { CallPhone } from "./CallPhone";
 import { Reveal } from "./Reveal";
-import { AppearanceMock } from "./Shot";
+import { AppearanceMock } from "./Scene";
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const IDLE = { go: false, press: false, dark: false };
@@ -38,7 +38,7 @@ export function Demo() {
   const run = useCallback(() => {
     setMac(IDLE);
     setPulse(0);
-    void play(demoScript, { typeUser: true, onAction: act });
+    void play(demoScript, { onAction: act });
   }, [act, play]);
 
   const onReveal = useStartOnReveal(run, 700);
@@ -67,7 +67,7 @@ export function Demo() {
             </div>
             <div className="demophone">
               <div>
-                <PhoneThread thread={thread} />
+                <CallPhone call={{ items: thread.items, typing: thread.typing, scene: "appearance" }} dark={mac.dark} />
               </div>
             </div>
           </div>

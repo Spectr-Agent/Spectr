@@ -1,28 +1,21 @@
-// Shapes for the scripted phone threads (the text lives in content/copy.ts).
+// Shapes for the scripted FaceTime calls (the words live in content/copy.ts).
 
-export type ShotKind = "resume" | "folder" | "text" | "dark";
-
-export interface Preview {
-  to: string;
-  subject: string;
-  body: string;
-  file: string;
-}
+/** What the Mac's screen shows in the call video. */
+export type SceneKind = "resume" | "due" | "folder" | "text" | "mail" | "appearance";
 
 export interface MessageStep {
   from: "me" | "bot";
+  /** What is said. It shows as a caption on the call. */
   text?: string;
-  file?: string;
-  size?: string;
-  shot?: ShotKind;
-  preview?: Preview;
-  /** Pause before a message from "me" appears, in ms. */
+  /** The Mac's screen changes to this when the caption appears. */
+  scene?: SceneKind;
+  /** Pause before the caller's line appears, in ms. */
   pre?: number;
-  /** Pause after the message, in ms. */
+  /** Pause after the line, in ms. */
   after?: number;
-  /** How long the typing dots show before a bot message, in ms. */
+  /** How long Spectr "thinks" before it speaks, in ms. */
   typing?: number;
-  /** The hero mascot changes to this pose when the message shows. */
+  /** The hero mascot changes to this pose when the line appears. */
   pose?: "success";
 }
 
