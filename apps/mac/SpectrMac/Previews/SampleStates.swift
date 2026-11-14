@@ -10,7 +10,7 @@
         static let sampleWindow = ShareSource(kind: .window, appName: "Keynote", title: "EmoryHacks Demo")
 
         static let firstLaunch = HelperState(
-            pairing: .awaitingApproval(code: "482 915", expiresAt: Date().addingTimeInterval(280)),
+            pairing: .unpaired,
             permissions: PermissionSnapshot(screenCapture: false, accessibility: false))
 
         static let idle = HelperState(pairing: samplePhone, phone: .connected, permissions: allowed)

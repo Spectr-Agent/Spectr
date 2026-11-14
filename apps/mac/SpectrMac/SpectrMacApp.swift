@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             chooseWindow: { [environment] in environment.capture.chooseSource() },
             stopSharing: { [environment] in environment.capture.stopSharing() },
             stopTask: { [environment] in environment.stopTask() },
-            startPairing: { [environment] in environment.pairing.start() },
+            connectDevice: { [environment] token in environment.pairing.connect(token: token) },
             requestScreenRecording: { [environment] in environment.requestScreenRecording() },
             requestAccessibility: { [environment] in environment.requestAccessibility() },
             relaunch: { [environment] in environment.relaunch() },
@@ -109,7 +109,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 title: "Spectr Setup", autosaveName: "SpectrSetup",
                 content: LiveSetup(environment: environment, actions: actions))
         }
-        if environment.pairing.state == .unpaired { environment.pairing.start() }
         present(setupWindow)
     }
 

@@ -104,6 +104,7 @@ private struct StepDetail: View {
     let step: SetupStep
     let state: HelperState
     let actions: HelperActions
+    @State private var token = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -145,7 +146,7 @@ private struct StepDetail: View {
 
     private var title: String {
         switch step {
-        case .pair: return "Pair your iPhone"
+        case .pair: return state.pairing.phone == nil ? "Connect this Mac to your account" : "This Mac is connected"
         case .screenRecording:
             return state.canShareScreen
                 ? "Screen recording is allowed" : "Your iPhone can't see this Mac yet"
@@ -162,7 +163,7 @@ private struct StepDetail: View {
     private var whatToDo: String {
         switch step {
         case .pair:
-            "Open Spectr on your iPhone and enter the code shown below."
+            "Paste this Mac's device token below. The backend owner issues it with services/api/scripts/issue-device-token.mjs."
         case .screenRecording:
             "Open System Settings › Privacy & Security › Screen & System Audio Recording and turn on Spectr."
         case .control:
@@ -175,7 +176,7 @@ private struct StepDetail: View {
     private var why: String {
         switch step {
         case .pair:
-            "Pairing ties this Mac to your account, so only your iPhone can send it instructions."
+            "The token ties this Mac to your account, so only your tasks run here. It is kept in this Mac's Keychain and can be revoked."
         case .screenRecording:
             "Without it, nothing reaches your iPhone: the live view stays blank. Spectr only ever captures the window you pick."
         case .control:
@@ -192,7 +193,7 @@ private struct StepDetail: View {
     private var howYoullKnow: String {
         switch step {
         case .pair:
-            "This step checks itself off as soon as your iPhone approves the code."
+            "Spectr checks the token with the backend right away. This step checks itself off when it's accepted."
         case .screenRecording:
             "Come back to this window; Spectr rechecks on its own. If macOS asks you to quit and reopen Spectr, setup resumes right here."
         case .control:
@@ -260,45 +261,39 @@ private struct StepDetail: View {
 
     @ViewBuilder private var pairingControl: some View {
         switch state.pairing {
-        case .paired(let phone):
-            DoneRow(text: "Paired with \(phone.phoneName ?? "your iPhone").")
-        case .unpaired:
-            Button("Show Pairing Code", action: actions.startPairing)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+        case .paired:
+            DoneRow(text: "Connected. Tasks for your account run on this Mac.")
         case .requesting:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Getting a code…").foregroundStyle(.secondary)
+                Text("Checking the token…").foregroundStyle(.secondary)
             }
-        case .awaitingApproval(let code, let expiresAt):
-            VStack(alignment: .leading, spacing: 6) {
-                Text(code)
-                    .font(.system(size: 34, weight: .semibold, design: .monospaced))
-                    .tracking(4)
-                    .textSelection(.enabled)
-                    .accessibilityLabel("Pairing code \(code.map(String.init).joined(separator: " "))")
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.small)
-                    Text("Waiting for your iPhone · expires \(expiresAt, style: .relative)")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        case .failed(let failure):
+        case .unpaired, .failed:
             VStack(alignment: .leading, spacing: 8) {
-                Label(
-                    failure == .expired
-                        ? "That code expired before your iPhone approved it."
-                        : state.configurationError.map { "This build can't reach a Spectr server. \($0)" }
-                            ?? "Couldn't reach Spectr. Check this Mac's internet connection.",
-                    systemImage: "exclamationmark.triangle.fill"
-                )
-                .foregroundStyle(.orange)
+                if case .failed(let failure) = state.pairing {
+                    Label(
+                        failure == .invalidToken
+                            ? "The backend didn't accept that token. It may be mistyped, revoked or for another server."
+                            : state.configurationError.map { "This build can't reach a Spectr server. \($0)" }
+                                ?? "Couldn't reach the Spectr server. Check the internet connection and the server address.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                SecureField("Device token (spd_…)", text: $token)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 360)
+                    .onSubmit { actions.connectDevice(token) }
+                    .accessibilityLabel("Device token")
                 HStack {
-                    Button(failure == .expired ? "Get a New Code" : "Try Again", action: actions.startPairing)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                    Button("Connect") {
+                        actions.connectDevice(token)
+                        token = ""
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if let useLabDevice = actions.useLabDevice {
                         Button("Use Local Lab Device (Debug)", action: useLabDevice)
                             .controlSize(.large)

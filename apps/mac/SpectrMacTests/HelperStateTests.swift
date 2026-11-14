@@ -213,64 +213,57 @@ struct AgentLoopTests {
 }
 
 private struct ScriptedPairing: PairingClient {
-    var challenge: Result<PairingChallenge, PairingError>
-    var pendingPolls = 1
-    let polls = Counter()
-
-    final class Counter: @unchecked Sendable {
-        private let lock = NSLock()
-        private var value = 0
-        func next() -> Int {
-            lock.withLock {
-                value += 1
-                return value
-            }
-        }
-    }
-
-    func createChallenge() async throws(PairingError) -> PairingChallenge { try challenge.get() }
-
-    func exchange(_ challenge: PairingChallenge) async throws(PairingError) -> PairingExchange {
-        polls.next() <= pendingPolls
-            ? .pending : .paired(StoredDevice(deviceId: "dev_1", deviceCredential: "secret", phoneName: nil))
-    }
+    var result: Result<Void, PairingError>
+    func validate(token: String) async throws(PairingError) { try result.get() }
 }
 
 @MainActor
-@Suite("Pairing")
+@Suite("Device connection")
 struct PairingControllerTests {
-    private func challenge(expiresIn: TimeInterval) -> PairingChallenge {
-        PairingChallenge(
-            challengeId: "ch_1", code: "482915", pollSecret: "s", expiresAt: Date().addingTimeInterval(expiresIn))
-    }
-
-    @Test func approvalPairsAndStoresTheCredential() async {
+    @Test func anAcceptedTokenIsStoredAndSurvivesRelaunch() async {
         let store = MemoryDeviceCredentialStore()
-        let controller = PairingController(
-            client: ScriptedPairing(challenge: .success(challenge(expiresIn: 60))), credentials: store,
-            pollInterval: .milliseconds(1))
-        controller.start()
+        let controller = PairingController(client: ScriptedPairing(result: .success(())), credentials: store)
+        controller.connect(token: "  spd_valid  ")
         await controller.waitUntilSettled()
-        #expect(controller.state == .paired(PairedPhone(deviceId: "dev_1", phoneName: nil)))
-        #expect(store.load()?.deviceCredential == "secret")
+        #expect(controller.state.phone != nil)
+        #expect(store.load()?.deviceCredential == "spd_valid")
+        #expect(controller.deviceToken == "spd_valid")
 
         let relaunched = PairingController(client: UnavailablePairingClient(), credentials: store)
-        #expect(relaunched.state.phone?.deviceId == "dev_1")
+        #expect(relaunched.state.phone != nil)
         relaunched.unpair()
+        #expect(store.load() == nil)
+        #expect(relaunched.state == .unpaired)
+    }
+
+    @Test func aRejectedTokenAndAnUnreachableServerAreDistinctAndNothingIsStored() async {
+        let store = MemoryDeviceCredentialStore()
+        let rejected = PairingController(client: ScriptedPairing(result: .failure(.invalidToken)), credentials: store)
+        rejected.connect(token: "spd_wrong")
+        await rejected.waitUntilSettled()
+        #expect(rejected.state == .failed(.invalidToken))
+
+        let offline = PairingController(client: UnavailablePairingClient(), credentials: store)
+        offline.connect(token: "spd_any")
+        await offline.waitUntilSettled()
+        #expect(offline.state == .failed(.unreachable))
         #expect(store.load() == nil)
     }
 
-    @Test func expiredCodeAndUnreachableServerAreDistinct() async {
-        let expired = PairingController(
-            client: ScriptedPairing(challenge: .success(challenge(expiresIn: -1))),
-            credentials: MemoryDeviceCredentialStore(), pollInterval: .milliseconds(1))
-        expired.start()
-        await expired.waitUntilSettled()
-        #expect(expired.state == .failed(.expired))
+    @Test func anEmptyTokenDoesNothing() async {
+        let controller = PairingController(
+            client: ScriptedPairing(result: .success(())), credentials: MemoryDeviceCredentialStore())
+        controller.connect(token: "   ")
+        #expect(controller.state == .unpaired)
+    }
 
-        let offline = PairingController(client: UnavailablePairingClient(), credentials: MemoryDeviceCredentialStore())
-        offline.start()
-        await offline.waitUntilSettled()
-        #expect(offline.state == .failed(.unreachable))
+    @Test func aRevokedTokenForgetsTheDevice() async {
+        let store = MemoryDeviceCredentialStore()
+        let controller = PairingController(client: ScriptedPairing(result: .success(())), credentials: store)
+        controller.connect(token: "spd_valid")
+        await controller.waitUntilSettled()
+        controller.tokenRejected()
+        #expect(store.load() == nil)
+        #expect(controller.state == .failed(.invalidToken))
     }
 }

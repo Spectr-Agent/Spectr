@@ -23,6 +23,8 @@ final class MacEnvironment {
     /// The task runner whose activity the popover shows. Only the Debug action lab
     /// provides one until the backend command loop exists.
     private(set) var taskSession: TaskSession?
+    /// Runs backend tasks while this Mac is connected with a device token.
+    private(set) var agent: MacAgentLoop?
     #if DEBUG
         let lab: ActionLab
     #endif
@@ -51,6 +53,31 @@ final class MacEnvironment {
             self.lab = lab
             self.taskSession = lab.session
         #endif
+        pairing.onChange = { [weak self] _ in self?.syncAgent() }
+        syncAgent()
+    }
+
+    /// Starts the agent loop when this Mac holds a device token and the build has a
+    /// server address; stops it otherwise.
+    func syncAgent() {
+        guard case .ready(let configuration) = startup, let token = pairing.deviceToken,
+            pairing.state.phone != nil
+        else {
+            agent?.stop()
+            agent = nil
+            return
+        }
+        guard agent == nil else { return }
+        let capture = self.capture
+        let loop = MacAgentLoop(
+            api: MacAgentClient(origin: configuration.apiOrigin, deviceToken: token),
+            frames: { () async throws(AgentFrameError) -> AgentFrame in try await capture.agentFrame() },
+            performer: EventActionPerformer(driver: driver),
+            store: FileStepLedgerStore.standard() ?? MemoryStepLedgerStore()
+        )
+        loop.onUnauthorized = { [weak self] in self?.pairing.tokenRejected() }
+        agent = loop
+        loop.start()
     }
 
     static func live(bundle: Bundle = .main) -> MacEnvironment {
@@ -71,9 +98,18 @@ final class MacEnvironment {
             phone: phone,
             permissions: permissions,
             share: capture.shareState(at: now),
-            activity: taskSession?.activity,
-            canStopTask: taskSession?.activity?.phase == .working
+            activity: agent?.activity ?? taskSession?.activity,
+            canStopTask: (agent?.activity ?? taskSession?.activity)?.phase == .working,
+            agentNotice: agentNotice
         )
+    }
+
+    private var agentNotice: String? {
+        switch agent?.status {
+        case .blocked(let message): message
+        case .unauthorized: "This Mac's device token was rejected. Connect it again in Setup."
+        case .idle, .working, .stopped, nil: nil
+        }
     }
 
     /// Re-reads permission state without prompting.
@@ -140,6 +176,10 @@ final class MacEnvironment {
     }
 
     func stopTask() {
+        if let agent, agent.activity?.phase == .working {
+            agent.haltCurrentTask()
+            return
+        }
         guard let taskSession else { return }
         Task { await taskSession.stopCurrentTask() }
     }

@@ -67,13 +67,14 @@ struct PairedPhone: Equatable, Sendable {
 
 enum PairingFailure: Equatable, Sendable {
     case unreachable
-    case expired
+    /// The backend did not accept the device token.
+    case invalidToken
 }
 
 enum PairingState: Equatable, Sendable {
     case unpaired
+    /// Checking a device token with the backend.
     case requesting
-    case awaitingApproval(code: String, expiresAt: Date)
     case paired(PairedPhone)
     case failed(PairingFailure)
 
@@ -119,6 +120,8 @@ struct HelperState: Equatable, Sendable {
     var activity: TaskActivity?
     /// Whether something that can actually halt the running task is attached.
     var canStopTask = false
+    /// Why the backend agent loop can't make progress right now, if it can't.
+    var agentNotice: String?
 
     enum Problem: Equatable, Sendable {
         case misconfigured(String)
@@ -231,7 +234,7 @@ struct HelperActions {
     var chooseWindow: () -> Void = {}
     var stopSharing: () -> Void = {}
     var stopTask: () -> Void = {}
-    var startPairing: () -> Void = {}
+    var connectDevice: (String) -> Void = { _ in }
     var requestScreenRecording: () -> Void = {}
     var requestAccessibility: () -> Void = {}
     var relaunch: () -> Void = {}

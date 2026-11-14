@@ -1,5 +1,6 @@
 import CoreImage
 import Foundation
+import ImageIO
 import Observation
 @preconcurrency import ScreenCaptureKit
 import SpectrKit
@@ -37,6 +38,8 @@ final class CaptureController: NSObject {
     private var output: FrameOutput?
     private var watchTask: Task<Void, Never>?
     private var windowID: CGWindowID?
+    /// What the user authorized. Agent screenshots use exactly this filter.
+    private var filter: SCContentFilter?
     /// Increments per session so callbacks from an old stream are ignored.
     private var generation = 0
 
@@ -70,6 +73,7 @@ final class CaptureController: NSObject {
         let session = generation
         status = .starting
         windowID = filter.includedWindows.first?.windowID
+        self.filter = filter
         source = describe(filter)
 
         let configuration = SCStreamConfiguration()
@@ -157,6 +161,7 @@ final class CaptureController: NSObject {
         }
         stream = nil
         output = nil
+        filter = nil
     }
 
     private func describe(_ filter: SCContentFilter) -> ShareSource {
@@ -183,6 +188,61 @@ final class CaptureController: NSObject {
         case .stopped(.permissionDenied): return .ended(.denied)
         case .stopped(.failed(let message)): return .ended(.failed(message))
         }
+    }
+
+    // MARK: Agent screenshots
+
+    /// A still image of exactly the shared window or display, sized for the backend's
+    /// model limits, plus where that content sits on screen so action coordinates can
+    /// be mapped back. Fails when nothing is being shared: the agent never sees more
+    /// than the user authorized.
+    func agentFrame() async throws(AgentFrameError) -> AgentFrame {
+        guard status == .sharing, let filter else { throw .notSharing }
+        let region: CGRect
+        let ownerPID: pid_t?
+        if let window = filter.includedWindows.first {
+            // Re-read the window so a moved window maps correctly.
+            let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            guard let live = content?.windows.first(where: { $0.windowID == window.windowID }) else {
+                throw .windowNotVisible
+            }
+            region = live.frame
+            ownerPID = live.owningApplication?.processID
+        } else if let display = filter.includedDisplays.first {
+            region = display.frame
+            ownerPID = nil
+        } else {
+            throw .notSharing
+        }
+        let size = MacScreenshot.targetSize(for: region.size)
+        let configuration = SCStreamConfiguration()
+        configuration.width = size.width
+        configuration.height = size.height
+        configuration.showsCursor = false
+        configuration.scalesToFit = true
+        let image: CGImage
+        do {
+            image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+        } catch {
+            throw .captureFailed
+        }
+        guard let jpeg = Self.jpegData(image) else { throw .captureFailed }
+        return AgentFrame(
+            screenshot: MacScreenshot(
+                mediaType: "image/jpeg", data: jpeg.base64EncodedString(), width: image.width, height: image.height),
+            region: region,
+            windowOwnerPID: ownerPID
+        )
+    }
+
+    private static func jpegData(_ image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, "public.jpeg" as CFString, 1, nil) else {
+            return nil
+        }
+        CGImageDestinationAddImage(
+            destination, image, [kCGImageDestinationLossyCompressionQuality: 0.75] as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 
     private static func reason(for error: (any Error)?) -> StopReason {

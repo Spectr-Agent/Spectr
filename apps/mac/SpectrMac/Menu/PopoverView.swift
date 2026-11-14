@@ -53,6 +53,16 @@ struct PopoverView: View {
                     .transition(.opacity)
             }
 
+            if let notice = state.agentNotice, state.pairing.phone != nil {
+                Divider()
+                Label(notice, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+            }
+
             Divider()
             footer
                 .padding(.horizontal, 10)
