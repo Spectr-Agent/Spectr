@@ -1,0 +1,80 @@
+/* Spectr design tokens. Generated from tokens/tokens.json */
+:root, [data-theme="light"] {
+  --surface-100: #FFFFFF;
+  --surface-200: #F4F4F6;
+  --surface-300: #E8E8EC;
+  --ink: #17171B;
+  --ink-muted: #55555F;
+  --border: #DADADF;
+  --inverse: #17171B;
+  --on-inverse: #FFFFFF;
+  --clay: #DAEAFA;
+  --sky: #9CCBF0;
+  --on-fill: #17171B;
+  --brand-text: #2F6FB0;
+  --slab: #17171B;
+  --focus: #17171B;
+  --shadow-clay: 0 2px 0 rgba(23,23,27,0.05), 0 10px 24px rgba(23,23,27,0.10);
+  --shadow-press: inset 0 2px 4px rgba(23,23,27,0.18);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --font-display: "Outfit", "Avenir Next", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+[data-theme="dark"] {
+  --surface-100: #0B0B0E;
+  --surface-200: #17171B;
+  --surface-300: #232328;
+  --ink: #F5F5F7;
+  --ink-muted: #A6A6B0;
+  --border: #34343B;
+  --inverse: #F5F5F7;
+  --on-inverse: #17171B;
+  --clay: #DAEAFA;
+  --sky: #9CCBF0;
+  --on-fill: #17171B;
+  --brand-text: #7DB8EE;
+  --slab: #2B2B33;
+  --focus: #F5F5F7;
+  --shadow-clay: 0 2px 0 rgba(0,0,0,0.30), 0 10px 24px rgba(0,0,0,0.40);
+  --shadow-press: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface-100: #0B0B0E;
+    --surface-200: #17171B;
+    --surface-300: #232328;
+    --ink: #F5F5F7;
+    --ink-muted: #A6A6B0;
+    --border: #34343B;
+    --inverse: #F5F5F7;
+    --on-inverse: #17171B;
+    --clay: #DAEAFA;
+    --sky: #9CCBF0;
+    --on-fill: #17171B;
+    --brand-text: #7DB8EE;
+    --slab: #2B2B33;
+    --focus: #F5F5F7;
+    --shadow-clay: 0 2px 0 rgba(0,0,0,0.30), 0 10px 24px rgba(0,0,0,0.40);
+    --shadow-press: inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+}
+.display-xl { font-family: var(--font-display); font-size: 56px; line-height: 56px; font-weight: 700; letter-spacing: -0.02em; }
+.display-lg { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 700; letter-spacing: -0.015em; }
+.display-md { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 600; }
+.title { font-family: var(--font-sans); font-size: 20px; line-height: 28px; font-weight: 600; }
+.body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 600; }
+.caption { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.code { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 400; }
