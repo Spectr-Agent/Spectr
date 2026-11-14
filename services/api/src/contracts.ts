@@ -242,6 +242,8 @@ export const MacStepRequestSchema = z
           .strict(),
       )
       .max(50),
+    /** Optional: the Keynote slide showing, when the front app is Keynote. Older clients omit it. */
+    observedSlide: positiveIntSchema.nullable().optional(),
   })
   .strict();
 export type MacStepRequest = z.infer<typeof MacStepRequestSchema>;

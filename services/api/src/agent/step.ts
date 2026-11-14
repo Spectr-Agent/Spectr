@@ -11,6 +11,7 @@ import type {
   AgentTaskRecord,
   PendingInboundMessage,
 } from "./types.js";
+import { slideMismatchSummary, targetSlide } from "./slides.js";
 import {
   anthropicRequest,
   AnthropicHttpError,
@@ -813,8 +814,13 @@ export async function runAgentStep(
         return saved;
       }
       if (mapped.kind === "finish") {
-        const state = mapped.success ? "succeeded" : "failed";
-        const summary = mapped.summary.slice(0, 300);
+        // Keynote example tasks: if the Mac reports the slide showing and it
+        // isn't the one asked for, Claude's "done" doesn't count.
+        const target = mapped.success ? targetSlide(messages) : null;
+        const observed = options.request.observedSlide ?? null;
+        const mismatch = target != null && observed != null && observed !== target;
+        const state = mapped.success && !mismatch ? "succeeded" : "failed";
+        const summary = (mismatch ? slideMismatchSummary(target, observed) : mapped.summary).slice(0, 300);
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
