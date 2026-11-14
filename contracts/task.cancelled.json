@@ -1,0 +1,11 @@
+{
+  "taskId": "tsk_demo_001",
+  "deviceId": "dev_demo_mac",
+  "state": "cancelled",
+  "revision": 2,
+  "instruction": "open the demo deck",
+  "lastObservedSlide": null,
+  "question": null,
+  "createdAt": "2026-11-13T12:00:00.000Z",
+  "updatedAt": "2026-11-13T12:03:00.000Z"
+}
