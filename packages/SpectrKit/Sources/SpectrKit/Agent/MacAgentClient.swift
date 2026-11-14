@@ -13,6 +13,24 @@ public enum MacAgentError: Error, Sendable, Equatable {
     case offline
 }
 
+/// A short-lived LiveKit grant to publish this Mac's shared screen into its own room.
+/// The token is a credential: keep it in memory only and never log it.
+public struct MacLiveKitGrant: Codable, Sendable, Equatable {
+    public var url: String
+    public var token: String
+    public var room: String
+    public var identity: String
+    public var expiresAt: Date
+
+    public init(url: String, token: String, room: String, identity: String, expiresAt: Date) {
+        self.url = url
+        self.token = token
+        self.room = room
+        self.identity = identity
+        self.expiresAt = expiresAt
+    }
+}
+
 /// The Mac's side of the backend agent loop.
 public protocol MacAgentAPI: Sendable {
     func activeTask() async throws(MacAgentError) -> MacTaskResponse.Task?
@@ -42,6 +60,20 @@ public struct MacAgentClient: MacAgentAPI {
             throw .unavailable("The task response could not be read.")
         }
         return response.task
+    }
+
+    /// `GET /api/mac/livekit`: a grant to publish this Mac's screen share.
+    public func liveKitGrant() async throws(MacAgentError) -> MacLiveKitGrant {
+        var request = URLRequest(url: origin.appending(path: "api/mac/livekit"))
+        request.httpMethod = "GET"
+        request.timeoutInterval = 20
+        let data = try await send(request)
+        guard let grant = try? WireJSON.decoder().decode(MacLiveKitGrant.self, from: data),
+            let url = URL(string: grant.url), url.scheme == "wss" || url.scheme == "ws"
+        else {
+            throw .unavailable("The LiveKit grant could not be read.")
+        }
+        return grant
     }
 
     public func step(_ body: MacStepRequest) async throws(MacAgentError) -> MacStepResponse {

@@ -1,0 +1,85 @@
+import Foundation
+import LiveKit
+import Observation
+import SpectrKit
+
+/// Publishes the shared window or display into this Mac's LiveKit room
+/// (`spectr-mac-<deviceId>`), where the iPhone app watches it and the call agent relays
+/// it onto FaceTime. Uses a short-lived grant from `GET /api/mac/livekit`; the Mac never
+/// holds a LiveKit secret.
+@MainActor
+@Observable
+final class ScreenPublisher {
+    enum State: Equatable, Sendable {
+        case idle
+        case connecting
+        case live
+        case failed(String)
+    }
+
+    private(set) var state: State = .idle
+
+    private let sink: FrameSink
+    private var room: Room?
+    private var task: Task<Void, Never>?
+    /// Increments per session so a late connect from an old session is discarded.
+    private var generation = 0
+
+    init(sink: FrameSink) {
+        self.sink = sink
+    }
+
+    /// Connects and publishes. Safe to call repeatedly; an active session is kept.
+    func start(grant: @escaping @Sendable () async throws(MacAgentError) -> MacLiveKitGrant) {
+        guard task == nil, state != .live else { return }
+        generation += 1
+        let session = generation
+        state = .connecting
+        task = Task {
+            do {
+                let grant = try await grant()
+                let room = Room()
+                try await room.connect(url: grant.url, token: grant.token)
+                let track = await LocalVideoTrack.createBufferTrack(name: "spectr-screen", source: .screenShareVideo)
+                try await room.localParticipant.publish(
+                    videoTrack: track, options: VideoPublishOptions(simulcast: false))
+                guard session == self.generation, let capturer = track.capturer as? BufferCapturer else {
+                    await room.disconnect()
+                    return
+                }
+                self.room = room
+                self.sink.setTarget { buffer in capturer.capture(buffer) }
+                self.state = .live
+            } catch let error as MacAgentError {
+                guard session == self.generation else { return }
+                self.state = .failed(Self.message(for: error))
+            } catch {
+                guard session == self.generation else { return }
+                self.state = .failed("Couldn't start streaming this Mac's screen.")
+            }
+            self.task = nil
+        }
+    }
+
+    /// Stops publishing and leaves the room. The held frame is dropped.
+    func stop() {
+        generation += 1
+        task?.cancel()
+        task = nil
+        sink.setTarget(nil)
+        if let room {
+            Task { await room.disconnect() }
+        }
+        room = nil
+        state = .idle
+    }
+
+    private static func message(for error: MacAgentError) -> String {
+        switch error {
+        case .unauthorized: "This Mac's device token was rejected, so its screen can't be streamed."
+        case .offline: "Can't reach the Spectr server to start streaming."
+        case .unavailable(let detail), .invalidRequest(let detail): "Streaming isn't available: \(detail)"
+        case .staleStep, .notFound: "Streaming isn't available right now."
+        }
+    }
+}

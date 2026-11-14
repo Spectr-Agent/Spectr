@@ -250,3 +250,43 @@ struct MacAgentClientTests {
         #expect(decoded == request)
     }
 }
+
+@Suite("Mac LiveKit grant")
+struct MacLiveKitGrantTests {
+    func client(_ transport: ScriptedTransport) throws -> MacAgentClient {
+        MacAgentClient(
+            origin: try #require(URL(string: "https://api.example.test")), deviceToken: "spd_test_token",
+            transport: transport)
+    }
+
+    @Test func fetchesTheGrantWithTheDeviceToken() async throws {
+        let body = """
+            {"url":"wss://project.example.test","token":"eyJ.test.jwt","room":"spectr-mac-dev_1",
+             "identity":"mac-dev_1","expiresAt":"2026-11-14T01:00:00.000Z"}
+            """
+        let transport = ScriptedTransport([.respond(status: 200, body: body)])
+        let grant = try await client(transport).liveKitGrant()
+        #expect(grant.room == "spectr-mac-dev_1")
+        #expect(grant.identity == "mac-dev_1")
+        let request = try #require(transport.requests.first)
+        #expect(request.url?.path() == "/api/mac/livekit")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer spd_test_token")
+    }
+
+    @Test func rejectsAGrantThatIsNotALiveKitURL() async throws {
+        let body = """
+            {"url":"https://evil.example.test","token":"t","room":"r","identity":"i","expiresAt":"2026-11-14T01:00:00Z"}
+            """
+        let transport = ScriptedTransport([.respond(status: 200, body: body)])
+        await #expect(throws: MacAgentError.unavailable("The LiveKit grant could not be read.")) {
+            try await client(transport).liveKitGrant()
+        }
+    }
+
+    @Test func aRejectedDeviceTokenIsUnauthorized() async throws {
+        let transport = ScriptedTransport([
+            .respond(status: 401, body: #"{"error":{"code":"forbidden","message":"x","currentRevision":null}}"#)
+        ])
+        await #expect(throws: MacAgentError.unauthorized) { try await client(transport).liveKitGrant() }
+    }
+}
