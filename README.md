@@ -11,12 +11,23 @@
 
 computers still ask a lot of people: small buttons, crowded websites, long forms, steps you have to remember. spectr takes that away. you say what you need in plain words, by imessage or a phone call, and spectr does it on your mac. it tells you what it did in plain words too.
 
-it's built for every age and every kind of work: a student between classes, a grandparent filling out a form, an office worker away from their desk, a traveler without their laptop. same assistant, shaped around the person using it.
+it's built for every age and every kind of work: a student between classes, a grandparent filling out a form, a developer away from their desk, a traveler without their laptop. same assistant, shaped around the person using it.
 
 - **no new app to learn.** if you can send a text or make a call, you can use spectr.
 - **plain, calm replies.** short sentences, no jargon.
 - **you stay in charge.** text or say `stop` at any time. spectr asks before it sends, posts, buys, submits or deletes anything, and it never types your passwords.
 - **made around you.** onboarding (planned) learns how you like updates and any accessibility needs, and uses them in every reply.
+
+## watch it work
+
+most ai agents work out of sight and hand you an answer at the end. spectr works in the open:
+
+- **see your screen from your phone.** watch your mac live while spectr clicks and types.
+- **follow every step.** spectr shows what it's doing and why, as it happens, so nothing is a black box.
+- **stop it any time.** if it starts going the wrong way, say or text `stop` and it stops.
+- **change direction mid-task.** "actually, use the other file." say it on the call or text it, and spectr switches.
+
+you finish real tasks on your own computer, from wherever you are, without guessing what it did.
 
 ## who it's for
 
@@ -54,16 +65,16 @@ spectr fills in the form step by step, explains each choice, and asks before it 
 <tr>
 <td>
 
-### people at work
+### developers
 
-> "open the report on my computer, update the chart from the latest spreadsheet, and send me a preview."
+> "my build failed. open the pull request on github, read the ci logs, and tell me what broke."
 
-spectr updates the chart and sends a preview to check before anything goes to anyone else.
+spectr opens the pull request, reads the failing job, and texts back what broke and where. watch from your phone, and redirect it if it heads for the wrong job.
 
 </td>
 <td align="center">
-<!-- replace with assets/examples/corporate.gif -->
-<img src="design-system/assets/mascot/spectr_success.png" alt="corporate example (screenshot coming)" width="220">
+<!-- replace with assets/examples/developer.gif -->
+<img src="design-system/assets/mascot/spectr_success.png" alt="developer example (screenshot coming)" width="220">
 </td>
 </tr>
 <tr>
@@ -119,7 +130,7 @@ the first time you text spectr, it asks a few questions: what you use it for, wh
 | ask before sending, buying or submitting; pause for logins | works |
 | searches that text back the top options | works |
 | a message that arrives twice runs once | works |
-| onboarding and saved preferences | not built |
+| onboarding questions and "shall i remember this?" | built and tested; not connected to imessage, nothing saved to the database yet |
 | `status` and `continue` after an interruption | not built |
 | mac menu-bar helper (swift) | built, not yet run against the live backend |
 | mac screen streaming (livekit) | built and tested locally; not deployed |
