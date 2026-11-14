@@ -19,7 +19,7 @@ function readFixture(fileName: string): unknown {
 function makeDeps(
   store: InMemoryTaskStore,
   sendReply: InboundDeps["sendReply"] = vi.fn(
-    async (_toNumber: string, _text: string) => {},
+    async (_toNumber: string, _text: string, _idempotencyKey: string) => {},
   ),
   resolveSender: InboundDeps["resolveSender"] = vi.fn(
     async (_fromNumber: string) => ({
@@ -51,13 +51,20 @@ describe("handleInboundMessage", () => {
     expect(deps.sendReply).toHaveBeenCalledWith(
       "+15555550100",
       `Spectr is on it. Task ${first.taskId}.`,
+      `reply-${first.taskId}`,
     );
   });
 
   it("retries the reply after a crash following task persistence", async () => {
     const store = new InMemoryTaskStore();
     const sendReply = vi
-      .fn(async (_toNumber: string, _text: string) => {})
+      .fn(
+        async (
+          _toNumber: string,
+          _text: string,
+          _idempotencyKey: string,
+        ) => {},
+      )
       .mockRejectedValueOnce(new Error("send failed"))
       .mockResolvedValueOnce(undefined);
     const deps = makeDeps(store, sendReply);
@@ -84,7 +91,9 @@ describe("handleInboundMessage", () => {
 
   it("ignores unknown senders without persisting or replying", async () => {
     const store = new InMemoryTaskStore();
-    const sendReply = vi.fn(async (_toNumber: string, _text: string) => {});
+    const sendReply = vi.fn(
+      async (_toNumber: string, _text: string, _idempotencyKey: string) => {},
+    );
     const resolveSender = vi.fn(async (_fromNumber: string) => null);
     const deps = makeDeps(store, sendReply, resolveSender);
 

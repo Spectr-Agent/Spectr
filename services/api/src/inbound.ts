@@ -23,7 +23,11 @@ export interface InboundDeps {
   resolveSender(
     fromNumber: string,
   ): Promise<{ ownerId: string; deviceId: string } | null>;
-  sendReply(toNumber: string, text: string): Promise<void>;
+  sendReply(
+    toNumber: string,
+    text: string,
+    idempotencyKey: string,
+  ): Promise<void>;
 }
 
 export type InboundOutcome =
@@ -52,6 +56,7 @@ export async function handleInboundMessage(
     await deps.sendReply(
       message.fromNumber,
       `Spectr is on it. Task ${task.taskId}.`,
+      `reply-${task.taskId}`,
     );
     await deps.store.markReplySent(task.taskId);
   }

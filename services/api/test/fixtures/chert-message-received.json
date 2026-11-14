@@ -1,0 +1,52 @@
+{
+  "event_id": "chert:msg:demo_001",
+  "created_at": "2026-05-24T01:35:34.000Z",
+  "api_version": "v1",
+  "webhook_version": "2026-05-04",
+  "event_type": "message.received",
+  "trace_id": "trace_demo_001",
+  "partner_id": "partner_demo_001",
+  "data": {
+    "chat": {
+      "id": "17f6e9ed-0000-4000-8000-000000000001",
+      "is_group": false,
+      "handles": [
+        {
+          "handle": "+15555550199",
+          "service": "imessage",
+          "is_me": true
+        },
+        {
+          "handle": "+15555550100",
+          "service": "imessage",
+          "is_me": false
+        }
+      ],
+      "owner_handle": {
+        "handle": "+15555550199",
+        "service": "imessage",
+        "is_me": true
+      }
+    },
+    "message": {
+      "id": "0D36042D-0000-4000-8000-000000000001",
+      "direction": "inbound",
+      "sender_handle": {
+        "handle": "+15555550100",
+        "service": "imessage",
+        "is_me": false
+      },
+      "parts": [
+        {
+          "type": "text",
+          "value": "open the demo deck"
+        }
+      ],
+      "sent_at": "2026-05-24T01:35:34.000Z",
+      "delivered_at": null,
+      "read_at": null,
+      "service": "imessage"
+    },
+    "crm_deep_link": "https://example.invalid/chats/demo"
+  }
+}
