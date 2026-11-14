@@ -1,5 +1,7 @@
 # Spectr asset folder
 
+Palette: black, white and light blue only. Props on every pose use light blue and black.
+
 ## mascot/
 White clay star with a blue tint, same camera angle, lighting and clay color on every pose.
 Transparent PNGs at 1x, 2x and 3x (name.png, name@2x.png, name@3x.png). Named by task state.
@@ -26,4 +28,4 @@ favicon/        rounded avatar 1024, favicon sizes 512 to 16, favicon.ico
 The flat files come from the PNG you sent. Ask for an SVG trace if you need vector.
 
 ## qa/        contact sheets on light (#F5F8FC) and dark (#0F1623) backgrounds
-## source/    Blender scripts that built everything
+## source/    Blender scripts that built everything (make_assets_mono.py is the current one)
