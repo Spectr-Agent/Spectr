@@ -31,6 +31,13 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>sms</string>
+	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Spectr listens while you talk to it, so you can tell your Mac what to do hands-free.</string>
 	<key>SpectrAPIOrigin</key>
 	<string>$(SPECTR_API_ORIGIN)</string>
 	<key>SpectrEnvironment</key>
@@ -41,6 +48,10 @@
 	<string>$(SPECTR_SUPABASE_PUBLISHABLE_KEY)</string>
 	<key>SpectrSupabaseURL</key>
 	<string>$(SPECTR_SUPABASE_URL)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
