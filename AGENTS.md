@@ -77,6 +77,18 @@ Chert (iMessage + FaceTime) is the backup channel.
 
 When you hand off work, include the changed paths, the verification command, the observed result, and one remaining blocker with its owner. Separate what passed on real hardware from simulator checks, fixtures and untested assumptions.
 
+## If you are Jared's agent
+
+Applies only when you are working for Jared (iPhone app, Mac helper, shared Swift package, or his TypeScript in `services/api`). Other teammates' agents can skip this section.
+
+- **Work only in `~/Developer/Spectr`.** Never edit `~/Documents/GitHub/Spectr`: it is an old backup in an iCloud-synced folder, where git hangs, code signing fails and iCloud corrupts `.git`. If you find yourself there, stop and switch.
+- **Commits and PRs carry no attribution lines:** no `Co-Authored-By`, no "Generated with" footer.
+- **Secrets live in `~/.config/spectr/dev.env`** (Supabase secret key, LiveKit key and secret, Resend key). Read them from there in scripts; never copy them into the repo, an app bundle, a log or chat. Public client values go in gitignored `apps/Config/Local.xcconfig`.
+- **Spectr has no slide features.** Do not build anything Keynote- or presentation-specific; tasks are general computer control.
+- **Another agent may be editing at the same time.** Check `git status` first, commit only your own paths (`git commit -- <paths>`), and use your own build folder.
+- **Build outside the repo when signing.** Simulator and Mac builds that need code signing use a derived-data folder outside any cloud-synced folder (`make test-ios` already does this).
+- **Keep `docs/native/STATUS.md` current** at the end of each piece of work, and separate what was verified live or on hardware from fixtures and simulator runs.
+
 ## Native apps (Swift) — layout, tooling and rules
 
 This section covers Jared's native workstream and follows the team architecture above.
