@@ -38,8 +38,25 @@ export const ANTHROPIC_TOOLS = [
     description: "Ask the user a short question or request confirmation.",
     input_schema: {
       type: "object",
-      properties: { question: { type: "string" } },
+      properties: {
+        question: { type: "string" },
+        action: {
+          type: "string",
+          description: "For approvals: a short label for the exact risky action, reused in risky_action.",
+        },
+      },
       required: ["question"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "risky_action",
+    description:
+      "Call right before the computer actions that send, post, buy, submit, delete or change settings. Refused unless the user said yes to an ask_user with the same action label.",
+    input_schema: {
+      type: "object",
+      properties: { action: { type: "string" } },
+      required: ["action"],
       additionalProperties: false,
     },
   },
@@ -73,6 +90,7 @@ export type ToolUse = {
 export type MappedTool =
   | { kind: "action"; action: MacAction }
   | { kind: "ask_user"; question: string }
+  | { kind: "risky_action"; action: string }
   | {
       kind: "finish";
       success: boolean;
@@ -477,8 +495,11 @@ export function mapToolUse(
         ),
       };
     case "ask_user":
-      exactKeys(input, ["question"]);
+      exactKeys(input, ["question", "action"]);
       return { kind: "ask_user", question: requiredString(input, "question") };
+    case "risky_action":
+      exactKeys(input, ["action"]);
+      return { kind: "risky_action", action: requiredString(input, "action") };
     case "finish":
       exactKeys(input, ["success", "summary", "attach_screenshot"]);
       if (typeof input.success !== "boolean") {

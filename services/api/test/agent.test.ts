@@ -428,7 +428,7 @@ describe("runAgentStep", () => {
     });
     expect(ANTHROPIC_TOOLS.slice(1).map((tool) =>
       "name" in tool ? tool.name : "",
-    )).toEqual(["open_app", "open_url", "ask_user", "finish"]);
+    )).toEqual(["open_app", "open_url", "ask_user", "risky_action", "finish"]);
     expect(flattenText(body?.messages[0]?.content)).toContain(
       'Task from the user: "Open Instagram"',
     );

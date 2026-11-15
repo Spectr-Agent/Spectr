@@ -27,7 +27,8 @@ export const computer = (id: string, name: string, input: unknown = {}): ToolUse
 export const custom = (id: string, name: string, input: unknown): ToolUse => ({ type: "tool_use", id, name, input });
 export const reply = (...content: unknown[]): AnthropicResponse => ({ content, stop_reason: "tool_use" });
 export const finish = (success: boolean, summary: string) => reply(custom(`finish-${Math.random()}`, "finish", { success, summary }));
-export const ask = (question: string) => reply(custom(`ask-${Math.random()}`, "ask_user", { question }));
+export const ask = (question: string, action?: string) => reply(custom(`ask-${Math.random()}`, "ask_user", action ? { question, action } : { question }));
+export const risky = (action: string) => custom(`risky-${Math.random()}`, "risky_action", { action });
 
 /** A fake Claude that plays turns in order and snapshots every request it gets. */
 export function scriptedClaude(...turns: AnthropicResponse[]) {
