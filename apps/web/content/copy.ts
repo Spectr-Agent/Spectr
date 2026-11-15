@@ -44,21 +44,21 @@ export const copy = {
 
   nav: {
     links: [
+      { href: "#research", label: "research" },
       { href: "#how", label: "how it works" },
       { href: "#cases", label: "use cases" },
       { href: "#safety", label: "safety" },
-      { href: "#research", label: "research" },
     ],
   },
 
   /** one label per slide, for the dots on the side. */
   slides: [
-    { id: "top", label: "start" },
+    { id: "research", label: "research" },
+    { id: "top", label: "meet spectr" },
     { id: "how", label: "how it works" },
     { id: "cases", label: "use cases" },
     { id: "demo", label: "demo" },
     { id: "safety", label: "safety" },
-    { id: "research", label: "research" },
     { id: "more", label: "more research" },
     { id: "closing", label: "end" },
   ],
@@ -127,7 +127,7 @@ export const copy = {
 
   research: {
     eyebrow: "the research",
-    title: "the numbers behind it.",
+    title: "the problem, in numbers.",
     // the three big numbers
     big: [
       {

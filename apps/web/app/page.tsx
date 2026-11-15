@@ -14,12 +14,13 @@ export default function Page() {
     <>
       <Nav />
       <main>
+        {/* The page opens on the problem, in numbers, then introduces Spectr. */}
+        <Research />
         <Hero />
         <HowItWorks />
         <UseCases />
         <Demo />
         <Safety />
-        <Research />
         <MoreResearch />
         <Closing />
       </main>

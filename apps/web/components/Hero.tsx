@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { copy, heroScript } from "@/content/copy";
 import { useCall } from "@/hooks/useCall";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { images } from "@/lib/images";
 import { CallPhone } from "./CallPhone";
 import { Eyebrow } from "./Eyebrow";
@@ -28,16 +29,14 @@ export function Hero() {
     });
   }, [play, reduced]);
 
-  useEffect(() => {
-    const timer = setTimeout(run, 500);
-    return () => clearTimeout(timer);
-  }, [run]);
+  // The hero is the second slide, so the call starts when it scrolls into view.
+  const onReveal = useStartOnReveal(run, 500);
 
   return (
     <header className="slide hero dark" id="top">
       <Picture fill label={hero.picture} />
       <div className="wrap">
-        <Reveal>
+        <Reveal onReveal={onReveal}>
           <Eyebrow light>{hero.eyebrow}</Eyebrow>
           <h1>
             {hero.titleLead}
