@@ -131,10 +131,10 @@ export const copy = {
     // the three big numbers
     big: [
       {
-        link: "taskflow",
-        figure: "over 70%",
-        text: "of the phone tasks people put off were ones they planned to finish on a computer.",
-        source: "microsoft research, mobile taskflow study, 2010",
+        link: "pew2017",
+        figure: "73%",
+        text: "of adults 65 and older need someone to set up or teach them new devices.",
+        source: "pew research, 2017",
       },
       {
         link: "worktrend",
@@ -143,10 +143,10 @@ export const copy = {
         source: "microsoft work trend index, june 2025",
       },
       {
-        link: "babysitting",
-        figure: "73 people",
-        text: "73 people who use ai agents rated their failures. the most severe ones were the ones they thought they would be least likely to notice.",
-        source: "babysitting ai agents, arxiv, october 2026",
+        link: "remoteaccess",
+        figure: "1 in 3",
+        text: "about a third of us workers said how they access business files remotely hurt their productivity, and around 20% accessed work from a vacation destination.",
+        source: "",
       },
     ],
   },
