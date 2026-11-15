@@ -1,41 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { copy } from "@/content/copy";
 import { images } from "@/lib/images";
-import { useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import { caseScripts, copy } from "@/content/copy";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useStartOnReveal } from "@/hooks/useStartOnReveal";
-import { useCall } from "@/hooks/useCall";
 import { Eyebrow } from "./Eyebrow";
 import { Icon } from "./Icon";
-import { CallPhone } from "./CallPhone";
 import { Reveal } from "./Reveal";
 
 const SWIPE_DISTANCE = 45;
 
-/** A carousel of example people. Each card types its own thread into the phone. */
+/** A carousel of example people. Each card shows how Spectr talks to that person. */
 export function UseCases() {
   const { cases, a11y } = copy;
-  const call = useCall();
-  const reduced = useReducedMotion();
   const [current, setCurrent] = useState(0);
-  const [swap, setSwap] = useState({ key: 0, on: false, direction: 1 as 1 | -1 });
   const currentRef = useRef(0);
   const swipeStart = useRef<number | null>(null);
-  const { play } = call;
   const last = cases.cards.length - 1;
-
-  const runCase = useCallback((index: number) => void play(caseScripts[index]!), [play]);
-  const onReveal = useStartOnReveal(() => runCase(currentRef.current), 500);
 
   const go = (index: number) => {
     if (index < 0 || index > last || index === currentRef.current) return;
-    const direction = index >= currentRef.current ? 1 : -1;
     currentRef.current = index;
     setCurrent(index);
-    setSwap((previous) => ({ key: previous.key + 1, on: !reduced, direction }));
-    runCase(index);
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -55,7 +41,7 @@ export function UseCases() {
   return (
     <section id="cases" className="slide cases">
       <div className="wrap">
-        <Reveal onReveal={onReveal}>
+        <Reveal>
           <Eyebrow>{cases.eyebrow}</Eyebrow>
           <h2>{cases.title}</h2>
           <p className="lead">{cases.lead}</p>
@@ -79,6 +65,7 @@ export function UseCases() {
                       </span>
                       <h3>{card.title}</h3>
                       <div className="ex">{card.example}</div>
+                      <div className="ex reply">{card.reply}</div>
                       <div className="traits">
                         {card.traits.map((trait) => (
                           <span key={trait}>{trait}</span>
@@ -103,11 +90,6 @@ export function UseCases() {
               </button>
             </div>
           </div>
-          <Reveal className="casephone" onReveal={onReveal}>
-            <div>
-              <CallPhone key={swap.key} call={call} swap={swap.on} direction={swap.direction} />
-            </div>
-          </Reveal>
         </div>
       </div>
     </section>

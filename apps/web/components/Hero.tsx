@@ -1,35 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useState } from "react";
-import { copy, heroScript } from "@/content/copy";
-import { useCall } from "@/hooks/useCall";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { copy } from "@/content/copy";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { images } from "@/lib/images";
-import { CallPhone } from "./CallPhone";
 import { Eyebrow } from "./Eyebrow";
 import { Picture } from "./Picture";
 import { Reveal } from "./Reveal";
 
 export function Hero() {
   const { hero } = copy;
-  const call = useCall();
   const reduced = useReducedMotion();
   const [pose, setPose] = useState<"working" | "success">("working");
-  const { play } = call;
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // The mascot works while Spectr replies, then swaps to the success pose when the result lands.
+  // The mascot works for a moment, then swaps to the success pose.
   const run = useCallback(() => {
+    clearTimeout(timer.current);
     setPose(reduced ? "success" : "working");
-    void play(heroScript, {
-      onShow: (step) => {
-        if (step.pose) setPose(step.pose);
-      },
-    });
-  }, [play, reduced]);
+    if (!reduced) timer.current = setTimeout(() => setPose("success"), 2600);
+  }, [reduced]);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
-  // The call starts when the hero is in view, which on a fresh load is at once.
+  // Starts when the hero is in view, which on a fresh load is at once.
   const onReveal = useStartOnReveal(run, 500);
 
   return (
@@ -52,17 +47,9 @@ export function Hero() {
         </Reveal>
         <Reveal className="stage">
           <div className="mascot" data-pose={pose}>
-            <Image className="p1" src={images.working} alt={hero.mascotWorking} sizes="300px" priority />
-            <Image className="p2" src={images.success} alt={hero.mascotSuccess} sizes="300px" />
+            <Image className="p1" src={images.working} alt={hero.mascotWorking} sizes="(max-width: 760px) 280px, 560px" priority />
+            <Image className="p2" src={images.success} alt={hero.mascotSuccess} sizes="(max-width: 760px) 280px, 560px" />
           </div>
-          <div className="phonewrap">
-            <div>
-              <CallPhone call={call} />
-            </div>
-          </div>
-          <button className="chipbtn replay" onClick={run}>
-            {hero.replay}
-          </button>
         </Reveal>
       </div>
     </header>
