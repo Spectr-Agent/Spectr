@@ -42,9 +42,9 @@ describe("utteranceAction", () => {
 
 describe("phrases", () => {
   it.each([
-    ["task", "On it."],
-    ["correction", "Got it, changing that."],
-    ["answer", "Thanks."],
+    ["task", "Right away."],
+    ["correction", "Understood, changing course."],
+    ["answer", "Thank you."],
     ["stop", "Stopping."],
   ] as const)("acknowledgement(%s)", (kind, expected) => {
     expect(acknowledgement(kind)).toBe(expected);
@@ -56,7 +56,7 @@ describe("phrases", () => {
     expect(greeting("app")).toContain("with you");
     expect(greeting("phone", true)).toContain("now linked");
     expect(NOT_LINKED).toContain("isn't linked");
-    expect(GOODBYE).toBe("Okay. Bye.");
+    expect(GOODBYE).toBe("Very good. Goodbye.");
     expect(ROUTE_FAILED).toContain("couldn't reach");
   });
 });
@@ -97,8 +97,8 @@ describe("narration", () => {
     expect(narration(null, status({ state: "succeeded", summary: "Note written" }))).toBe("Done. Note written");
     expect(narration(null, status({ state: "succeeded" }))).toBe("Done.");
     expect(narration(status({ state: "succeeded" }), status({ state: "succeeded", summary: "x" }))).toBeNull();
-    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe("I couldn't finish that. No app");
-    expect(narration(null, status({ state: "failed" }))).toBe("I couldn't finish that.");
+    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe("I'm afraid I couldn't finish that. No app");
+    expect(narration(null, status({ state: "failed" }))).toBe("I'm afraid I couldn't finish that.");
     expect(narration(status({ state: "failed" }), status({ state: "failed", summary: "x" }))).toBeNull();
     expect(narration(null, status({ state: "cancelled" }))).toBe("Stopped.");
     expect(narration(status({ state: "cancelled" }), status({ state: "cancelled" }))).toBeNull();

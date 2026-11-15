@@ -57,7 +57,7 @@ describe("CallSession", () => {
     await session.begin();
     said.length = 0;
     await session.hear("do something");
-    expect(said).toEqual(["Sorry, I couldn't reach your Mac's task list. Try again in a moment."]);
+    expect(said).toEqual(["I'm afraid I couldn't reach your Mac's task list. Please try again in a moment."]);
   });
 
   it("hangs up on goodbye and stops processing", async () => {

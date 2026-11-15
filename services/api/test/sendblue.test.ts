@@ -198,7 +198,7 @@ describe("handleSendblueWebhook", () => {
     expect(harness.sendReply).toHaveBeenCalledTimes(1);
     expect(harness.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      "Working on it.",
+      "Right away.",
       "reply-99DCC379-DD76-4712-BA65-11EFB33B8CD6",
     );
   });
@@ -246,7 +246,7 @@ describe("createSendblueReplier", () => {
 
     await replier(
       "+15555550100",
-      "Working on it.",
+      "Right away.",
       "reply-tsk_demo_001",
     );
 
@@ -260,7 +260,7 @@ describe("createSendblueReplier", () => {
     expect(JSON.parse(requestInit?.body as string)).toEqual({
       number: "+15555550100",
       from_number: "+15555550199",
-      content: "Working on it.",
+      content: "Right away.",
     });
   });
 

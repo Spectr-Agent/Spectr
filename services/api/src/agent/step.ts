@@ -617,7 +617,7 @@ export async function runAgentStep(
   const inbound = await options.store.getUnconsumedInboundMessages(task.taskId);
   const consumedInboundIds = inbound.map((message) => message.providerMessageId);
   if (task.stepCount >= MAX_AGENT_STEPS) {
-    const summary = "This took too many steps.";
+    const summary = "I'm afraid that took too many steps, so I've stopped.";
     const messages = task.agentMessages;
     const response = finishedResponse(
       task.taskId,
@@ -699,7 +699,7 @@ export async function runAgentStep(
         error instanceof AnthropicHttpError &&
         NON_RETRYABLE_ANTHROPIC_STATUSES.has(error.status)
       ) {
-        const summary = `Something went wrong on our end (error ${error.status}).`;
+        const summary = `I'm afraid something went wrong on our end (error ${error.status}).`;
         const finished = finishedResponse(
           task.taskId,
           task.stepCount + 1,
@@ -783,7 +783,7 @@ export async function runAgentStep(
         continue;
       }
       const summary =
-        assistantText(response.content) || "Something went wrong on our end.";
+        assistantText(response.content) || "I'm afraid something went wrong on our end.";
       const failureSummary = summary.slice(0, MAX_SUMMARY_CHARS);
       const finished = finishedResponse(
         task.taskId,
@@ -957,7 +957,7 @@ export async function runAgentStep(
 
   const summary =
     assistantText(lastAssistantContent) ||
-    "Something went wrong on our end.";
+    "I'm afraid something went wrong on our end.";
   const failureSummary = summary.slice(0, MAX_SUMMARY_CHARS);
   const finished = finishedResponse(
     task.taskId,

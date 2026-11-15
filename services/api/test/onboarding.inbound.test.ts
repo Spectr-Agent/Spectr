@@ -34,7 +34,7 @@ describe("onboarding through the inbound handler", () => {
     const out = await text(ANNA, "open the demo deck");
     expect(out.status).toBe("created");
     expect(store.tasks.size).toBe(1);
-    expect(sent.map((s) => s.text)).toEqual(["Working on it."]);
+    expect(sent.map((s) => s.text)).toEqual(["Right away."]);
   });
 
   it("'change my preferences' asks the first question without creating a task", async () => {

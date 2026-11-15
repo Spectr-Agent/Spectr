@@ -20,7 +20,7 @@ describe("InMemoryTaskStore gaps", () => {
     const stale = new Date("2025-01-01T00:20:00Z");
     const routed = await store.routeInbound(inbound({ providerMessageId: "msg_2", text: "next", now: stale }));
     expect(routed.taskId).not.toBe(taskId);
-    expect(await store.getTask(taskId)).toMatchObject({ state: "failed", summary: "Lost connection to your Mac." });
+    expect(await store.getTask(taskId)).toMatchObject({ state: "failed", summary: "I'm afraid I've lost the connection to your Mac." });
   });
 
   it("sweeps stale tasks in getActiveTaskForDevice too", async () => {

@@ -222,7 +222,7 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     expect(next.taskId).not.toBe(old.taskId);
     expect(await store.getTask(old.taskId)).toMatchObject({
       state: "failed",
-      summary: "Lost connection to your Mac.",
+      summary: "I'm afraid I've lost the connection to your Mac.",
     });
   });
 
@@ -361,7 +361,7 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     expect(sendReply).toHaveBeenCalledTimes(1);
     expect(sendReply).toHaveBeenCalledWith(
       fromNumber,
-      "Working on it.",
+      "Right away.",
       `reply-${providerMessageId}`,
     );
   });

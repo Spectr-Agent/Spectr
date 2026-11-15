@@ -919,7 +919,7 @@ describe("runAgentStep", () => {
     expect(next.taskId).not.toBe(first.taskId);
     expect(await store.getTask(first.taskId)).toMatchObject({
       state: "failed",
-      summary: "Lost connection to your Mac.",
+      summary: "I'm afraid I've lost the connection to your Mac.",
     });
   });
 
@@ -943,7 +943,7 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "This took too many steps.",
+      summary: "I'm afraid that took too many steps, so I've stopped.",
     });
     expect(callClaude).not.toHaveBeenCalled();
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
@@ -1188,12 +1188,12 @@ describe("runAgentStep", () => {
     expect(result).toMatchObject({
       kind: "finished",
       state: "failed",
-      summary: "Something went wrong on our end (error 400).",
+      summary: "I'm afraid something went wrong on our end (error 400).",
     });
     expect(store.tasks.get(taskId)).toMatchObject({
       state: "failed",
       stepCount: 1,
-      summary: "Something went wrong on our end (error 400).",
+      summary: "I'm afraid something went wrong on our end (error 400).",
     });
     expect(notifier.sendResult).toHaveBeenCalledTimes(1);
     expect(log).toHaveBeenCalledWith(

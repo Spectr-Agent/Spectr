@@ -55,11 +55,11 @@ export function utteranceAction(transcript: string, hasActiveTask: boolean): Utt
 export function acknowledgement(kind: InboundKind): string {
   switch (kind) {
     case "task":
-      return "On it.";
+      return "Right away.";
     case "correction":
-      return "Got it, changing that.";
+      return "Understood, changing course.";
     case "answer":
-      return "Thanks.";
+      return "Thank you.";
     case "stop":
       return "Stopping.";
   }
@@ -68,17 +68,17 @@ export function acknowledgement(kind: InboundKind): string {
 export function greeting(medium: CallMedium, justLinked = false): string {
   const hello =
     medium === "facetime"
-      ? "Hi, this is Spectr. You're looking at your Mac. What should I do?"
+      ? "Hello, this is Spectr. You're looking at your Mac. What shall I do?"
       : medium === "app"
-        ? "Hi, it's Spectr. I'm on your Mac with you. What should I do?"
-        : "Hi, this is Spectr. What should I do on your Mac?";
+        ? "Hello, it's Spectr. I'm on your Mac with you. What shall I do?"
+        : "Hello, this is Spectr. What shall I do on your Mac?";
   return justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello;
 }
 
 export const NOT_LINKED =
-  "This number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.";
-export const GOODBYE = "Okay. Bye.";
-export const ROUTE_FAILED = "Sorry, I couldn't reach your Mac's task list. Try again in a moment.";
+  "I'm afraid this number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.";
+export const GOODBYE = "Very good. Goodbye.";
+export const ROUTE_FAILED = "I'm afraid I couldn't reach your Mac's task list. Please try again in a moment.";
 
 /** Speakable text is capped so a long summary never becomes a monologue. */
 export function clip(text: string, max = 300): string {
@@ -107,7 +107,7 @@ export function narration(previous: TaskStatus | null, next: TaskStatus): string
       return next.summary ? clip(`Done. ${next.summary}`) : "Done.";
     case "failed":
       if (sameTask && previous?.state === "failed") return null;
-      return next.summary ? clip(`I couldn't finish that. ${next.summary}`) : "I couldn't finish that.";
+      return next.summary ? clip(`I'm afraid I couldn't finish that. ${next.summary}`) : "I'm afraid I couldn't finish that.";
     case "cancelled":
       if (sameTask && previous?.state === "cancelled") return null;
       return "Stopped.";
