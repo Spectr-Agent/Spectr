@@ -57,7 +57,7 @@ describe("CallSession", () => {
     await session.begin();
     said.length = 0;
     await session.hear("do something");
-    expect(said).toEqual(["Sorry, I couldn't reach your Mac's task list. Try again in a moment."]);
+    expect(said).toEqual(["[apologetic] Sorry, I couldn't reach your Mac's task list. Try again in a moment."]);
   });
 
   it("hangs up on goodbye and stops processing", async () => {
@@ -78,7 +78,7 @@ describe("CallSession", () => {
     await session.begin();
     await session.poll();
     await session.poll();
-    expect(said.filter((s) => s === "Send it?")).toHaveLength(1);
+    expect(said.filter((s) => s === "[curious] Send it?")).toHaveLength(1);
   });
 
   it("polls on a timer and survives status errors", async () => {

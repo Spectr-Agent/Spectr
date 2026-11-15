@@ -5,6 +5,7 @@ import {
   greeting,
   GOODBYE,
   isTerminal,
+  MOOD,
   narration,
   NOT_LINKED,
   ROUTE_FAILED,
@@ -42,10 +43,10 @@ describe("utteranceAction", () => {
 
 describe("phrases", () => {
   it.each([
-    ["task", "On it."],
-    ["correction", "Got it, changing that."],
-    ["answer", "Thanks."],
-    ["stop", "Stopping."],
+    ["task", `${MOOD.cheerful} On it.`],
+    ["correction", `${MOOD.calm} Got it, changing that.`],
+    ["answer", `${MOOD.warm} Thanks.`],
+    ["stop", `${MOOD.calm} Stopping.`],
   ] as const)("acknowledgement(%s)", (kind, expected) => {
     expect(acknowledgement(kind)).toBe(expected);
   });
@@ -56,8 +57,17 @@ describe("phrases", () => {
     expect(greeting("app")).toContain("with you");
     expect(greeting("phone", true)).toContain("now linked");
     expect(NOT_LINKED).toContain("isn't linked");
-    expect(GOODBYE).toBe("Okay. Bye.");
+    expect(GOODBYE).toBe(`${MOOD.warm} Okay. Bye.`);
     expect(ROUTE_FAILED).toContain("couldn't reach");
+  });
+
+  it("starts every spoken line with a mood tag", () => {
+    const tags = Object.values(MOOD);
+    const startsWithTag = (line: string) => tags.some((tag) => line.startsWith(`${tag} `));
+    for (const line of [greeting("phone"), greeting("facetime", true), acknowledgement("task"), GOODBYE, NOT_LINKED, ROUTE_FAILED]) {
+      expect(startsWithTag(line)).toBe(true);
+    }
+    expect(startsWithTag(narration(null, status({ state: "succeeded", summary: "x" })) ?? "")).toBe(true);
   });
 });
 
@@ -89,18 +99,18 @@ describe("narration", () => {
 
   it("narrates a question once and terminal states with a summary", () => {
     const waiting = status({ state: "waitingForUser", question: "Send it?" });
-    expect(narration(null, waiting)).toBe("Send it?");
+    expect(narration(null, waiting)).toBe(`${MOOD.curious} Send it?`);
     expect(narration(waiting, waiting)).toBeNull();
     expect(narration(waiting, { ...waiting, question: null })).toBeNull();
-    expect(narration(null, { ...waiting, taskId: "t2", question: "Delete all?" })).toBe("Delete all?");
+    expect(narration(null, { ...waiting, taskId: "t2", question: "Delete all?" })).toBe(`${MOOD.curious} Delete all?`);
 
-    expect(narration(null, status({ state: "succeeded", summary: "Note written" }))).toBe("Done. Note written");
-    expect(narration(null, status({ state: "succeeded" }))).toBe("Done.");
+    expect(narration(null, status({ state: "succeeded", summary: "Note written" }))).toBe(`${MOOD.cheerful} Done. Note written`);
+    expect(narration(null, status({ state: "succeeded" }))).toBe(`${MOOD.cheerful} Done.`);
     expect(narration(status({ state: "succeeded" }), status({ state: "succeeded", summary: "x" }))).toBeNull();
-    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe("I couldn't finish that. No app");
-    expect(narration(null, status({ state: "failed" }))).toBe("I couldn't finish that.");
+    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe(`${MOOD.sorry} I couldn't finish that. No app`);
+    expect(narration(null, status({ state: "failed" }))).toBe(`${MOOD.sorry} I couldn't finish that.`);
     expect(narration(status({ state: "failed" }), status({ state: "failed", summary: "x" }))).toBeNull();
-    expect(narration(null, status({ state: "cancelled" }))).toBe("Stopped.");
+    expect(narration(null, status({ state: "cancelled" }))).toBe(`${MOOD.calm} Stopped.`);
     expect(narration(status({ state: "cancelled" }), status({ state: "cancelled" }))).toBeNull();
   });
 });

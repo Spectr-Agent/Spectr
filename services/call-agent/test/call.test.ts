@@ -80,18 +80,18 @@ describe("utterances", () => {
 describe("narration", () => {
   it("speaks a new question once", () => {
     const asking = status("waitingForUser", { question: "Send this message?" });
-    expect(narration(status("running"), asking)).toBe("Send this message?");
+    expect(narration(status("running"), asking)).toBe("[curious] Send this message?");
     expect(narration(asking, asking)).toBeNull();
   });
 
   it("reports verified success, failure and stop exactly once", () => {
     const done = status("succeeded", { summary: "Notes shows milk." });
-    expect(narration(status("running"), done)).toBe("Done. Notes shows milk.");
+    expect(narration(status("running"), done)).toBe("[cheerfully] Done. Notes shows milk.");
     expect(narration(done, done)).toBeNull();
     expect(narration(status("running"), status("failed", { summary: "Notes isn't installed." }))).toBe(
-      "I couldn't finish that. Notes isn't installed.",
+      "[apologetic] I couldn't finish that. Notes isn't installed.",
     );
-    expect(narration(status("running"), status("cancelled"))).toBe("Stopped.");
+    expect(narration(status("running"), status("cancelled"))).toBe("[calmly] Stopped.");
   });
 
   it("says nothing while the task is just running", () => {
@@ -118,9 +118,9 @@ describe("a call", () => {
 
     gateway.statuses.push(status("succeeded", { summary: "The note says milk." }));
     await call.poll();
-    expect(said.at(-1)).toBe("Done. The note says milk.");
+    expect(said.at(-1)).toBe("[cheerfully] Done. The note says milk.");
     await call.poll();
-    expect(said.filter((line) => line.startsWith("Done")).length).toBe(1);
+    expect(said.filter((line) => line.includes("Done")).length).toBe(1);
   });
 
   it("sends a correction and a stop through the same pipeline with distinct utterance IDs", async () => {
@@ -241,7 +241,7 @@ describe("app calls and number linking", () => {
 
   it("confirms a newly linked number before the usual greeting", async () => {
     const { greeting, NOT_LINKED } = await import("../src/conversation.js");
-    expect(greeting("phone", true)).toMatch(/^You're all set, this number is now linked/u);
+    expect(greeting("phone", true)).toMatch(/^\[warmly\] You're all set, this number is now linked/u);
     expect(greeting("app")).toContain("on your Mac with you");
     expect(NOT_LINKED).toContain("Setup");
   });
