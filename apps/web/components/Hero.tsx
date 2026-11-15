@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { copy, heroScript } from "@/content/copy";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useCall } from "@/hooks/useCall";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { images } from "@/lib/images";
 import { CallPhone } from "./CallPhone";
+import { Eyebrow } from "./Eyebrow";
+import { Picture } from "./Picture";
 import { Reveal } from "./Reveal";
 
 export function Hero() {
@@ -32,24 +34,24 @@ export function Hero() {
   }, [run]);
 
   return (
-    <header className="slide hero" id="top">
+    <header className="slide hero dark" id="top">
+      <Picture fill label={hero.picture} />
       <div className="wrap">
         <Reveal>
-          <span className="eyebrow">{hero.eyebrow}</span>
+          <Eyebrow light>{hero.eyebrow}</Eyebrow>
           <h1>
             {hero.titleLead}
             <span className="hl">{hero.titleHighlight}</span>
           </h1>
           <p className="sub">{hero.sub}</p>
           <div className="cta-row">
-            <a className="btn" href="#how">
+            <a className="btn light" href="#how">
               {hero.cta}
             </a>
             <small>{hero.note}</small>
           </div>
         </Reveal>
         <Reveal className="stage">
-          <div className="blob" />
           <div className="mascot" data-pose={pose}>
             <Image className="p1" src={images.working} alt={hero.mascotWorking} sizes="300px" priority />
             <Image className="p2" src={images.success} alt={hero.mascotSuccess} sizes="300px" />

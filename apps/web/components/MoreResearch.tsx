@@ -3,6 +3,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { copy } from "@/content/copy";
 import { useFactsPerPage } from "@/hooks/useFactsPerPage";
+import { Eyebrow } from "./Eyebrow";
 import { Reveal } from "./Reveal";
 import { Source } from "./Source";
 
@@ -40,7 +41,7 @@ export function MoreResearch() {
     <section id="more" className="slide more">
       <div className="wrap">
         <Reveal>
-          <span className="eyebrow">{more.eyebrow}</span>
+          <Eyebrow>{more.eyebrow}</Eyebrow>
           <h2>{more.title}</h2>
         </Reveal>
         <div className="factwrap" tabIndex={0} aria-label={a11y.research} onKeyDown={onKeyDown}>

@@ -5,6 +5,7 @@ import { copy, demoScript } from "@/content/copy";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { useThread } from "@/hooks/useThread";
 import { CallPhone } from "./CallPhone";
+import { Eyebrow } from "./Eyebrow";
 import { Reveal } from "./Reveal";
 import { AppearanceMock } from "./Scene";
 
@@ -49,7 +50,7 @@ export function Demo() {
       <div className="wrap">
         <Reveal onReveal={onReveal}>
           <div className="center">
-            <span className="eyebrow">{demo.eyebrow}</span>
+            <Eyebrow>{demo.eyebrow}</Eyebrow>
             <h2>{demo.title}</h2>
             <p className="lead">{demo.lead}</p>
           </div>

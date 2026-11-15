@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prebuild": "npm run check:copy",
+    "prebuild": "npm run check:copy && npm run check:style",
     "start": "next start",
     "check:copy": "node scripts/check-copy.mjs",
+    "check:style": "node scripts/check-style.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run"
   },
