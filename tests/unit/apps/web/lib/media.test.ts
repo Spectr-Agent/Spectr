@@ -7,12 +7,14 @@ describe("images", () => {
   it("exposes every mascot asset the site uses", () => {
     const keys: ImageKey[] = [
       "automation",
-      "favicon",
       "launch",
       "listening",
-      "logo",
+      "logoBlack",
+      "logoWhite",
       "pairing",
       "screen",
+      "starBlack",
+      "starWhite",
       "stopped",
       "success",
       "waiting",
