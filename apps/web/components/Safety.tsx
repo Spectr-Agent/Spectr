@@ -19,9 +19,13 @@ export function Safety() {
           {safety.tiles.map((tile, index) => (
             <Reveal key={tile.title} pop className="tile" delay={`${(index * 0.12).toFixed(2)}s`}>
               {tile.image ? (
-                <Image className={`mascotimg${tile.zoom ? " zoom" : ""}`} src={images[tile.image]} alt={tile.alt ?? ""} sizes="(max-width: 760px) 140px, 220px" />
+                <div className="mpanel">
+                  <Image className={`mascotimg${tile.zoom ? " zoom" : ""}`} src={images[tile.image]} alt={tile.alt ?? ""} sizes="(max-width: 760px) 140px, 220px" />
+                </div>
               ) : (
-                <Icon name={tile.icon} className="big" />
+                <div className="mpanel">
+                  <Icon name={tile.icon} className="big" />
+                </div>
               )}
               <h3>{tile.title}</h3>
               <p>{tile.text}</p>

@@ -18,7 +18,9 @@ export function HowItWorks() {
         <div className="steps">
           {how.steps.map((step, index) => (
             <Reveal key={step.title} pop className="step" delay={`${(index * 0.12).toFixed(2)}s`}>
-              <Image className="mascotimg" src={images[step.image]} alt={step.alt} sizes="(max-width: 760px) 140px, 240px" />
+              <div className="mpanel">
+                <Image className="mascotimg" src={images[step.image]} alt={step.alt} sizes="(max-width: 760px) 140px, 240px" />
+              </div>
               <div className="stephead">
                 <span className="num">{String(index + 1).padStart(2, "0")}</span>
                 <Icon name={step.icon} />
