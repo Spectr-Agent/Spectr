@@ -145,7 +145,7 @@ export const copy = {
       {
         link: "remoteaccess",
         figure: "1 in 3",
-        text: "about a third of us workers said how they access business files remotely hurt their productivity, and around 20% accessed work from a vacation destination.",
+        text: "about a third of us workers said remote file access hurt their productivity. around 20% accessed work from a vacation destination.",
         source: "",
       },
     ],

@@ -12,7 +12,6 @@ export const sourceLinks: Record<string, string | null> = {
   aarp2024: null,
   aarp2026: null,
   ftc: null,
-  babysitting: "https://www.microsoft.com/en-us/research/publication/babysitting-ai-agents-a-user-centered-taxonomy-and-study-of-agentic-delegation-failures/",
   w3c: null,
   remoteaccess: null,
 };
