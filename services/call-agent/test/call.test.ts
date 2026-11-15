@@ -241,7 +241,7 @@ describe("app calls and number linking", () => {
 
   it("confirms a newly linked number before the usual greeting", async () => {
     const { greeting, NOT_LINKED } = await import("../src/conversation.js");
-    expect(greeting("phone", true)).toMatch(/^\[warmly\] You're all set, this number is now linked/u);
+    expect(greeting("phone", { justLinked: true })).toMatch(/^\[warmly\] You're all set, this number is now linked/u);
     expect(greeting("app")).toContain("on your Mac with you");
     expect(NOT_LINKED).toContain("Setup");
   });

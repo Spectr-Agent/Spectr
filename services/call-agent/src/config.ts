@@ -18,6 +18,10 @@ const EnvSchema = z.object({
    * owner by their phone number. Unset means FaceTime calls are declined.
    */
   SPECTR_FACETIME_OWNER_PHONE: z.string().optional(),
+  /** What Spectr calls the FaceTime line's owner when greeting them. */
+  SPECTR_FACETIME_OWNER_NAME: z.string().optional(),
+  /** IANA time zone for "good morning" on calls; the owner's, since callers have no location. */
+  SPECTR_OWNER_TIMEZONE: z.string().default("America/New_York"),
   /** Chert project credentials, to read a webhook-answered call until its bridge is ready. */
   CHERT_API_KEY: z.string().optional(),
   CHERT_PROJECT_ID: z.string().optional(),

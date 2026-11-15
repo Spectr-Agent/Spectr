@@ -8,7 +8,7 @@ import postgres from "postgres";
 import { createElevenLabsClient } from "../../api/src/voice/elevenlabs.js";
 import { CallSession } from "./call.js";
 import { loadEnv } from "./config.js";
-import { NOT_LINKED } from "./conversation.js";
+import { NOT_LINKED, localHour } from "./conversation.js";
 import {
   appCallerIdentity,
   bridgeReady,
@@ -170,7 +170,11 @@ export default defineAgent({
           callRoom: ctx.room,
         }).catch(() => undefined);
       }
-      await call.begin({ justLinked });
+      await call.begin({
+        justLinked,
+        name: claim.medium === "facetime" ? env.SPECTR_FACETIME_OWNER_NAME ?? null : null,
+        hour: localHour(env.SPECTR_OWNER_TIMEZONE),
+      });
     };
 
     if (claim.medium === "facetime") {
