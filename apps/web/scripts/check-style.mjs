@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** Selectors that belong to the phone, the call on it and the text message example. Only these may be rounded. */
-export const PHONE_SELECTORS = [".phone", ".pscreen", ".isl", ".video", ".cap", ".fctl", ".sig", ".fscreen", ".textopt"];
+export const PHONE_SELECTORS = [".phone", ".pscreen", ".isl", ".video", ".cap", ".fctl", ".sig", ".fscreen", ".textopt", ".ex"];
 
 /** Returns a list of problems found in the css text. */
 export function checkStyle(css) {

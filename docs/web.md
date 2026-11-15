@@ -63,7 +63,7 @@ The logo and the little star are the flat black and white versions from `assets/
 
 ## Look
 
-Sharp and flat, in the spirit of Waymo's layout with the page's own colors. Helvetica Neue (then Helvetica, then Arial) for text and the system monospace for tiny labels. Square corners everywhere except the phone, the call on it and the text message example on the end slide. No shadows, no gradients, no bouncy easing. `npm run check:style` fails the build if any of that comes back (it runs before `next build`, next to `check:copy`).
+Sharp and flat, in the spirit of Waymo's layout with the page's own colors. Helvetica Neue (then Helvetica, then Arial) for text and the system monospace for tiny labels. Square corners everywhere except the phone, the call on it and the message bubbles (the end slide texts and the example in each use case card). No shadows, no gradients, no bouncy easing. `npm run check:style` fails the build if any of that comes back (it runs before `next build`, next to `check:copy`).
 
 ## Copy rules
 
