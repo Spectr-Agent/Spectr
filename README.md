@@ -5,19 +5,7 @@
   </picture>
 </p>
 
-<h3 align="center">your computer, on call.</h3>
-
-<p align="center">
-  text it. call it. facetime it.<br>
-  spectr does the work on your computer and lets you watch every step.
-</p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/mascot/composites/spectr_devpost_cover_dark_2400x1600.png">
-    <img src="assets/mascot/composites/spectr_devpost_cover_light_2400x1600.png" alt="the spectr star between a laptop and a phone" width="720">
-  </picture>
-</p>
+---
 
 ## what is spectr
 
@@ -31,107 +19,6 @@ no new app to learn. no small buttons. no steps to remember. if you can send a t
 >
 > **spectr:** done. 4 decks are in study/week 9. they cover recursion, big o and hash maps.
 
-## who it's for
-
-<table>
-<tr>
-<td width="55%">
-
-### students
-
-running late, toothbrush in one hand, makeup in the other, and a computer task that won't wait.
-
-> "move this week's slides into my study folder and tell me what they cover."
-
-say it out loud and spectr does it while you get ready. it texts back a short list of topics. no hands needed, which also makes it a real option for anyone who can't use a keyboard.
-
-</td>
-<td width="45%" align="center">
-<img src="design-system/assets/mascot/spectr_working.png" alt="spectr working" width="200">
-</td>
-</tr>
-<tr>
-<td>
-
-### travelers
-
-carrying a laptop around on vacation is a hassle. leave it at home.
-
-> "find the doc i was working on, make this change and show me."
-
-spectr runs the task in the coder workspace we've deployed, so nothing depends on your laptop being with you or switched on. you get the result on your phone and get back to your trip.
-
-</td>
-<td align="center">
-<img src="design-system/assets/mascot/spectr_launch_star.png" alt="spectr on the go" width="200">
-</td>
-</tr>
-<tr>
-<td>
-
-### developers
-
-an email about a failed check or a dead cron job is exhausting when you're outside without your laptop.
-
-> "my build failed. open the pull request, read the ci logs and fix what broke."
-
-spectr reads the failing job, makes the fix and shows you the green check. you handle it from your phone and never touch your laptop. watch from the app and redirect it if it heads the wrong way.
-
-</td>
-<td align="center">
-<img src="design-system/assets/mascot/spectr_success.png" alt="spectr celebrating" width="200">
-</td>
-</tr>
-<tr>
-<td>
-
-### older people and anyone who finds computers hard
-
-technology can be overwhelming. texting and talking aren't.
-
-> "this website is hard for me to use. help me finish this registration and explain each choice."
-
-spectr fills in the form step by step, explains each choice in plain words and asks before it submits. day to day computer tasks get done by having a conversation.
-
-</td>
-<td align="center">
-<img src="design-system/assets/mascot/spectr_listening.png" alt="spectr listening" width="200">
-</td>
-</tr>
-</table>
-
-## advantages
-
-<table>
-<tr>
-<td align="center" width="25%">
-<img src="design-system/assets/mascot/spectr_listening.png" width="90" alt=""><br>
-<b>hands free</b><br>
-<sub>talk or text. no keyboard, no mouse, no screen needed on your end.</sub>
-</td>
-<td align="center" width="25%">
-<img src="design-system/assets/mascot/spectr_launch_star.png" width="90" alt=""><br>
-<b>laptop free</b><br>
-<sub>leave the laptop at home. the mac vm and the coder workspace do the work.</sub>
-</td>
-<td align="center" width="25%">
-<img src="design-system/assets/mascot/spectr_permission_automation.png" width="90" alt=""><br>
-<b>fix things from anywhere</b><br>
-<sub>a failed check or a broken job gets handled from your phone, wherever you are.</sub>
-</td>
-<td align="center" width="25%">
-<img src="design-system/assets/mascot/spectr_welcome.png" width="90" alt=""><br>
-<b>accessible by default</b><br>
-<sub>if texting or talking works for you, spectr works for you.</sub>
-</td>
-</tr>
-</table>
-
-- **nothing new to learn.** messages, phone calls and facetime are things you already use every day.
-- **you see everything.** watch the screen live, hear each step, and correct or stop at any point.
-- **it keeps going without you.** your mac can be locked, closed off in another room, or switched off. spectr still finishes the task.
-- **safe by design.** it asks before anything risky, never types your passwords, and only runs a short list of checked actions.
-
 ## how you reach it
 
 <table>
@@ -144,7 +31,7 @@ spectr fills in the form step by step, explains each choice in plain words and a
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_listening.png" width="110" alt=""><br>
 <b>phone call</b><br>
-<sub>call and just say it. spectr talks back.</sub>
+<sub>call <b>+1 (470) 596 9455</b> and just say it. spectr talks back.</sub>
 </td>
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_pitch_hero.png" width="110" alt=""><br>
@@ -179,7 +66,7 @@ spectr meets you wherever your computer is. there are three places it can do the
 <table>
 <tr>
 <th width="33%"><img src="design-system/assets/mascot/spectr_permission_automation.png" width="110" alt=""><br>on your mac</th>
-<th width="33%"><img src="design-system/assets/mascot/spectr_mac_helper_pairing_hero.png" width="150" alt=""><br>in the background</th>
+<th width="33%"><img src="design-system/assets/mascot/spectr_mac_helper_pairing_hero.png" width="150" alt=""><br>lid closed</th>
 <th width="33%"><img src="design-system/assets/mascot/spectr_launch_star.png" width="110" alt=""><br>far from home</th>
 </tr>
 <tr>
@@ -194,18 +81,18 @@ best for anything on your machine: files, native apps, your browser.
 </td>
 <td valign="top">
 
-**a mac vm running on your mac.**
+**a mac vm that stands in for yours.**
 
-leave your mac on with the lid open and walk away. spectr works inside a macOS virtual machine that runs in the background on your mac, paired to your account as its own device. your own screen and apps are never touched, and you control it the same way, by text or call.
+when your laptop is shut, spectr keeps going on a macOS virtual machine paired to your account as its own device. you control it the same way, by text or call.
 
-best for mac tasks while you're away from your desk or your mac is locked.
+best for mac tasks while your laptop sleeps in your bag.
 
 </td>
 <td valign="top">
 
 **a cloud workspace with a browser.**
 
-when your mac is off or far away, spectr runs in a coder workspace in the cloud with a full browser. it handles most web tasks without your computer at all.
+when your laptop is off and far away, spectr runs in a coder workspace in the cloud with a full browser. it handles most web tasks without your computer at all.
 
 best for searches, forms, portals and anything online.
 
@@ -216,9 +103,9 @@ best for searches, forms, portals and anything online.
 ```mermaid
 flowchart LR
     you(["you<br/>text · call · facetime · app"]) --> spectr{{"spectr"}}
-    spectr -->|"you're at your mac"| mac["your mac<br/>mac helper"]
-    spectr -->|"mac on, you're away"| vm["mac vm<br/>in the background on your mac"]
-    spectr -->|"mac off or far away"| cloud["coder workspace<br/>cloud browser"]
+    spectr -->|"laptop open"| mac["your mac<br/>mac helper"]
+    spectr -->|"lid closed"| vm["mac vm<br/>paired as its own device"]
+    spectr -->|"far away"| cloud["coder workspace<br/>cloud browser"]
 ```
 
 ## how it works
@@ -272,6 +159,96 @@ a new message during a task corrects it. `stop` ends it.
 built with claude computer use, sendblue (imessage), livekit (live screen and calls), elevenlabs (voice), chert (facetime), supabase and vercel.
 
 </details>
+
+## safety
+
+<table>
+<tr>
+<td align="center" width="25%">
+<img src="design-system/assets/mascot/spectr_waiting_for_answer.png" width="90" alt=""><br>
+<b>asks first</b><br>
+<sub>sending, posting, buying, submitting and deleting all wait for your yes.</sub>
+</td>
+<td align="center" width="25%">
+<img src="design-system/assets/mascot/spectr_permission_screen_capture.png" width="90" alt=""><br>
+<b>sees only what you share</b><br>
+<sub>spectr works from the window or display you picked.</sub>
+</td>
+<td align="center" width="25%">
+<img src="design-system/assets/mascot/spectr_link_expired.png" width="90" alt=""><br>
+<b>never types passwords</b><br>
+<sub>logins and 2fa codes stay with you. spectr pauses and asks.</sub>
+</td>
+<td align="center" width="25%">
+<img src="design-system/assets/mascot/spectr_stopped.png" width="90" alt=""><br>
+<b>stop means stop</b><br>
+<sub>one word ends the task and cancels anything pending.</sub>
+</td>
+</tr>
+</table>
+
+spectr only runs a short list of actions: screenshot, click, move, drag, scroll, type, key, wait, open an app, open a url. no shell commands. no generated scripts. your claude key stays on the server and never reaches a device.
+
+## who it's for
+
+<table>
+<tr>
+<td width="55%">
+
+### students
+
+> "find the slides from this week, put them in my study folder and tell me what they cover."
+
+spectr finds the files, sorts them and texts back a short list of topics.
+
+</td>
+<td width="45%" align="center">
+<img src="design-system/assets/mascot/spectr_working.png" alt="spectr working" width="200">
+</td>
+</tr>
+<tr>
+<td>
+
+### anyone who finds computers hard
+
+> "this website is hard for me to use. help me finish this registration and explain each choice."
+
+spectr fills in the form step by step, explains each choice and asks before it submits.
+
+</td>
+<td align="center">
+<img src="design-system/assets/mascot/spectr_listening.png" alt="spectr listening" width="200">
+</td>
+</tr>
+<tr>
+<td>
+
+### developers
+
+> "my build failed. open the pull request, read the ci logs and tell me what broke."
+
+spectr reads the failing job and texts back what broke and where. watch from your phone and redirect it if it heads the wrong way.
+
+</td>
+<td align="center">
+<img src="design-system/assets/mascot/spectr_success.png" alt="spectr celebrating" width="200">
+</td>
+</tr>
+<tr>
+<td>
+
+### travelers
+
+> "i'm away from my laptop. find the doc i was working on, make this change and show me."
+
+spectr opens the document, makes the change and sends you the result. lid closed or laptop at home, it still gets done.
+
+</td>
+<td align="center">
+<img src="design-system/assets/mascot/spectr_waiting_for_answer.png" alt="spectr waiting" width="200">
+</td>
+</tr>
+</table>
 
 ## getting started
 
@@ -328,7 +305,7 @@ guides: [native apps](docs/native/SETUP.md) · [call agent](services/call-agent/
 <tr>
 <td align="center"><b>poorav</b><br><sub>backend · imessage</sub></td>
 <td align="center"><b>sweeya</b><br><sub>agent · wording · brand</sub></td>
-<td align="center"><b>colby</b><br><sub>tests · voice</sub></td>
+<td align="center"><b>colby</b><br><sub>tests · voice · cloud</sub></td>
 <td align="center"><b>jared</b><br><sub>iphone and mac apps · calls</sub></td>
 </tr>
 </table>
