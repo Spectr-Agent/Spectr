@@ -11,7 +11,7 @@ import { PostgresTaskStore } from "../pg-store.js";
 import { PostgresOnboardingStore } from "./onboarding/pg-store.js";
 import { createChertReplier } from "../chert/client.js";
 import { createSendblueReplier } from "../sendblue/client.js";
-import { createAnthropicCaller, DEFAULT_MODEL } from "./anthropic.js";
+import { createAnthropicCaller, DEFAULT_MODEL, readEffort } from "./anthropic.js";
 import type { CallClaude } from "./anthropic.js";
 import { apiErrorResponse } from "./errors.js";
 import { runAgentStep, type StepNotifier } from "./step.js";
@@ -280,6 +280,7 @@ export function createMacStepRoute(
         defer: overrides?.defer ?? waitUntil,
         profiles: new PostgresOnboardingStore(connection),
         model: env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        effort: readEffort(env.ANTHROPIC_EFFORT),
         linkSecret: env.SPECTR_LINK_SECRET,
         publicUrl: env.SPECTR_PUBLIC_URL,
       });

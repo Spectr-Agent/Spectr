@@ -10,6 +10,21 @@ export interface AnthropicRequest {
   messages: AgentMessage[];
   /** Cache the growing, append-only history so resending screenshots stays cheap. */
   cache_control: { type: "ephemeral" };
+  /** How much the model thinks before it acts. */
+  output_config: { effort: Effort };
+}
+
+export type Effort = "low" | "medium" | "high";
+
+/**
+ * Sonnet 5.5's own default is "high", which spent about 5 s thinking before the first
+ * action of a task. At "medium" the first action is the same and comes in about 2 s.
+ */
+export const DEFAULT_EFFORT: Effort = "medium";
+
+/** Reads ANTHROPIC_EFFORT; anything unrecognized falls back to the default. */
+export function readEffort(value: string | undefined): Effort {
+  return value === "low" || value === "medium" || value === "high" ? value : DEFAULT_EFFORT;
 }
 
 export interface AnthropicResponse {
@@ -125,6 +140,7 @@ export function createAnthropicCaller(
 export function anthropicRequest(
   messages: AgentMessage[],
   model = DEFAULT_MODEL,
+  effort: Effort = DEFAULT_EFFORT,
 ): AnthropicRequest {
   return {
     model,
@@ -133,5 +149,6 @@ export function anthropicRequest(
     tools: ANTHROPIC_TOOLS,
     messages,
     cache_control: { type: "ephemeral" },
+    output_config: { effort },
   };
 }

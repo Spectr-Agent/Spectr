@@ -355,6 +355,7 @@ describe("Anthropic Messages caller", () => {
       tools: ANTHROPIC_TOOLS,
       messages: [],
       cache_control: { type: "ephemeral" },
+      output_config: { effort: "medium" },
     }, { timeoutMs: 12_345 });
 
     const [url, init] = fetcher.mock.calls[0]!;

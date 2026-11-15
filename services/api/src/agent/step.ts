@@ -23,6 +23,7 @@ import {
   type AnthropicRequest,
   type AnthropicResponse,
   type CallClaude,
+  type Effort,
 } from "./anthropic.js";
 import { blockedMessage, hasApproval } from "./approval.js";
 import { apiError, ApiErrorException } from "./errors.js";
@@ -96,6 +97,8 @@ export interface RunAgentStepOptions {
   notifier?: StepNotifier;
   profiles?: Pick<OnboardingStore, "getProfile">;
   model?: string;
+  /** How much the model thinks per step; defaults to the request builder's default. */
+  effort?: Effort;
   now?: () => Date;
   clock?: () => number;
   linkSecret?: string;
@@ -609,8 +612,9 @@ function requestWithMessages(
   messages: AgentMessage[],
   model?: string,
   unrestricted = false,
+  effort?: Effort,
 ): AnthropicRequest {
-  const request = anthropicRequest(messages, model);
+  const request = anthropicRequest(messages, model, effort);
   return unrestricted ? { ...request, system: unrestrictedPrompt(request.system) } : request;
 }
 
@@ -763,7 +767,7 @@ export async function runAgentStep(
     let response: AnthropicResponse;
     try {
       response = await options.callClaude(
-        requestWithMessages(messages, options.model, skipsApprovals(task.ownerId)),
+        requestWithMessages(messages, options.model, skipsApprovals(task.ownerId), options.effort),
         { timeoutMs },
       );
     } catch (error) {

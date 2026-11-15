@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type postgres from "postgres";
 import { describe, expect, it, vi } from "vitest";
 import type { AnthropicResponse, CallClaude } from "../src/agent/anthropic.js";
-import { createAnthropicCaller } from "../src/agent/anthropic.js";
+import { anthropicRequest, createAnthropicCaller, readEffort } from "../src/agent/anthropic.js";
 import { InMemoryOnboardingStore, emptyProfile } from "../src/agent/onboarding/index.js";
 import { createMacStepRoute } from "../src/agent/routes.js";
 import { runAgentStep, type StepNotifier } from "../src/agent/step.js";
@@ -114,6 +114,21 @@ describe("createAnthropicCaller usage", () => {
   });
 });
 
+describe("thinking effort", () => {
+  it("defaults to medium and accepts only known levels", () => {
+    expect(readEffort(undefined)).toBe("medium");
+    expect(readEffort("")).toBe("medium");
+    expect(readEffort("max")).toBe("medium");
+    expect(readEffort("low")).toBe("low");
+    expect(readEffort("high")).toBe("high");
+  });
+
+  it("is sent with every request", () => {
+    expect(anthropicRequest([]).output_config).toEqual({ effort: "medium" });
+    expect(anthropicRequest([], "claude-sonnet-5-5", "low").output_config).toEqual({ effort: "low" });
+  });
+});
+
 describe("deferred notifications", () => {
   it("hands progress texts to defer and returns the actions without waiting", async () => {
     const store = new InMemoryTaskStore();
@@ -157,12 +172,14 @@ describe("step route timing", () => {
     store.deviceTokenHashes.set(createHash("sha256").update(token).digest("hex"), deviceId);
     const taskId = await newTask(store);
     const lines: string[] = [];
+    const efforts: string[] = [];
     const defer = vi.fn();
     const sql = Object.assign(async () => [], { json: (value: unknown) => value }) as unknown as postgres.Sql;
     const handler = createMacStepRoute(
       () => ({
         POSTGRES_URL: "postgres://mock:mock@localhost/mock",
         ANTHROPIC_API_KEY: "k",
+        ANTHROPIC_EFFORT: "low",
         SPECTR_LINK_SECRET: "s",
         SENDBLUE_API_KEY_ID: "i",
         SENDBLUE_API_SECRET_KEY: "x",
@@ -171,7 +188,10 @@ describe("step route timing", () => {
       () => sql,
       {
         makeStore: () => store,
-        callClaude: async (body) => ({ ...openNotes, model: body.model, usage: { cache_read_input_tokens: 1234 } }),
+        callClaude: async (body) => {
+          efforts.push(body.output_config.effort);
+          return { ...openNotes, model: body.model, usage: { cache_read_input_tokens: 1234 } };
+        },
         defer,
         log: (line) => lines.push(line),
       },
@@ -184,6 +204,7 @@ describe("step route timing", () => {
       }),
     );
     expect(response.status).toBe(200);
+    expect(efforts).toEqual(["low"]);
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0]!)).toMatchObject({
       event: "step.timing",
