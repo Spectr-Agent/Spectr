@@ -59,10 +59,10 @@ struct ConfigurationProblemView: View {
                 .frame(maxWidth: 140)
                 .accessibilityHidden(true)
             Text("This build isn't configured")
-                .font(.title2.weight(.semibold))
+                .font(.brand(.title2, .semibold))
                 .foregroundStyle(Theme.ink)
             Text(message)
-                .font(.callout)
+                .font(.brand(.callout))
                 .foregroundStyle(Theme.inkSecondary)
                 .multilineTextAlignment(.center)
         }

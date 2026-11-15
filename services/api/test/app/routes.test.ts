@@ -6,7 +6,7 @@ import type { LiveKitRooms } from "../../src/livekit/app-token.js";
 import { createAppApi, toE164 } from "../../src/app/routes.js";
 import { createMacPairingRoutes } from "../../src/app/mac-pairing.js";
 import { normalizeCode, openToken, sealToken, type AppStore, type MacRow } from "../../src/app/store.js";
-import { activityFor, isApprovalQuestion, type TaskRow } from "../../src/app/views.js";
+import { activityFor, chatMessages, isApprovalQuestion, type InboundRow, type TaskRow } from "../../src/app/views.js";
 
 const OWNER = "589aefe5-4901-4118-a761-90f5d86a737f";
 const OTHER = "11111111-2222-3333-4444-555555555555";
@@ -72,6 +72,12 @@ class FakeAppStore implements AppStore {
   }
   async task(ownerId: string, taskId: string) {
     return (this.taskRows[ownerId] ?? []).find((task) => task.id === taskId) ?? null;
+  }
+  inboundRows: InboundRow[] = [];
+  async session(ownerId: string, sessionId: string) {
+    const tasks = (this.taskRows[ownerId] ?? []).filter((task) => (task.session_id ?? task.id) === sessionId);
+    const ids = new Set(tasks.map((task) => task.id));
+    return { tasks, inbound: this.inboundRows.filter((message) => ids.has(message.task_id)) };
   }
   async startPairing() {
     return { pairingId: "pair_x", code: "K7P4QX", pollSecret: "s", expiresAt: NOW.toISOString() };
@@ -215,6 +221,70 @@ describe("tasks", () => {
     const response = await api.stop(send("POST", "/api/app/stop", { taskId: "tsk_1", clientMessageId: "s-87654321" }));
     expect(response.status).toBe(200);
     expect(routed).toHaveLength(1);
+  });
+});
+
+describe("chats", () => {
+  const earlier = row({
+    id: "tsk_0",
+    state: "succeeded",
+    summary: "Wrote milk in Notes.",
+    has_screenshot: true,
+    session_id: "tsk_0",
+    created_at: new Date(NOW.getTime() - 60_000),
+  });
+  const resumed = row({ id: "tsk_2", state: "waitingForUser", question: "Which note?", session_id: "tsk_0" });
+
+  it("returns a chat's conversation and hides it from other accounts", async () => {
+    const { api, appStore } = setup();
+    appStore.taskRows[OWNER] = [earlier, resumed];
+    appStore.inboundRows = [
+      { task_id: "tsk_0", kind: "task", text: "write milk in Notes", created_at: earlier.created_at },
+      { task_id: "tsk_0", kind: "correction", text: "and eggs", created_at: earlier.created_at },
+      { task_id: "tsk_2", kind: "task", text: "add bread too", created_at: NOW },
+    ];
+    const response = await api.session(get("/api/app/session?id=tsk_0", "owner-token"));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, any>;
+    expect(body.sessionId).toBe("tsk_0");
+    expect(body.tasks.map((task: any) => [task.taskId, task.sessionId])).toEqual([
+      ["tsk_0", "tsk_0"],
+      ["tsk_2", "tsk_0"],
+    ]);
+    expect(body.messages.map((message: any) => [message.role, message.text])).toEqual([
+      ["user", "write milk in Notes"],
+      ["user", "and eggs"],
+      ["spectr", "Wrote milk in Notes."],
+      ["user", "add bread too"],
+      ["spectr", "Which note?"],
+    ]);
+    expect(body.messages[2].screenshotUrl).toContain("tsk_0");
+    expect(body.messages[4].screenshotUrl).toBeNull();
+    expect((await api.session(get("/api/app/session?id=tsk_0", "other-token"))).status).toBe(404);
+    expect((await api.session(get("/api/app/session", "owner-token"))).status).toBe(400);
+  });
+
+  it("continues an owned chat and refuses someone else's", async () => {
+    const { api, appStore, routed } = setup();
+    appStore.taskRows[OWNER] = [earlier];
+    const ok = await api.message(
+      send("POST", "/api/app/message", { text: "add bread", clientMessageId: "c-22345678", sessionId: "tsk_0" }),
+    );
+    expect(ok.status).toBe(200);
+    expect(routed[0]).toMatchObject({ text: "add bread", sessionId: "tsk_0" });
+    const missing = await api.message(
+      send("POST", "/api/app/message", { text: "add bread", clientMessageId: "c-32345678", sessionId: "tsk_nope" }),
+    );
+    expect(missing.status).toBe(404);
+    expect(routed).toHaveLength(1);
+  });
+
+  it("uses the task's instruction when no message row was kept, and shows nothing for a running task", () => {
+    const running = row({ id: "tsk_9" });
+    const messages = chatMessages([running], [], () => "https://shot");
+    expect(messages).toEqual([
+      expect.objectContaining({ role: "user", text: "open Notes and write milk", state: null, screenshotUrl: null }),
+    ]);
   });
 });
 

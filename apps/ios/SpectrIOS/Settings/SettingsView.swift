@@ -26,7 +26,7 @@ struct SettingsView: View {
                                     mac.isOnline
                                         ? "Online" : mac.lastSeenAt.map { "Seen \($0.relative())" } ?? "Offline"
                                 )
-                                .font(.footnote)
+                                .font(.brand(.footnote))
                                 .foregroundStyle(Theme.inkSecondary)
                             }
                         }

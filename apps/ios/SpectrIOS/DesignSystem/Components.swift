@@ -5,13 +5,12 @@ import SwiftUI
 // blue accent, generous touch targets, and nothing that only color explains.
 
 extension View {
-    /// A rounded surface with a hairline border.
+    /// A flat rounded surface.
     func card(padding: CGFloat = Theme.spacing * 2) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surface, in: .rect(cornerRadius: Theme.cornerRadius))
-            .overlay { RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline) }
     }
 }
 
@@ -22,7 +21,7 @@ struct SolidButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.semibold))
+            .font(.brand(.body, .semibold))
             .frame(maxWidth: .infinity, minHeight: 50)
             .foregroundStyle(foreground)
             .background(tint.opacity(configuration.isPressed ? 0.8 : 1), in: .rect(cornerRadius: 14))
@@ -35,7 +34,7 @@ struct SolidButtonStyle: ButtonStyle {
 struct OutlineButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.semibold))
+            .font(.brand(.body, .semibold))
             .frame(maxWidth: .infinity, minHeight: 50)
             .foregroundStyle(Theme.ink)
             .background(Theme.surface.opacity(configuration.isPressed ? 0.6 : 1), in: .rect(cornerRadius: 14))
@@ -55,19 +54,16 @@ struct ActionTile: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Image(systemName: systemImage)
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: 19, weight: .regular))
                     .frame(height: 24)
                 Text(title)
-                    .font(.footnote.weight(.semibold))
+                    .font(.brand(.footnote, .semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, minHeight: 72)
-            .foregroundStyle(prominent ? .white : Theme.ink)
-            .background(prominent ? Theme.accent : Theme.surface, in: .rect(cornerRadius: 14))
-            .overlay {
-                if !prominent { RoundedRectangle(cornerRadius: 14).stroke(Theme.hairline) }
-            }
+            .foregroundStyle(prominent ? Theme.background : Theme.ink)
+            .background(prominent ? Theme.ink : Theme.surface, in: .rect(cornerRadius: 14))
             .opacity(isEnabled ? 1 : 0.45)
         }
         .buttonStyle(.plain)
@@ -139,7 +135,7 @@ struct StateChip: View {
 
     var body: some View {
         Label(state.label, systemImage: state.symbol)
-            .font(.caption.weight(.semibold))
+            .font(.brand(.caption, .semibold))
             .foregroundStyle(state.tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -194,14 +190,14 @@ struct Composer: View {
             Button(action: send) {
                 Group {
                     if isSending {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(dark ? .black : Theme.background)
                     } else {
-                        Image(systemName: "arrow.up").font(.body.weight(.bold))
+                        Image(systemName: "arrow.up").font(.brand(.body, .bold))
                     }
                 }
                 .frame(width: 44, height: 44)
-                .foregroundStyle(.white)
-                .background(canSend ? Theme.accent : Theme.inkSecondary.opacity(0.4), in: .circle)
+                .foregroundStyle(dark ? .black : Theme.background)
+                .background(canSend ? (dark ? Color.white : Theme.ink) : Theme.inkSecondary.opacity(0.35), in: .circle)
             }
             .buttonStyle(.plain)
             .disabled(!canSend)
@@ -220,7 +216,7 @@ struct NoticeBanner: View {
 
     var body: some View {
         Label(message, systemImage: "exclamationmark.circle.fill")
-            .font(.subheadline.weight(.medium))
+            .font(.brand(.subheadline, .medium))
             .foregroundStyle(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)

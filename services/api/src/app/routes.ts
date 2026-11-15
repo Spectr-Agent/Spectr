@@ -3,6 +3,7 @@
 //
 //   GET    /api/app/home              account, Macs, numbers, active and recent tasks
 //   GET    /api/app/task?id=          one task
+//   GET    /api/app/session?id=       one chat: its tasks and conversation, oldest first
 //   POST   /api/app/message           start a task, correct it or answer a question
 //   POST   /api/app/stop              stop a task
 //   POST   /api/app/live              LiveKit access to the Mac room: watch or call
@@ -24,7 +25,7 @@ import { PostgresTaskStore } from "../pg-store.js";
 import { createSupabaseUserVerifier, type AppUser, type VerifyUser } from "./auth.js";
 import { appError, appJson, bearer, missingEnv, readJson } from "./http.js";
 import { PostgresAppStore, type AppStore } from "./store.js";
-import { macView, taskView, type AppMacView, type AppTaskView, type TaskRow } from "./views.js";
+import { chatMessages, macView, taskView, type AppMacView, type AppTaskView, type TaskRow } from "./views.js";
 
 type RouteEnvironment = Record<string, string | undefined>;
 type MakeSql = (url: string) => postgres.Sql;
@@ -45,6 +46,8 @@ const MessageSchema = z.object({
   text: z.string().trim().min(1).max(2000),
   clientMessageId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/u),
   deviceId: z.string().min(1).max(64).optional(),
+  /** Continue this chat; without it a new task starts a new chat. */
+  sessionId: z.string().min(1).max(80).optional(),
 });
 const StopSchema = z.object({
   taskId: z.string().min(1).max(80),
@@ -147,7 +150,7 @@ export function createAppApi(
       ctx.appStore.macs(user.userId),
       ctx.appStore.phones(user.userId),
       ctx.appStore.pendingPhone(user.userId, at),
-      ctx.appStore.recentTasks(user.userId, 12),
+      ctx.appStore.recentTasks(user.userId, 50),
     ]);
     const macs = await Promise.all(
       macRows.map(async (row) => macView(row, ctx.rooms ? await ctx.rooms.macIsSharing(row.id) : null, at)),
@@ -172,10 +175,22 @@ export function createAppApi(
     return row ? appJson({ task: view(ctx, row) }) : appError(404, "notFound", "This task doesn't exist.");
   });
 
+  const session = authed(async (request, user, _env, ctx) => {
+    const id = new URL(request.url).searchParams.get("id");
+    if (!id) return appError(400, "invalidRequest", "A chat id is required.");
+    const { tasks, inbound } = await ctx.appStore.session(user.userId, id);
+    if (tasks.length === 0) return appError(404, "notFound", "This chat doesn't exist.");
+    return appJson({
+      sessionId: id,
+      tasks: tasks.map((row) => view(ctx, row)),
+      messages: chatMessages(tasks, inbound, ctx.screenshotUrl),
+    });
+  });
+
   async function route(
     ctx: ReturnType<typeof context>,
     user: AppUser,
-    input: { text: string; clientMessageId: string; deviceId: string },
+    input: { text: string; clientMessageId: string; deviceId: string; sessionId?: string },
   ) {
     const routed = await ctx.taskStore.routeInbound({
       providerMessageId: `app:${user.userId}:${input.clientMessageId}`,
@@ -185,6 +200,7 @@ export function createAppApi(
       replyProvider: "app",
       replyHandle: user.userId,
       now: now(),
+      ...(input.sessionId ? { sessionId: input.sessionId } : {}),
     });
     const row = await ctx.appStore.task(user.userId, routed.taskId);
     return appJson({ kind: routed.kind, created: routed.created, task: row ? view(ctx, row) : null });
@@ -195,6 +211,9 @@ export function createAppApi(
     if (!parsed.success) return appError(400, "invalidRequest", "Say what you'd like Spectr to do.");
     const mac = await ownedMac(ctx, user.userId, parsed.data.deviceId);
     if (!mac) return appError(409, "noMac", "Pair a Mac first.");
+    if (parsed.data.sessionId && (await ctx.appStore.session(user.userId, parsed.data.sessionId)).tasks.length === 0) {
+      return appError(404, "notFound", "This chat doesn't exist.");
+    }
     return route(ctx, user, { ...parsed.data, deviceId: mac.id });
   });
 
@@ -259,7 +278,7 @@ export function createAppApi(
     });
   });
 
-  return { home, task, message, stop, live, pair, phone };
+  return { home, task, session, message, stop, live, pair, phone };
 }
 
 /**
@@ -275,6 +294,7 @@ export function createAppDispatcher(
   const table: Record<string, Handler | undefined> = {
     "GET home": api.home,
     "GET task": api.task,
+    "GET session": api.session,
     "POST message": api.message,
     "POST stop": api.stop,
     "POST live": api.live,

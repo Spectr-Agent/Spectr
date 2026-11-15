@@ -17,6 +17,7 @@ import {
   MAX_AGENT_STEPS,
   REFUSAL_SUMMARY,
   runAgentStep,
+  sessionContext,
   type StepNotifier,
 } from "../src/agent/step.js";
 import {
@@ -387,6 +388,55 @@ describe("Anthropic Messages caller", () => {
     const caller = createAnthropicCaller("test-api-key", fetcher as unknown as typeof fetch);
     const response = await caller(anthropicRequest([]), { timeoutMs: 1_000 });
     expect(response).toEqual({ content: [], stop_reason: "refusal", stop_details: { category: "cyber" } });
+  });
+});
+
+describe("resumed chats", () => {
+  it("gives the first step of a resumed chat its earlier turns", async () => {
+    const store = new InMemoryTaskStore();
+    const firstId = await createTask(store, "write milk in Notes");
+    Object.assign(store.tasks.get(firstId)!, { state: "succeeded", summary: "Wrote milk in Notes." });
+    const routed = await store.routeInbound({
+      providerMessageId: "msg-resume",
+      ownerId,
+      deviceId,
+      text: "add eggs too",
+      replyProvider: "app",
+      replyHandle: ownerId,
+      now: new Date(),
+      sessionId: firstId,
+    });
+    expect(store.tasks.get(routed.taskId)?.sessionId).toBe(firstId);
+    expect(await store.getEarlierSessionTurns(store.tasks.get(firstId)!)).toEqual([]);
+    const callClaude = fakeClaude(claudeResponse(memberTool("click-1", "left_click", { coordinate: [10, 20] })));
+    await runAgentStep({ store, deviceId, request: makeRequest(routed.taskId), callClaude });
+    const text = flattenText(vi.mocked(callClaude).mock.calls[0]?.[0]?.messages[0]?.content);
+    expect(text).toContain("Earlier in this chat");
+    expect(text).toContain('The user asked: "write milk in Notes". Result (succeeded): Wrote milk in Notes.');
+    expect(text).toContain('Task from the user: "add eggs too"');
+  });
+
+  it("starts fresh when the store can't read earlier turns", async () => {
+    const store = new InMemoryTaskStore();
+    const taskId = await createTask(store);
+    store.getEarlierSessionTurns = async () => {
+      throw new Error("db down");
+    };
+    const callClaude = fakeClaude(claudeResponse(memberTool("click-1", "left_click", { coordinate: [10, 20] })));
+    await runAgentStep({ store, deviceId, request: makeRequest(taskId), callClaude });
+    expect(flattenText(vi.mocked(callClaude).mock.calls[0]?.[0]?.messages[0]?.content)).not.toContain("Earlier in this chat");
+  });
+
+  it("summarises at most the last six turns", () => {
+    expect(sessionContext([])).toBeNull();
+    const turns = Array.from({ length: 8 }, (_, index) => ({
+      instruction: `task ${index}`,
+      state: "failed" as const,
+      summary: index === 7 ? null : "nope",
+    }));
+    const note = sessionContext(turns)!;
+    expect(note).not.toContain("task 1");
+    expect(note).toContain('6. The user asked: "task 7". It ended as failed.');
   });
 });
 

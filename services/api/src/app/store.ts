@@ -3,7 +3,7 @@
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import type { TaskRow } from "./views.js";
+import type { InboundRow, TaskRow } from "./views.js";
 
 export interface MacRow {
   id: string;
@@ -38,6 +38,8 @@ export interface AppStore {
   pendingPhone(ownerId: string, now: Date): Promise<{ phone: string; expiresAt: string } | null>;
   recentTasks(ownerId: string, limit: number): Promise<TaskRow[]>;
   task(ownerId: string, taskId: string): Promise<TaskRow | null>;
+  /** A chat's tasks (oldest first) and the messages routed to them; empty when it isn't the owner's. */
+  session(ownerId: string, sessionId: string): Promise<{ tasks: TaskRow[]; inbound: InboundRow[] }>;
   startPairing(macName: string, now: Date): Promise<PairingStart>;
   pollPairing(pairingId: string, pollSecret: string, now: Date): Promise<PairingPoll>;
   approvePairing(ownerId: string, code: string, now: Date): Promise<ApproveResult>;
@@ -83,7 +85,7 @@ export function openToken(sealed: string, secret: string): string {
 
 const TASK_COLUMNS = (sql: postgres.Sql) => sql`
   id, device_id, state, revision, instruction, question, summary, step_count,
-  last_step_response, reply_provider, created_at, updated_at,
+  last_step_response, reply_provider, created_at, updated_at, session_id,
   (final_screenshot is not null) as has_screenshot
 `;
 
@@ -134,6 +136,21 @@ export class PostgresAppStore implements AppStore {
       where owner_id = ${ownerId} and id = ${taskId}
     `;
     return (row as TaskRow | undefined) ?? null;
+  }
+
+  async session(ownerId: string, sessionId: string): Promise<{ tasks: TaskRow[]; inbound: InboundRow[] }> {
+    const tasks = (await this.sql`
+      select ${TASK_COLUMNS(this.sql)} from public.tasks
+      where owner_id = ${ownerId} and session_id = ${sessionId}
+      order by created_at
+    `) as unknown as TaskRow[];
+    if (tasks.length === 0) return { tasks, inbound: [] };
+    const inbound = (await this.sql`
+      select task_id, kind, text, created_at from public.inbound_messages
+      where task_id in ${this.sql(tasks.map((task) => task.id))}
+      order by created_at
+    `) as unknown as InboundRow[];
+    return { tasks, inbound };
   }
 
   async startPairing(macName: string, now: Date): Promise<PairingStart> {

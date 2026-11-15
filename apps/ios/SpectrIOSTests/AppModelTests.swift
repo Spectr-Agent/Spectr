@@ -33,6 +33,7 @@ private final class FakeAPI: AppAPI, @unchecked Sendable {
     var stopResult: Result<MessageResult, AppAPIError> = .success(
         MessageResult(kind: "stop", created: true, task: makeTask(state: .cancelled)))
     private(set) var sent: [String] = []
+    private(set) var sessions: [String?] = []
     private(set) var stopped: [String] = []
 
     init(homes: [Result<AppHome, AppAPIError>]) {
@@ -44,8 +45,16 @@ private final class FakeAPI: AppAPI, @unchecked Sendable {
         return try next.get()
     }
     func task(id: String) async throws(AppAPIError) -> AppTask { makeTask(id) }
-    func send(text: String, clientMessageId: String, deviceId: String?) async throws(AppAPIError) -> MessageResult {
-        lock.withLock { sent.append(text) }
+    func session(id: String) async throws(AppAPIError) -> AppSession {
+        AppSession(sessionId: id, tasks: [makeTask(id)], messages: [])
+    }
+    func send(text: String, clientMessageId: String, deviceId: String?, sessionId: String?) async throws(AppAPIError)
+        -> MessageResult
+    {
+        lock.withLock {
+            sent.append(text)
+            sessions.append(sessionId)
+        }
         return try messageResult.get()
     }
     func stop(taskId: String, clientMessageId: String) async throws(AppAPIError) -> MessageResult {
@@ -78,6 +87,28 @@ struct AppModelTests {
         #expect(api.sent == ["open Notes and write milk"])
         #expect(model.activeTask?.taskId == "tsk_1")
         #expect(model.activeTask?.activity == "Typing “milk”")
+    }
+
+    @Test func continuingAChatSendsItsSessionAndTheHomeComposerStartsANewOne() async {
+        let api = FakeAPI(homes: [.success(home())])
+        let model = AppModel(api: api)
+        await model.refresh()
+        #expect(await model.send("add eggs", sessionId: "tsk_0"))
+        #expect(await model.send("open Safari"))
+        #expect(api.sessions == ["tsk_0", nil])
+    }
+
+    @Test func tasksGroupIntoChatsNewestFirst() async {
+        var first = makeTask("tsk_0", state: .succeeded)
+        first.instruction = "write milk in Notes"
+        var followUp = makeTask("tsk_2", state: .succeeded)
+        followUp.sessionId = "tsk_0"
+        let other = makeTask("tsk_1", state: .failed)
+        let model = AppModel(api: FakeAPI(homes: [.success(home(recent: [followUp, other, first]))]))
+        await model.refresh()
+        #expect(model.chats.map(\.id) == ["tsk_0", "tsk_1"])
+        #expect(model.chats.first?.title == "write milk in Notes")
+        #expect(model.chats.first?.latest.taskId == "tsk_2")
     }
 
     @Test func anEmptyMessageIsNotSent() async {
@@ -152,6 +183,26 @@ struct AppAPIDecodingTests {
         #expect(home.macs.first?.sharing == nil)
         #expect(home.activeTask?.needsApproval == true)
         #expect(home.activeTask?.state == .waitingForUser)
+    }
+
+    @Test func decodesAChat() throws {
+        let json = """
+            {"sessionId":"tsk_0",
+             "tasks":[{"taskId":"tsk_0","sessionId":"tsk_0","deviceId":"mac-1","state":"succeeded","revision":1,
+               "instruction":"write milk","question":null,"needsApproval":false,"summary":"Done.","activity":null,
+               "stepCount":3,"source":"app","createdAt":"2026-11-15T11:59:00.000Z","updatedAt":"2026-11-15T11:59:50.000Z",
+               "screenshotUrl":null}],
+             "messages":[
+               {"id":"tsk_0:u0","taskId":"tsk_0","role":"user","text":"write milk","at":"2026-11-15T11:59:00.000Z",
+                "state":null,"screenshotUrl":null},
+               {"id":"tsk_0:s","taskId":"tsk_0","role":"spectr","text":"Done.","at":"2026-11-15T11:59:50.000Z",
+                "state":"succeeded","screenshotUrl":"https://example.test/shot.png"}]}
+            """
+        let session = try HTTPAppAPI.decoder.decode(AppSession.self, from: Data(json.utf8))
+        #expect(session.tasks.first?.chatId == "tsk_0")
+        #expect(session.messages.map(\.role) == [.user, .spectr])
+        #expect(session.messages.last?.state == .succeeded)
+        #expect(session.messages.last?.screenshotURL?.host() == "example.test")
     }
 
     @Test func mapsServerErrorsToWhatTheAppShows() {

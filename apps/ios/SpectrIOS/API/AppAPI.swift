@@ -43,6 +43,8 @@ struct AppMac: Decodable, Equatable, Sendable, Identifiable {
 
 struct AppTask: Decodable, Equatable, Sendable, Identifiable {
     var taskId: String
+    /// The chat this task belongs to; nil from servers that predate chats.
+    var sessionId: String? = nil
     var deviceId: String
     var state: TaskState
     var revision: Int
@@ -59,11 +61,63 @@ struct AppTask: Decodable, Equatable, Sendable, Identifiable {
 
     var id: String { taskId }
     var isActive: Bool { !state.isTerminal }
+    /// The chat to reopen for this task. A task that started a chat is its own.
+    var chatId: String { sessionId ?? taskId }
 
     enum CodingKeys: String, CodingKey {
-        case taskId, deviceId, state, revision, instruction, question, needsApproval, summary, activity
+        case taskId, sessionId, deviceId, state, revision, instruction, question, needsApproval, summary, activity
         case stepCount, source, createdAt, updatedAt
         case screenshotURL = "screenshotUrl"
+    }
+}
+
+/// One bubble in a chat: something you said, or Spectr's question or result.
+struct AppChatMessage: Decodable, Equatable, Sendable, Identifiable {
+    enum Role: String, Decodable, Sendable {
+        case user
+        case spectr
+    }
+
+    var id: String
+    var taskId: String
+    var role: Role
+    var text: String
+    var at: Date
+    /// For Spectr's messages, the state of the task it reports on.
+    var state: TaskState?
+    var screenshotURL: URL?
+
+    enum CodingKeys: String, CodingKey {
+        case id, taskId, role, text, at, state
+        case screenshotURL = "screenshotUrl"
+    }
+}
+
+/// A chat you can reopen: its tasks and the whole conversation, oldest first.
+struct AppSession: Decodable, Equatable, Sendable {
+    var sessionId: String
+    var tasks: [AppTask]
+    var messages: [AppChatMessage]
+}
+
+/// A row in the chats list: the chat's first ask and how its latest task went.
+struct ChatSummary: Equatable, Sendable, Identifiable {
+    var id: String
+    var title: String
+    var latest: AppTask
+
+    /// Groups tasks (newest first) into chats, newest chat first.
+    static func group(_ tasks: [AppTask]) -> [ChatSummary] {
+        var order: [String] = []
+        var byChat: [String: [AppTask]] = [:]
+        for task in tasks {
+            if byChat[task.chatId] == nil { order.append(task.chatId) }
+            byChat[task.chatId, default: []].append(task)
+        }
+        return order.compactMap { id in
+            guard let tasks = byChat[id], let latest = tasks.first, let first = tasks.last else { return nil }
+            return ChatSummary(id: id, title: first.instruction, latest: latest)
+        }
     }
 }
 
@@ -124,7 +178,10 @@ enum AppAPIError: Error, Equatable, Sendable {
 protocol AppAPI: Sendable {
     func home() async throws(AppAPIError) -> AppHome
     func task(id: String) async throws(AppAPIError) -> AppTask
-    func send(text: String, clientMessageId: String, deviceId: String?) async throws(AppAPIError) -> MessageResult
+    func session(id: String) async throws(AppAPIError) -> AppSession
+    /// Starts a task, corrects the running one or answers it. A `sessionId` continues that chat.
+    func send(text: String, clientMessageId: String, deviceId: String?, sessionId: String?) async throws(AppAPIError)
+        -> MessageResult
     func stop(taskId: String, clientMessageId: String) async throws(AppAPIError) -> MessageResult
     func live(mode: LiveGrant.Mode, deviceId: String?) async throws(AppAPIError) -> LiveGrant
     func pair(code: String) async throws(AppAPIError) -> PairResult
@@ -149,9 +206,16 @@ struct HTTPAppAPI: AppAPI {
         return body.task
     }
 
-    func send(text: String, clientMessageId: String, deviceId: String?) async throws(AppAPIError) -> MessageResult {
+    func session(id: String) async throws(AppAPIError) -> AppSession {
+        try await request("GET", "api/app/session", query: ["id": id])
+    }
+
+    func send(text: String, clientMessageId: String, deviceId: String?, sessionId: String?) async throws(AppAPIError)
+        -> MessageResult
+    {
         var body = ["text": text, "clientMessageId": clientMessageId]
         if let deviceId { body["deviceId"] = deviceId }
+        if let sessionId { body["sessionId"] = sessionId }
         return try await request("POST", "api/app/message", body: body)
     }
 

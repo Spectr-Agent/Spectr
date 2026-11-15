@@ -44,6 +44,8 @@ final class AppModel {
     /// No Mac paired yet: the app leads with setup.
     var needsPairing: Bool { home != nil && (home?.macs.isEmpty ?? true) }
     var recentTasks: [AppTask] { home?.recentTasks.filter { !$0.isActive } ?? [] }
+    /// Every chat, newest first, including the one that's running.
+    var chats: [ChatSummary] { ChatSummary.group(home?.recentTasks ?? []) }
 
     // MARK: Polling
 
@@ -112,15 +114,17 @@ final class AppModel {
 
     // MARK: Actions
 
-    /// Starts a task, corrects the running one, or answers its question.
+    /// Starts a task, corrects the running one, or answers its question. With a
+    /// `sessionId`, a new task continues that chat instead of starting a new one.
     @discardableResult
-    func send(_ raw: String) async -> Bool {
+    func send(_ raw: String, sessionId: String? = nil) async -> Bool {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return false }
         isSending = true
         defer { isSending = false }
         do {
-            let result = try await api.send(text: text, clientMessageId: Self.messageId(), deviceId: mac?.deviceId)
+            let result = try await api.send(
+                text: text, clientMessageId: Self.messageId(), deviceId: mac?.deviceId, sessionId: sessionId)
             if result.task?.isActive == true { latestResult = nil }
             merge(result.task)
             return true

@@ -79,6 +79,19 @@ describe("PostgresAppStore", () => {
     expect(await s.recentTasks("owner", 5)).toEqual([]);
   });
 
+  it("reads a chat's tasks and their messages, and nothing for an unknown chat", async () => {
+    const task = { id: "tsk_1", session_id: "tsk_1" };
+    const message = { task_id: "tsk_1", kind: "task", text: "hi", created_at: "2030-01-01" };
+    const { sql, queries } = fakeSql([
+      [/from public\.inbound_messages/u, [message]],
+      [/session_id = /u, [task]],
+    ]);
+    const s = new PostgresAppStore(sql, secret);
+    expect(await s.session("owner", "tsk_1")).toEqual({ tasks: [task], inbound: [message] });
+    expect(queries.some((text) => text.includes("from public.inbound_messages"))).toBe(true);
+    expect(await store([]).session("owner", "tsk_x")).toEqual({ tasks: [], inbound: [] });
+  });
+
   it("starts a pairing and retries on code collisions", async () => {
     let inserts = 0;
     const { sql } = fakeSql([[/insert into public\.device_pairings/u, () => (inserts += 1) && [{ id: "pair_1" }]]]);
