@@ -12,7 +12,7 @@ import { DataPacket_Kind, RoomServiceClient } from "livekit-server-sdk";
 import { macIdentity, macRoomName } from "./mac-token.js";
 
 export const WAKE_TOPIC = "spectr.wake";
-export const WAKE_TIMEOUT_MS = 1_500;
+export const WAKE_TIMEOUT_MS = 600;
 
 /** Sends the wake; never throws and never waits longer than the timeout. */
 export type WakeMac = (deviceId: string) => Promise<void>;

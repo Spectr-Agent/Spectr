@@ -55,7 +55,8 @@ export class PostgresTaskGateway implements TaskGateway, CallerDirectory {
       replyHandle: caller.handle,
       now: new Date(),
     });
-    await this.wakeMac(caller.deviceId);
+    // Not awaited: the caller shouldn't wait on it, and it never throws.
+    void this.wakeMac(caller.deviceId);
     return { taskId: routed.taskId, kind: routed.kind };
   }
 
