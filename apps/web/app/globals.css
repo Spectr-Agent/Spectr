@@ -58,6 +58,12 @@ nav ul a:hover{background:var(--blue2);}
 .cta-row small{font-weight:700;color:var(--muted);font-size:16px}
 .stage{position:relative;height:740px;display:flex;align-items:center;justify-content:flex-end}
 .stage .phonewrap{position:relative;z-index:2;margin-right:20px}
+.mascot{position:absolute;z-index:3;left:-150px;bottom:60px;width:420px;height:420px}
+.mascot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.mascot .p2{opacity:0;pointer-events:none}
+.mascot[data-pose=success] .p1{opacity:0}
+.mascot[data-pose=success] .p2{opacity:1;animation:poseIn .9s both}
+html.rm .mascot[data-pose=success] .p2{opacity:1}
 .replay{position:absolute;z-index:4;right:0;bottom:12px}
 
 /* phone */
@@ -119,7 +125,9 @@ nav ul a:hover{background:var(--blue2);}
 /* how */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:56px}
 .step{position:relative;border-top:1px solid var(--ink);padding-top:16px}
-.step .pic{margin-bottom:18px}
+.mascotimg{width:min(100%,240px);height:auto;aspect-ratio:1;object-fit:contain;margin:0 0 14px}
+.mascotimg.zoom{transform:scale(1.4);transform-origin:50% 55%}
+.tile .mascotimg{margin-bottom:22px}
 .stephead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .step .num{font-family:var(--mono);font-size:13px;letter-spacing:.1em}
 .icon{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;flex:none}
@@ -138,7 +146,10 @@ nav ul a:hover{background:var(--blue2);}
 .ccard[data-a="0"]{opacity:1;pointer-events:auto;cursor:default}
 .ccard[data-a="1"]{opacity:.5;pointer-events:auto}
 .cart{background:#fff;border:1px solid var(--ink);padding:0 0 26px;text-align:left}
-.cart>*:not(.pic){margin-left:24px;margin-right:24px}
+.cart>*:not(.cmasc){margin-left:24px;margin-right:24px}
+.cmasc{position:relative;height:210px;background:var(--blue2)}
+.cmasc img{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);object-fit:contain}
+.ccard.act .cmasc img{animation:clayIn 1s both .1s}
 .ccard[data-a="0"] .cart{}
 .role{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-top:18px;margin-bottom:10px}
 .role .icon{width:18px;height:18px}
@@ -233,7 +244,9 @@ html.rm{scroll-behavior:auto;scroll-snap-type:none}
   .mmenu.open{transform:none;opacity:1;pointer-events:auto}
   .mmenu a{display:block;font-weight:700;font-size:19px;padding:14px 18px;text-decoration:none}  .hero h1{font-size:clamp(46px,14vw,60px)}
   .hero .sub{font-size:19px;margin:20px 0 28px}
-  .stage{height:600px;margin-top:10px}
+  .stage{height:700px;margin-top:10px}
+  .mascot{width:210px;height:210px;left:-56px;bottom:56px}
+  .cmasc{height:160px}
   .stage .phonewrap{margin-left:0;margin-right:auto;margin-left:auto;transform:translateX(22px)}
   .phone{width:268px;height:560px;border-radius:46px;padding:9px}
   .pscreen{border-radius:38px;font-size:14px}
@@ -319,7 +332,8 @@ cite a{color:inherit;text-underline-offset:3px}
 /* closing slide */
 .closing{background:#000;color:#fff;justify-content:space-between;padding-bottom:0}
 .closing>.wrap{margin-top:auto;margin-bottom:auto}
-.closing .m{width:min(160px,40vw);aspect-ratio:1;margin:0 auto 24px;position:relative}
+.closing .m{width:min(380px,64vw);aspect-ratio:1;margin:0 auto -10px;position:relative}
+.closing .m img{width:100%;height:100%;object-fit:contain;transform-origin:50% 90%}
 .closing .textopt .bot .bub{color:var(--ink)}
 .closing .m img{width:100%;height:100%;object-fit:contain;transform-origin:50% 90%;}
 .closing .m.waving img{animation:wave 2.4s both}

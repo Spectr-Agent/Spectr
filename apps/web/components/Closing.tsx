@@ -22,7 +22,7 @@ export function Closing() {
       <div className="wrap center">
         <Reveal onReveal={onReveal}>
           <div className={`m${waving ? " waving" : ""}`}>
-            <Image src={images.starWhite} alt="" sizes="(max-width: 760px) 120px, 180px" />
+            <Image src={images.welcome} alt={closing.mascotAlt} sizes="(max-width: 760px) 260px, 380px" />
           </div>
           <h2>{closing.title}</h2>
           <p className="lead">{closing.lead}</p>

@@ -59,7 +59,7 @@ The call screen, the Mac windows in the video and the phone frames are HTML and 
 
 ### Images
 
-The logo and the little star are the flat black and white versions from `assets/logo/flat/`. Images go through `next/image`. Every other picture on the page is a black placeholder (`Picture`) with a small label saying what photo to put there. Replace a placeholder by swapping the component for an image of the same shape.
+The logo and the little star are the flat black and white versions from `assets/logo/flat/`. Images go through `next/image`. The mascot images are the repo originals and sit in the steps, use cases, safety tiles, start slide and end slide. The black full screen backgrounds behind the start and end slides are `Picture` placeholders with a small label saying what photo to put there.
 
 ## Look
 
@@ -125,17 +125,18 @@ The design system says "black, white and one light blue". The page adds a warm c
 - `.car { overflow-x: clip }`. The carousel's hidden cards sat off screen and made the page wider than a phone, which can let iOS Safari pan sideways. The edge mask already hid them, so nothing looks different.
 - **FaceTime redesign.** The prototype was built around texting. The page now leads with a FaceTime call, with the Mac's screen as the call video.
 - **Slides and lowercase.** Full screen slides and all copy lowercase.
-- **Sharp redesign.** Square corners, flat fills, Helvetica, line icons, black photo placeholders and the flat star. The 3D mascot pictures are no longer on the page.
+- **Sharp redesign.** Square corners, flat fills, Helvetica, line icons, black photo placeholders for the start and end backgrounds, and the flat star. The mascots stay.
 - The prototype's `.slide` class for the text size slider was renamed `.sizer`, because `.slide` now means a full screen slide.
 - Images come from `next/image`. Fonts are system fonts, so there is no font file to load.
 
 ## Open items (marked in the code)
 
-1. **Photos.** The black boxes in the hero, how it works, use cases and the end slide need real pictures. Each box says what picture belongs there.
-2. **Example call details.** The names, times and files in the scripted calls are made up. "OPEN ITEM 3".
-3. **Research links.** Ten of the twelve sources need a link in `lib/sources.ts`.
-4. **FaceTime is shown as working, but it is a scripted preview.** Sweeya decided FaceTime is the main feature and asked for it to be shown before it is built. The team's status table (`docs/native/STATUS.md`) says phone calls and FaceTime have not been tested end to end on a real call. Check that before the link is shared publicly, or add a label such as "coming soon".
-5. **Link preview image.** There is no Open Graph image yet.
+1. **Photos.** The black backgrounds behind the start and end slides need real pictures. Each says what picture belongs there.
+2. **Password mascot pose.** The passwords tile shows a lock icon until a mascot pose exists. See `content/copy.ts`, "OPEN ITEM 1".
+X2. **Example call details.** The names, times and files in the scripted calls are made up. "OPEN ITEM 3".
+4. **Research links.** Ten of the twelve sources need a link in `lib/sources.ts`.
+5. **FaceTime is shown as working, but it is a scripted preview.** Sweeya decided FaceTime is the main feature and asked for it to be shown before it is built. The team's status table (`docs/native/STATUS.md`) says phone calls and FaceTime have not been tested end to end on a real call. Check that before the link is shared publicly, or add a label such as "coming soon".
+6. **Link preview image.** There is no Open Graph image yet.
 
 ## What was checked
 
