@@ -58,6 +58,7 @@ describe("timeClaude", () => {
       cacheReadTokens: 1_800,
       cacheWriteTokens: 80,
       outputTokens: 120,
+      model: null,
     });
   });
 
@@ -98,6 +99,12 @@ describe("createAnthropicCaller usage", () => {
     const fetcher = (async () => Response.json({ content: [], stop_reason: "end_turn", usage })) as typeof fetch;
     const response = await createAnthropicCaller("key", fetcher)({} as never, { timeoutMs: 1_000 });
     expect(response.usage).toEqual(usage);
+  });
+
+  it("passes the answering model through", async () => {
+    const fetcher = (async () => Response.json({ content: [], model: "claude-sonnet-5-5" })) as typeof fetch;
+    const response = await createAnthropicCaller("key", fetcher)({} as never, { timeoutMs: 1_000 });
+    expect(response.model).toBe("claude-sonnet-5-5");
   });
 
   it("leaves usage off when it is missing", async () => {
@@ -164,7 +171,7 @@ describe("step route timing", () => {
       () => sql,
       {
         makeStore: () => store,
-        callClaude: async () => ({ ...openNotes, usage: { cache_read_input_tokens: 1234 } }),
+        callClaude: async (body) => ({ ...openNotes, model: body.model, usage: { cache_read_input_tokens: 1234 } }),
         defer,
         log: (line) => lines.push(line),
       },
@@ -178,6 +185,13 @@ describe("step route timing", () => {
     );
     expect(response.status).toBe(200);
     expect(lines).toHaveLength(1);
-    expect(JSON.parse(lines[0]!)).toMatchObject({ event: "step.timing", taskId, kind: "actions", claudeCalls: 1, cacheReadTokens: 1234 });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      event: "step.timing",
+      taskId,
+      kind: "actions",
+      claudeCalls: 1,
+      cacheReadTokens: 1234,
+      model: "claude-sonnet-5-5",
+    });
   });
 });

@@ -11,6 +11,8 @@ export interface StepTiming {
   cacheReadTokens: number;
   cacheWriteTokens: number;
   outputTokens: number;
+  /** The model that answered the last call, or null before any answer. */
+  model: string | null;
 }
 
 export function newStepTiming(): StepTiming {
@@ -21,6 +23,7 @@ export function newStepTiming(): StepTiming {
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
     outputTokens: 0,
+    model: null,
   };
 }
 
@@ -37,6 +40,7 @@ export function timeClaude(call: CallClaude, timing: StepTiming, clock: () => nu
       timing.cacheReadTokens += count(usage.cache_read_input_tokens);
       timing.cacheWriteTokens += count(usage.cache_creation_input_tokens);
       timing.outputTokens += count(usage.output_tokens);
+      if (response.model) timing.model = response.model;
       return response;
     } finally {
       timing.claudeMs += clock() - started;
