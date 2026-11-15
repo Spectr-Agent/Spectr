@@ -373,3 +373,8 @@ cite a{color:inherit;text-underline-offset:3px}
   .facts p{font-size:21px}
 }
 .more .dots button{background:#8FBBD9}.more .dots button.on{background:var(--ink)}
+
+/* the example message in each use case card, drawn like an iMessage sent bubble */
+.cart>.ex.ex{display:block;width:fit-content;max-width:calc(100% - 48px);position:relative;margin-left:auto;margin-right:30px;border-radius:18px;padding:9px 15px 10px;font-size:17px}
+.ex::before,.ex::after{content:"";position:absolute;bottom:0;height:18px;right:-7px;width:20px;background:var(--imsg);border-bottom-left-radius:16px 14px}
+.ex::after{right:-11px;width:11px;background:#fff;border-bottom-left-radius:10px}
