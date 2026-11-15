@@ -100,7 +100,13 @@ export class PostgresAppStore implements AppStore {
       select id, name, last_seen_at
       from public.devices
       where owner_id = ${ownerId} and kind = 'mac' and revoked_at is null
-      order by last_seen_at desc nulls last, created_at desc
+      order by
+        -- Same order as calls and texts use: an online real Mac first, the hosted
+        -- browser ("cloud-") only when no real Mac is online.
+        (last_seen_at is not null and last_seen_at > now() - interval '60 seconds') desc,
+        (id like 'cloud-%') asc,
+        last_seen_at desc nulls last,
+        created_at desc
     `) as unknown as MacRow[];
   }
 

@@ -461,7 +461,15 @@ export function createSenderResolver(
         and d.revoked_at is null
       where mi.provider = ${provider}
         and mi.handle = ${fromNumber}
-      order by d.last_seen_at desc nulls last, d.created_at desc
+      order by
+        -- A device seen in the last minute is online; an online one always wins.
+        (d.last_seen_at is not null and d.last_seen_at > now() - interval '60 seconds') desc,
+        -- The hosted browser (ids starting "cloud-") polls all the time, so by recency
+        -- alone it took calls and texts away from the owner's real Mac at random. It is
+        -- the fallback: used only when no real Mac is online.
+        (d.id like 'cloud-%') asc,
+        d.last_seen_at desc nulls last,
+        d.created_at desc
       limit 1
     `;
     return row
