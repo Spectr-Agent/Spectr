@@ -1,11 +1,20 @@
 {
+  "regions": [
+    "cle1"
+  ],
   "functions": {
     "api/mac/step.ts": {
       "maxDuration": 300
     }
   },
   "rewrites": [
-    { "source": "/api/app/:route", "destination": "/api/app?route=:route" },
-    { "source": "/api/mac/pair-status", "destination": "/api/mac/pair?status=1" }
+    {
+      "source": "/api/app/:route",
+      "destination": "/api/app?route=:route"
+    },
+    {
+      "source": "/api/mac/pair-status",
+      "destination": "/api/mac/pair?status=1"
+    }
   ]
 }

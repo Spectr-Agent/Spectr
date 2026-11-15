@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { createMacWaker } from "../livekit/wake.js";
 import { createChertReplier } from "./client.js";
 import { handleChertWebhook } from "./webhook.js";
 import { createSenderResolver, PostgresTaskStore } from "../pg-store.js";
@@ -53,6 +54,7 @@ export function createChertWebhookRoute(
               turns: new PostgresOnboardingTurnLog(connection),
             },
             provider: "chert",
+            wakeMac: createMacWaker({ url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET }),
             resolveSender: createSenderResolver(connection, "chert"),
             sendReply: createChertReplier({
               apiKey,

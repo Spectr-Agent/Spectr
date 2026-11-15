@@ -464,7 +464,7 @@ describe("runAgentStep", () => {
       actions: [{ actionId: "click-1" }],
     });
     expect(body?.system).toBe(SYSTEM_PROMPT);
-    expect(body?.model).toBe("claude-opus-5-5");
+    expect(body?.model).toBe("claude-sonnet-5-5");
     expect(body?.max_tokens).toBe(4096);
     expect(body?.tools[0]).toEqual({
       type: "computer_toolset_20260801",

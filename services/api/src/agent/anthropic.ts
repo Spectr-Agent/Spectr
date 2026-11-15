@@ -18,7 +18,14 @@ export interface AnthropicResponse {
   stop_reason?: string | null;
   /** Set on refusals; `category` is safe to log. */
   stop_details?: { category?: string | null } | null;
+  /** Token counts, for timing logs; never used for control flow. */
+  usage?: Record<string, unknown>;
+  /** The model that answered, for timing logs. */
+  model?: string;
 }
+
+/** Used when ANTHROPIC_MODEL is unset or empty. */
+export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
 export class AnthropicHttpError extends Error {
   constructor(readonly status: number) {
@@ -104,17 +111,20 @@ export function createAnthropicCaller(
       typeof details === "object" && details !== null && typeof (details as Record<string, unknown>).category === "string"
         ? ((details as Record<string, unknown>).category as string)
         : null;
+    const usage = record.usage;
     return {
       content: payload.content,
       stop_reason: stopReason,
       stop_details: details == null ? null : { category },
+      ...(typeof usage === "object" && usage !== null ? { usage: usage as Record<string, unknown> } : {}),
+      ...(typeof record.model === "string" ? { model: record.model } : {}),
     };
   };
 }
 
 export function anthropicRequest(
   messages: AgentMessage[],
-  model = "claude-opus-5-5",
+  model = DEFAULT_MODEL,
 ): AnthropicRequest {
   return {
     model,

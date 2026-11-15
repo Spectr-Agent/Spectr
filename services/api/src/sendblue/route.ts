@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { createMacWaker } from "../livekit/wake.js";
 import { createSenderResolver, PostgresTaskStore } from "../pg-store.js";
 import { PostgresOnboardingStore, PostgresOnboardingTurnLog } from "../agent/onboarding/pg-store.js";
 import { createSendblueReplier } from "./client.js";
@@ -57,6 +58,9 @@ export function createSendblueWebhookRoute(
               turns: new PostgresOnboardingTurnLog(connection),
             },
             provider: "sendblue",
+            wakeMac:
+              overrides?.wakeMac ??
+              createMacWaker({ url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET }),
             resolveSender: createSenderResolver(connection, "sendblue"),
             sendReply: createSendblueReplier({
               apiKeyId,

@@ -32,6 +32,21 @@ function makeDeps(
 }
 
 describe("handleInboundMessage", () => {
+  it("wakes the sender's Mac before the reply finishes", async () => {
+    const store = new InMemoryTaskStore();
+    const order: string[] = [];
+    const deps: InboundDeps = {
+      ...makeDeps(store, vi.fn(async () => {
+        order.push("reply");
+      })),
+      wakeMac: vi.fn(async (deviceId: string) => {
+        order.push(`wake:${deviceId}`);
+      }),
+    };
+    await handleInboundMessage(readFixture("inbound-message.json"), deps);
+    expect(order).toEqual(["wake:dev_demo_mac", "reply"]);
+  });
+
   it("creates one task and sends one reply for replayed messages", async () => {
     const store = new InMemoryTaskStore();
     const deps = makeDeps(store);

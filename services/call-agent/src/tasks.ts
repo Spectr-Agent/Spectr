@@ -4,6 +4,7 @@
 
 import type postgres from "postgres";
 import { createSenderResolver, PostgresTaskStore } from "../../api/src/pg-store.js";
+import type { WakeMac } from "../../api/src/livekit/wake.js";
 import type { InboundKind, TaskStatus } from "./conversation.js";
 
 /** Who is calling, once resolved to an owner and their Mac. */
@@ -35,7 +36,11 @@ export class PostgresTaskGateway implements TaskGateway, CallerDirectory {
   private readonly store: PostgresTaskStore;
   private readonly resolveSendblue: (phone: string) => Promise<{ ownerId: string; deviceId: string } | null>;
 
-  constructor(private readonly sql: postgres.Sql) {
+  constructor(
+    private readonly sql: postgres.Sql,
+    /** Tells the Mac to start now instead of at its next poll. */
+    private readonly wakeMac: WakeMac = async () => {},
+  ) {
     this.store = new PostgresTaskStore(sql);
     this.resolveSendblue = createSenderResolver(sql, "sendblue");
   }
@@ -50,6 +55,8 @@ export class PostgresTaskGateway implements TaskGateway, CallerDirectory {
       replyHandle: caller.handle,
       now: new Date(),
     });
+    // Not awaited: the caller shouldn't wait on it, and it never throws.
+    void this.wakeMac(caller.deviceId);
     return { taskId: routed.taskId, kind: routed.kind };
   }
 

@@ -67,6 +67,8 @@ export interface InboundDeps {
     idempotencyKey: string,
     mediaUrl?: string,
   ): Promise<void>;
+  /** Tells the Mac to check for work now rather than at its next poll. Never throws. */
+  wakeMac?(deviceId: string): Promise<void>;
 }
 
 export type InboundOutcome =
@@ -170,6 +172,8 @@ export async function handleInboundMessage(
     replyHandle: message.fromNumber,
     now: new Date(),
   });
+  // Start the wake before replying so the Mac begins while the text goes out.
+  const waking = deps.wakeMac?.(sender.deviceId);
 
   if (!(await deps.store.isInboundReplySent(message.providerMessageId))) {
     await deps.sendReply(
@@ -179,6 +183,7 @@ export async function handleInboundMessage(
     );
     await deps.store.markInboundReplySent(message.providerMessageId);
   }
+  await waking;
 
   return {
     status: routed.created ? "created" : "duplicate",
