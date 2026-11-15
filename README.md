@@ -78,7 +78,7 @@ spectr meets you wherever your computer is. there are three places it can do the
 <table>
 <tr>
 <th width="33%"><img src="design-system/assets/mascot/spectr_permission_automation.png" width="110" alt=""><br>on your mac</th>
-<th width="33%"><img src="design-system/assets/mascot/spectr_mac_helper_pairing_hero.png" width="150" alt=""><br>lid closed</th>
+<th width="33%"><img src="design-system/assets/mascot/spectr_mac_helper_pairing_hero.png" width="150" alt=""><br>in the background</th>
 <th width="33%"><img src="design-system/assets/mascot/spectr_launch_star.png" width="110" alt=""><br>far from home</th>
 </tr>
 <tr>
@@ -93,18 +93,18 @@ best for anything on your machine: files, native apps, your browser.
 </td>
 <td valign="top">
 
-**a mac vm that stands in for yours.**
+**a mac vm running on your mac.**
 
-when your laptop is shut, spectr keeps going on a macOS virtual machine paired to your account as its own device. you control it the same way, by text or call.
+leave your mac on with the lid open and walk away. spectr works inside a macOS virtual machine that runs in the background on your mac, paired to your account as its own device. your own screen and apps are never touched, and you control it the same way, by text or call.
 
-best for mac tasks while your laptop sleeps in your bag.
+best for mac tasks while you're away from your desk or your mac is locked.
 
 </td>
 <td valign="top">
 
 **a cloud workspace with a browser.**
 
-when your laptop is off and far away, spectr runs in a coder workspace in the cloud with a full browser. it handles most web tasks without your computer at all.
+when your mac is off or far away, spectr runs in a coder workspace in the cloud with a full browser. it handles most web tasks without your computer at all.
 
 best for searches, forms, portals and anything online.
 
@@ -115,9 +115,9 @@ best for searches, forms, portals and anything online.
 ```mermaid
 flowchart LR
     you(["you<br/>text · call · facetime · app"]) --> spectr{{"spectr"}}
-    spectr -->|"laptop open"| mac["your mac<br/>mac helper"]
-    spectr -->|"lid closed"| vm["mac vm<br/>paired as its own device"]
-    spectr -->|"far away"| cloud["coder workspace<br/>cloud browser"]
+    spectr -->|"you're at your mac"| mac["your mac<br/>mac helper"]
+    spectr -->|"mac on, you're away"| vm["mac vm<br/>in the background on your mac"]
+    spectr -->|"mac off or far away"| cloud["coder workspace<br/>cloud browser"]
 ```
 
 ## how it works
@@ -253,7 +253,7 @@ spectr reads the failing job and texts back what broke and where. watch from you
 
 > "i'm away from my laptop. find the doc i was working on, make this change and show me."
 
-spectr opens the document, makes the change and sends you the result. lid closed or laptop at home, it still gets done.
+spectr opens the document, makes the change and sends you the result. mac at home or switched off, it still gets done.
 
 </td>
 <td align="center">
