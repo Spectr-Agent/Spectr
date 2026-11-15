@@ -29,7 +29,7 @@ export function Hero() {
     });
   }, [play, reduced]);
 
-  // The hero is the second slide, so the call starts when it scrolls into view.
+  // The call starts when the hero is in view, which on a fresh load is at once.
   const onReveal = useStartOnReveal(run, 500);
 
   return (

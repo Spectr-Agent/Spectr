@@ -53,8 +53,8 @@ export const copy = {
 
   /** one label per slide, for the dots on the side. */
   slides: [
+    { id: "top", label: "start" },
     { id: "research", label: "research" },
-    { id: "top", label: "meet spectr" },
     { id: "how", label: "how it works" },
     { id: "cases", label: "use cases" },
     { id: "demo", label: "demo" },
