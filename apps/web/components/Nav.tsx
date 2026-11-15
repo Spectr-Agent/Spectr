@@ -11,7 +11,7 @@ export function Nav() {
   return (
     <nav>
       <div className="wrap">
-        <a className="logo" href="#top" aria-label={a11y.home}>
+        <a className="logo" href="#research" aria-label={a11y.home}>
           <Image src={images.logoBlack} alt={a11y.logoAlt} sizes="(max-width: 760px) 122px, 162px" priority />
         </a>
         <ul>
