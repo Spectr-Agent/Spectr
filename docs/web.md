@@ -133,7 +133,7 @@ The design system says "black, white and one light blue". The page adds a warm c
 
 1. **Photos.** The black backgrounds behind the start and end slides need real pictures. Each says what picture belongs there.
 2. **Password mascot pose.** The passwords tile shows a lock icon until a mascot pose exists. See `content/copy.ts`, "OPEN ITEM 1".
-X2. **Example call details.** The names, times and files in the scripted calls are made up. "OPEN ITEM 3".
+3. **Example call details.** The names, times and files in the scripted calls are made up. "OPEN ITEM 3".
 4. **Research links.** Ten of the twelve sources need a link in `lib/sources.ts`.
 5. **FaceTime is shown as working, but it is a scripted preview.** Sweeya decided FaceTime is the main feature and asked for it to be shown before it is built. The team's status table (`docs/native/STATUS.md`) says phone calls and FaceTime have not been tested end to end on a real call. Check that before the link is shared publicly, or add a label such as "coming soon".
 6. **Link preview image.** There is no Open Graph image yet.
