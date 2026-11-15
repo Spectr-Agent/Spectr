@@ -3,13 +3,17 @@
 
 import {
   acknowledgement,
-  GOODBYE,
+  afterthought,
+  goodbye,
   greeting,
   isTerminal,
+  likelyKind,
   narration,
-  ROUTE_FAILED,
-  STILL_HERE,
+  Phrasing,
+  routeFailed,
+  stillHere,
   type CallMedium,
+  type GreetingOptions,
   type TaskStatus,
   utteranceAction,
 } from "./conversation.js";
@@ -22,11 +26,21 @@ export interface CallOutput {
   hangUp(): void;
 }
 
+export interface CallSessionOptions {
+  /** How often to check the task for news; 0 disables polling (tests). */
+  pollMs?: number;
+  /** Chooses among wordings; inject a seeded one for deterministic tests. */
+  phrasing?: Phrasing;
+}
+
 export class CallSession {
   private turn = 0;
   private current: TaskStatus | null = null;
   private stopped = false;
   private polling: ReturnType<typeof setInterval> | undefined;
+  private prepared: string | null = null;
+  private readonly pollMs: number;
+  private readonly phrasing: Phrasing;
 
   constructor(
     private readonly callId: string,
@@ -34,13 +48,28 @@ export class CallSession {
     private readonly caller: Caller,
     private readonly tasks: TaskGateway,
     private readonly output: CallOutput,
-    private readonly pollMs = 1_500,
-  ) {}
+    options: CallSessionOptions | number = {},
+  ) {
+    const resolved = typeof options === "number" ? { pollMs: options } : options;
+    this.pollMs = resolved.pollMs ?? 1_500;
+    this.phrasing = resolved.phrasing ?? new Phrasing();
+  }
+
+  /**
+   * Works out the opening line before the caller can hear anything, so its audio can be
+   * made ahead of time. `begin` speaks it; calling `begin` without this prepares then.
+   */
+  async prepareGreeting(options: Omit<GreetingOptions, "active"> = {}): Promise<string> {
+    this.current = await this.tasks.activeTask(this.caller).catch(() => null);
+    this.prepared = greeting(this.medium, { ...options, active: this.current }, this.phrasing);
+    return this.prepared;
+  }
 
   /** Greets, and picks up a task that is already running for this Mac. */
-  async begin(options: { justLinked?: boolean; name?: string | null; hour?: number } = {}): Promise<void> {
-    this.current = await this.tasks.activeTask(this.caller).catch(() => null);
-    this.output.say(greeting(this.medium, { ...options, active: this.current }));
+  async begin(options: Omit<GreetingOptions, "active"> = {}): Promise<void> {
+    const line = this.prepared ?? (await this.prepareGreeting(options));
+    this.prepared = null;
+    this.output.say(line);
     this.startPolling();
   }
 
@@ -53,10 +82,10 @@ export class CallSession {
       case "ignore":
         return;
       case "greeting":
-        this.output.say(STILL_HERE);
+        this.output.say(stillHere(this.phrasing));
         return;
       case "goodbye":
-        this.output.say(GOODBYE);
+        this.output.say(goodbye(this.phrasing));
         this.output.hangUp();
         this.end();
         return;
@@ -64,14 +93,19 @@ export class CallSession {
         break;
     }
     this.turn += 1;
+    // Answer at once, before the database round trip, so the caller is never left
+    // wondering whether they were heard.
+    const guessed = likelyKind(action.text, this.current);
+    this.output.say(acknowledgement(guessed, this.phrasing));
     try {
       const routed = await this.tasks.route(this.caller, action.text, `call:${this.callId}:${this.turn}`);
-      this.output.say(acknowledgement(routed.kind));
+      const correction = afterthought(guessed, routed.kind, this.phrasing);
+      if (correction) this.output.say(correction);
       const status = await this.tasks.status(routed.taskId);
       // Remember the new state silently: what was just acknowledged needs no narration.
       if (status) this.current = status;
     } catch {
-      this.output.say(ROUTE_FAILED);
+      this.output.say(routeFailed(this.phrasing));
     }
   }
 

@@ -1,9 +1,9 @@
 // LiveKit entry point: one job per call, whether it came from the LiveKit phone number,
 // a FaceTime call through Chert, or the Spectr app.
 
-import { AutoSubscribe, defineAgent, type JobContext, type JobProcess, voice } from "@livekit/agents";
+import { AutoSubscribe, defineAgent, inference, type JobContext, type JobProcess, voice } from "@livekit/agents";
 import * as silero from "@livekit/agents-plugin-silero";
-import { ParticipantKind, RoomEvent, type RemoteParticipant } from "@livekit/rtc-node";
+import { ParticipantKind, RoomEvent, type AudioFrame, type RemoteParticipant } from "@livekit/rtc-node";
 import postgres from "postgres";
 import { createElevenLabsClient } from "../../api/src/voice/elevenlabs.js";
 import { CallSession } from "./call.js";
@@ -19,11 +19,13 @@ import {
   webhookOwner,
 } from "./medium.js";
 import { startScreenRelay, type ScreenRelay } from "./screen-relay.js";
-import { createSpeaker } from "./speech.js";
+import { bufferSpeech, createSpeaker, replaySpeech } from "./speech.js";
 import { PostgresTaskGateway, toE164, type Caller } from "./tasks.js";
 
 let sql: postgres.Sql | undefined;
 const APP_JOIN_TIMEOUT_MS = 45_000;
+/** How long the greeting may keep FaceTime waiting for its audio once the bridge is ready. */
+const GREETING_PRELOAD_WAIT_MS = 2_500;
 
 /** The agent itself never answers: finished turns go to the task pipeline. */
 class SpectrVoice extends voice.Agent {
@@ -121,17 +123,48 @@ export default defineAgent({
     let session: voice.AgentSession | undefined;
     let call: CallSession | undefined;
 
-    const say = (text: string) => session?.say(text, { audio: speak(text), allowInterruptions: true, addToChatCtx: false });
+    // Lines whose audio was made ahead of time; each plays once, then is spoken live again.
+    const preloaded = new Map<string, AudioFrame[]>();
+    const audioFor = (text: string) => {
+      const frames = preloaded.get(text);
+      if (!frames) return speak(text);
+      preloaded.delete(text);
+      return replaySpeech(frames);
+    };
+    const say = (text: string) => session?.say(text, { audio: audioFor(text), allowInterruptions: true, addToChatCtx: false });
     const hangUp = (afterMs = 2_500) => setTimeout(() => ctx.shutdown("caller finished"), afterMs);
 
     session = new voice.AgentSession({
       stt: env.SPECTR_CALL_STT_MODEL as never,
       vad: ctx.proc.userData.vad as silero.VAD,
+      // LiveKit's hosted end-of-turn model decides when the caller has finished, rather
+      // than silence alone, so replies come sooner without cutting anyone off. It falls
+      // back to the bundled local model if the cloud is unreachable.
+      turnHandling: {
+        turnDetection: new inference.TurnDetector({ version: "v1" }),
+        endpointing: { minDelay: env.SPECTR_CALL_ENDPOINT_MIN_MS, maxDelay: env.SPECTR_CALL_ENDPOINT_MAX_MS },
+      },
     });
 
     const callId = chert?.callId ?? ctx.job.id;
     if (caller) {
       call = new CallSession(callId, mediumOf(claim), caller, gateway, { say, hangUp: () => hangUp() });
+    }
+    const greetingOptions = {
+      justLinked,
+      name: claim.medium === "facetime" ? env.SPECTR_FACETIME_OWNER_NAME ?? null : null,
+      hour: localHour(env.SPECTR_OWNER_TIMEZONE),
+    };
+
+    // FaceTime makes the agent wait for the bridge before it may speak. Use that wait to
+    // choose the greeting and synthesize it, so it plays the moment the bridge is ready.
+    let greetingReady: Promise<void> | undefined;
+    if (call && claim.medium === "facetime") {
+      const prepared = call;
+      greetingReady = (async () => {
+        const line = await prepared.prepareGreeting(greetingOptions);
+        preloaded.set(line, await bufferSpeech(speak(line)));
+      })().catch(() => undefined);
     }
 
     ctx.addShutdownCallback(async () => {
@@ -170,11 +203,11 @@ export default defineAgent({
           callRoom: ctx.room,
         }).catch(() => undefined);
       }
-      await call.begin({
-        justLinked,
-        name: claim.medium === "facetime" ? env.SPECTR_FACETIME_OWNER_NAME ?? null : null,
-        hour: localHour(env.SPECTR_OWNER_TIMEZONE),
-      });
+      if (greetingReady) {
+        // Preloaded audio is a head start, not a dependency: speak live if it isn't done.
+        await Promise.race([greetingReady, new Promise((resolve) => setTimeout(resolve, GREETING_PRELOAD_WAIT_MS))]);
+      }
+      await call.begin(greetingOptions);
     };
 
     if (claim.medium === "facetime") {

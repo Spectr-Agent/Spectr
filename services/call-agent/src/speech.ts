@@ -92,3 +92,36 @@ export function createSpeaker(tts: TtsClient, timeoutMs = 10_000) {
     });
   };
 }
+
+/**
+ * Pulls a whole line of speech into memory. Used for the greeting, which is made while
+ * the call is still connecting so it plays the instant FaceTime is ready to hear it.
+ */
+export async function bufferSpeech(stream: NodeReadableStream<AudioFrame>): Promise<AudioFrame[]> {
+  const frames: AudioFrame[] = [];
+  const reader = stream.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return frames;
+      frames.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/** Plays back frames captured by `bufferSpeech` as the session expects them. */
+export function replaySpeech(frames: readonly AudioFrame[]): NodeReadableStream<AudioFrame> {
+  let index = 0;
+  return new NodeReadableStream<AudioFrame>({
+    pull(controller) {
+      if (index >= frames.length) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(frames[index] as AudioFrame);
+      index += 1;
+    },
+  });
+}
