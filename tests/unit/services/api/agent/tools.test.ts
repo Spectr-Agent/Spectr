@@ -136,6 +136,12 @@ describe("mapToolUse custom tools", () => {
       kind: "ask_user",
       question: "ok?",
     });
+    expect(mapToolUse(custom("ask_user", { question: "ok?", action: "send it" }), screen).kind).toBe("ask_user");
+    expect(mapToolUse(custom("risky_action", { action: "send it" }), screen)).toEqual({
+      kind: "risky_action",
+      action: "send it",
+    });
+    expect(() => mapToolUse(custom("risky_action", {}), screen)).toThrow("action must be a string");
     expect(mapToolUse(custom("finish", { success: true, summary: "done", attach_screenshot: true }), screen)).toEqual({
       kind: "finish",
       success: true,

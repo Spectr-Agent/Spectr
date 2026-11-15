@@ -23,6 +23,7 @@ import {
   type AnthropicResponse,
   type CallClaude,
 } from "./anthropic.js";
+import { blockedMessage, hasApproval } from "./approval.js";
 import { apiError, ApiErrorException } from "./errors.js";
 import {
   mapToolUse,
@@ -912,6 +913,17 @@ export async function runAgentStep(
           width: options.request.screenshot.width,
           height: options.request.screenshot.height,
         });
+        if (mapped.kind === "risky_action") {
+          // Enforced here, not in the prompt: the earlier turns (without this
+          // one) must hold a yes for this exact action.
+          if (hasApproval(messages.slice(0, -1), mapped.action)) {
+            pendingResults.push(toolResult(toolUse, "Approved."));
+          } else {
+            pendingResults.push(toolResult(toolUse, blockedMessage(mapped.action), true));
+            invalid = true;
+          }
+          continue;
+        }
         if (mapped.kind !== "action") {
           throw new Error("Control tools must be called by themselves");
         }
