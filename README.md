@@ -31,7 +31,7 @@ no new app to learn. no small buttons. no steps to remember. if you can send a t
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_listening.png" width="110" alt=""><br>
 <b>phone call</b><br>
-<sub>call <b>+1 (470) 596 9455</b> and just say it. spectr talks back.</sub>
+<sub>call and just say it. spectr talks back.</sub>
 </td>
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_pitch_hero.png" width="110" alt=""><br>
