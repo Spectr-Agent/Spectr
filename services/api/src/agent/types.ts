@@ -15,6 +15,8 @@ export interface AgentTaskRecord {
   revision: number;
   instruction: string;
   question: string | null;
+  /** The chat this task belongs to; a task that starts a chat is its own session. */
+  sessionId?: string | null;
   replyProvider: string | null;
   replyHandle: string | null;
   agentMessages: AgentMessage[];
@@ -53,4 +55,11 @@ export interface PersistAgentStepInput {
   finalScreenshotType: string | null;
   consumedInboundIds: string[];
   now: Date;
+}
+
+/** An earlier task in the same chat, given to the agent as context. */
+export interface SessionTurn {
+  instruction: string;
+  state: TaskState;
+  summary: string | null;
 }

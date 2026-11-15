@@ -29,11 +29,11 @@ struct SignInView: View {
                 title: "Email me a code", isWorking: auth.isWorking, isEnabled: !email.isEmpty, action: submit)
 
             Text("We'll email you a 6-digit code. No password needed.")
-                .font(.footnote)
+                .font(.brand(.footnote))
                 .foregroundStyle(Theme.inkSecondary)
 
             Button("I already have a code") { auth.enterCode(for: email) }
-                .font(.footnote)
+                .font(.brand(.footnote))
                 .disabled(email.isEmpty || auth.isWorking)
         }
     }
@@ -59,7 +59,7 @@ struct CodeEntryView: View {
             TextField("6-digit code", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
-                .font(.body.monospacedDigit())
+                .font(.brand(.body).monospacedDigit())
                 .focused($focused)
                 .onChange(of: code) { _, value in
                     let digits = String(value.filter(\.isNumber).prefix(10))
@@ -85,7 +85,7 @@ struct CodeEntryView: View {
                 Spacer()
                 Button("Use a different email") { auth.changeEmail() }
             }
-            .font(.footnote)
+            .font(.brand(.footnote))
             .disabled(auth.isWorking)
         }
     }
@@ -105,14 +105,23 @@ private struct AuthScaffold<Content: View>: View {
                 Image("spectr_welcome")
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: 120)
+                    .frame(maxWidth: 96)
                     .accessibilityHidden(true)
-                VStack(spacing: Theme.spacing * 0.75) {
-                    Text(title)
-                        .font(.largeTitle.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
+                VStack(spacing: Theme.spacing * 1.25) {
+                    if title == "Spectr" {
+                        Image("SpectrLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 40)
+                            .accessibilityLabel("Spectr")
+                            .accessibilityAddTraits(.isHeader)
+                    } else {
+                        Text(title)
+                            .font(.brand(.largeTitle, .medium))
+                            .foregroundStyle(Theme.ink)
+                    }
                     Text(subtitle)
-                        .font(.body)
+                        .font(.brand(.body))
                         .foregroundStyle(Theme.inkSecondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -141,7 +150,7 @@ private struct PrimaryButton: View {
                 if isWorking {
                     ProgressView().tint(.white)
                 } else {
-                    Text(title).font(.body.weight(.semibold))
+                    Text(title).font(.brand(.body, .semibold))
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 50)
@@ -163,7 +172,7 @@ private struct ErrorText: View {
 
     var body: some View {
         Label(message, systemImage: "exclamationmark.circle")
-            .font(.footnote)
+            .font(.brand(.footnote))
             .foregroundStyle(Theme.critical)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

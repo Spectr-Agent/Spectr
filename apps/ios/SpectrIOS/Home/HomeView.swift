@@ -12,7 +12,7 @@ struct HomeView: View {
     let openSetup: () -> Void
 
     @State private var draft = ""
-    @State private var detail: AppTask?
+    @State private var openChat: ChatRef?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -27,18 +27,20 @@ struct HomeView: View {
                     ActiveTaskCard(task: task, model: model, openLive: { openLive(false) })
                         .transition(.asymmetric(insertion: .push(from: .bottom), removal: .opacity))
                 } else if let result = model.latestResult {
-                    ResultCard(task: result, dismiss: { withAnimation { model.dismissResult() } }) { detail = result }
-                        .transition(.opacity)
+                    ResultCard(task: result, dismiss: { withAnimation { model.dismissResult() } }) {
+                        openChat = ChatRef(id: result.chatId)
+                    }
+                    .transition(.opacity)
                 }
                 if model.phones.isEmpty, model.home?.pendingPhone == nil {
                     linkPhonePrompt
                 }
-                if !model.recentTasks.isEmpty {
-                    history
+                if !model.chats.isEmpty {
+                    chats
                 }
             }
             .padding(.horizontal, Theme.spacing * 2)
-            .padding(.top, Theme.spacing)
+            .padding(.top, Theme.spacing * 1.5)
             .padding(.bottom, Theme.spacing * 3)
             .animation(.snappy, value: model.activeTask?.taskId)
             .animation(.snappy, value: model.activeTask?.state)
@@ -63,9 +65,13 @@ struct HomeView: View {
             .padding(.vertical, Theme.spacing)
             .background(.bar)
         }
-        .sheet(item: $detail) { task in
-            TaskDetailView(task: task)
-                .presentationDetents([.medium, .large])
+        .sheet(item: $openChat) { chat in
+            ChatView(
+                sessionId: chat.id, model: model,
+                openLive: {
+                    openChat = nil
+                    openLive(false)
+                })
         }
     }
 
@@ -78,18 +84,21 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Spectr")
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundStyle(Theme.ink)
+            VStack(alignment: .leading, spacing: Theme.spacing * 0.75) {
+                Image("SpectrLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 30)
+                    .accessibilityLabel("Spectr")
+                    .accessibilityAddTraits(.isHeader)
                 Text(greeting)
-                    .font(.subheadline)
+                    .font(.brand(.subheadline))
                     .foregroundStyle(Theme.inkSecondary)
             }
             Spacer()
             Button(action: openSettings) {
                 Image(systemName: "gearshape")
-                    .font(.title3)
+                    .font(.system(size: 19, weight: .light))
                     .foregroundStyle(Theme.ink)
                     .frame(width: 44, height: 44)
             }
@@ -125,14 +134,14 @@ struct HomeView: View {
         Button(action: openSetup) {
             HStack(spacing: Theme.spacing * 1.5) {
                 Image(systemName: "phone.badge.plus")
-                    .font(.title2)
+                    .font(.brand(.title2))
                     .foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Add your phone number")
-                        .font(.headline)
+                        .font(.brand(.headline))
                         .foregroundStyle(Theme.ink)
                     Text("Then call or text Spectr from anywhere, even without the app.")
-                        .font(.subheadline)
+                        .font(.brand(.subheadline))
                         .foregroundStyle(Theme.inkSecondary)
                         .multilineTextAlignment(.leading)
                 }
@@ -144,29 +153,32 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    private var history: some View {
-        VStack(alignment: .leading, spacing: Theme.spacing) {
-            Text("Recent")
-                .font(.headline)
+    private var chats: some View {
+        VStack(alignment: .leading, spacing: Theme.spacing * 0.5) {
+            Text("Chats")
+                .font(.brand(.title3, .medium))
                 .foregroundStyle(Theme.ink)
-                .padding(.top, Theme.spacing)
+                .padding(.top, Theme.spacing * 2)
             VStack(spacing: 0) {
-                ForEach(model.recentTasks.prefix(8)) { task in
+                ForEach(model.chats.prefix(12)) { chat in
                     Button {
-                        detail = task
+                        openChat = ChatRef(id: chat.id)
                     } label: {
-                        TaskRow(task: task)
+                        ChatRow(chat: chat)
                     }
                     .buttonStyle(.plain)
-                    if task.id != model.recentTasks.prefix(8).last?.id {
-                        Divider().padding(.leading, 44)
+                    if chat.id != model.chats.prefix(12).last?.id {
+                        Divider().overlay(Theme.hairline)
                     }
                 }
             }
-            .background(Theme.surface, in: .rect(cornerRadius: Theme.cornerRadius))
-            .overlay { RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline) }
         }
     }
+}
+
+/// Which chat sheet is open.
+struct ChatRef: Identifiable, Equatable {
+    let id: String
 }
 
 // MARK: Mac card
@@ -189,16 +201,16 @@ struct MacCard: View {
                     StatusDot(color: statusColor, pulsing: mac.isOnline && mac.sharing == true)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(mac.name)
-                            .font(.headline)
+                            .font(.brand(.headline))
                             .foregroundStyle(Theme.ink)
                         Text(statusText)
-                            .font(.footnote)
+                            .font(.brand(.footnote))
                             .foregroundStyle(Theme.inkSecondary)
                     }
                     Spacer()
                     if mac.isOnline, mac.sharing == true {
                         Label("Live", systemImage: "dot.radiowaves.left.and.right")
-                            .font(.caption.weight(.bold))
+                            .font(.brand(.caption, .bold))
                             .foregroundStyle(Theme.accent)
                     }
                 }
@@ -206,7 +218,6 @@ struct MacCard: View {
             }
             .background(Theme.surface, in: .rect(cornerRadius: Theme.cornerRadius))
             .clipShape(.rect(cornerRadius: Theme.cornerRadius))
-            .overlay { RoundedRectangle(cornerRadius: Theme.cornerRadius).stroke(Theme.hairline) }
         }
         .buttonStyle(.plain)
         .disabled(!mac.isOnline)
@@ -222,7 +233,7 @@ struct MacCard: View {
                 Image(systemName: mac.isOnline ? "rectangle.dashed" : "laptopcomputer.slash")
                     .font(.system(size: 34, weight: .light))
                 Text(placeholderText)
-                    .font(.footnote)
+                    .font(.brand(.footnote))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -270,12 +281,12 @@ struct ActiveTaskCard: View {
                 Spacer()
                 if let openLive {
                     Button("Watch", systemImage: "play.rectangle", action: openLive)
-                        .font(.footnote.weight(.semibold))
+                        .font(.brand(.footnote, .semibold))
                         .labelStyle(.titleAndIcon)
                 }
             }
             Text(task.instruction)
-                .font(.title3.weight(.semibold))
+                .font(.brand(.title3, .semibold))
                 .foregroundStyle(dark ? .white : Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -285,7 +296,7 @@ struct ActiveTaskCard: View {
                 HStack(spacing: Theme.spacing) {
                     WorkingDots()
                     Text(activity)
-                        .font(.subheadline)
+                        .font(.brand(.subheadline))
                         .foregroundStyle(dark ? .white.opacity(0.75) : Theme.inkSecondary)
                         .contentTransition(.opacity)
                         .animation(.easeInOut, value: activity)
@@ -308,7 +319,7 @@ struct ActiveTaskCard: View {
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
                 .stroke(
                     task.state == .waitingForUser
-                        ? Color.orange.opacity(0.6) : (dark ? .white.opacity(0.12) : Theme.hairline))
+                        ? Color.orange.opacity(0.6) : (dark ? .white.opacity(0.12) : .clear))
         }
     }
 }
@@ -323,7 +334,7 @@ struct QuestionPrompt: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.spacing * 1.25) {
             Label(question, systemImage: "bubble.left.fill")
-                .font(.body)
+                .font(.brand(.body))
                 .foregroundStyle(dark ? .white : Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             if needsApproval {
@@ -346,7 +357,7 @@ struct QuestionPrompt: View {
                 .disabled(model.isSending)
             } else {
                 Text("Answer below.")
-                    .font(.footnote)
+                    .font(.brand(.footnote))
                     .foregroundStyle(dark ? .white.opacity(0.6) : Theme.inkSecondary)
             }
         }
@@ -365,17 +376,17 @@ struct ResultCard: View {
                 StateChip(state: task.state)
                 Spacer()
                 Button(action: dismiss) {
-                    Image(systemName: "xmark").font(.footnote.weight(.bold)).foregroundStyle(Theme.inkSecondary)
+                    Image(systemName: "xmark").font(.brand(.footnote, .bold)).foregroundStyle(Theme.inkSecondary)
                         .frame(width: 32, height: 32)
                 }
                 .accessibilityLabel("Dismiss result")
             }
             Text(task.instruction)
-                .font(.headline)
+                .font(.brand(.headline))
                 .foregroundStyle(Theme.ink)
             if let summary = task.summary {
                 Text(summary)
-                    .font(.body)
+                    .font(.brand(.body))
                     .foregroundStyle(Theme.ink.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -397,75 +408,40 @@ struct ResultCard: View {
     }
 }
 
-struct TaskRow: View {
-    let task: AppTask
+/// A chat in the list: what you first asked, and where its latest task got to.
+struct ChatRow: View {
+    let chat: ChatSummary
 
     var body: some View {
-        HStack(alignment: .top, spacing: Theme.spacing * 1.5) {
-            Image(systemName: task.state.symbol)
-                .foregroundStyle(task.state.tint)
-                .frame(width: 22)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(task.instruction)
-                    .font(.subheadline.weight(.semibold))
+        HStack(alignment: .firstTextBaseline, spacing: Theme.spacing * 1.5) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(chat.title)
+                    .font(.brand(.body, .medium))
                     .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                Text(preview)
+                    .font(.brand(.subheadline))
+                    .foregroundStyle(Theme.inkSecondary)
                     .lineLimit(2)
-                if let summary = task.summary {
-                    Text(summary)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.inkSecondary)
-                        .lineLimit(2)
-                }
             }
             Spacer(minLength: 0)
-            Text(task.updatedAt.relative())
-                .font(.caption)
-                .foregroundStyle(Theme.inkSecondary)
-        }
-        .padding(Theme.spacing * 1.5)
-        .contentShape(.rect)
-    }
-}
-
-struct TaskDetailView: View {
-    let task: AppTask
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
-                StateChip(state: task.state)
-                Text(task.instruction)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                if let summary = task.summary {
-                    Text(summary).font(.body).foregroundStyle(Theme.ink)
-                }
-                if let url = task.screenshotURL {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: {
-                        ProgressView().frame(maxWidth: .infinity, minHeight: 200)
-                    }
-                    .clipShape(.rect(cornerRadius: 12))
-                }
-                Text(meta)
-                    .font(.footnote)
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(chat.latest.updatedAt.relative())
+                    .font(.brand(.caption))
                     .foregroundStyle(Theme.inkSecondary)
+                if chat.latest.isActive {
+                    StatusDot(color: chat.latest.state.tint, pulsing: true)
+                }
             }
-            .padding(Theme.spacing * 2.5)
         }
+        .padding(.vertical, Theme.spacing * 1.75)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens this chat")
     }
 
-    private var meta: String {
-        let via =
-            switch task.source {
-            case "call": "a phone call"
-            case "sendblue", "chert": "a text"
-            case "app": "this app"
-            default: "Spectr"
-            }
-        return
-            "Started \(task.createdAt.formatted(date: .abbreviated, time: .shortened)) from \(via) · \(task.stepCount) steps"
+    private var preview: String {
+        if chat.latest.isActive { return chat.latest.question ?? chat.latest.activity ?? chat.latest.state.label }
+        return chat.latest.summary ?? chat.latest.state.label
     }
 }

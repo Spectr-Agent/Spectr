@@ -57,7 +57,7 @@ struct LiveView: View {
                 .overlay(alignment: .topTrailing) {
                     if live.phase == .reconnecting {
                         Label("Reconnecting…", systemImage: "wifi.exclamationmark")
-                            .font(.caption.weight(.semibold))
+                            .font(.brand(.caption, .semibold))
                             .padding(8)
                             .background(.ultraThinMaterial, in: .capsule)
                             .padding()
@@ -99,7 +99,7 @@ struct LiveView: View {
                 withAnimation(.snappy) { zoom = 1 }
             } label: {
                 Text(zoom > 1.05 ? String(format: "%.1f×", zoom) : "1×")
-                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .font(.brand(.caption, .semibold).monospacedDigit())
                     .frame(minWidth: 40, minHeight: 36)
             }
             .accessibilityLabel("Reset zoom")
@@ -123,10 +123,10 @@ struct LiveView: View {
             } else {
                 Image(systemName: symbol).font(.system(size: 40, weight: .light))
             }
-            Text(title).font(.headline).multilineTextAlignment(.center)
+            Text(title).font(.brand(.headline)).multilineTextAlignment(.center)
             if let detail {
                 Text(detail)
-                    .font(.subheadline)
+                    .font(.brand(.subheadline))
                     .foregroundStyle(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
@@ -147,17 +147,17 @@ struct LiveView: View {
                 }
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.body.weight(.bold))
+                    .font(.brand(.body, .bold))
                     .frame(width: 40, height: 40)
                     .background(.ultraThinMaterial, in: .circle)
             }
             .accessibilityLabel("Close")
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.mac?.name ?? "Your Mac")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.brand(.subheadline, .semibold))
                 HStack(spacing: 5) {
                     StatusDot(color: live.phase == .live ? .red : .gray, pulsing: live.phase == .live)
-                    Text(liveLabel).font(.caption).foregroundStyle(.white.opacity(0.7))
+                    Text(liveLabel).font(.brand(.caption)).foregroundStyle(.white.opacity(0.7))
                 }
             }
             Spacer()
@@ -217,9 +217,9 @@ struct LiveView: View {
         HStack(alignment: .top, spacing: Theme.spacing) {
             Image(systemName: task.state.symbol).foregroundStyle(task.state.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text(task.state.label).font(.subheadline.weight(.semibold))
+                Text(task.state.label).font(.brand(.subheadline, .semibold))
                 if let summary = task.summary {
-                    Text(summary).font(.footnote).foregroundStyle(.white.opacity(0.75)).lineLimit(3)
+                    Text(summary).font(.brand(.footnote)).foregroundStyle(.white.opacity(0.75)).lineLimit(3)
                 }
             }
             Spacer(minLength: 0)
@@ -255,7 +255,7 @@ struct LiveView: View {
                     Task { await live.toggleMute() }
                 } label: {
                     Image(systemName: live.isMuted ? "mic.slash.fill" : "mic.fill")
-                        .font(.title3)
+                        .font(.brand(.title3))
                         .frame(width: 52, height: 52)
                         .foregroundStyle(live.isMuted ? .black : .white)
                         .background(live.isMuted ? Color.white : Color.white.opacity(0.15), in: .circle)
@@ -268,7 +268,7 @@ struct LiveView: View {
                     Task { await live.endCall() }
                 } label: {
                     Image(systemName: "phone.down.fill")
-                        .font(.title3)
+                        .font(.brand(.title3))
                         .frame(width: 52, height: 52)
                         .foregroundStyle(.white)
                         .background(Theme.critical, in: .circle)
@@ -288,7 +288,7 @@ private struct VoiceIndicator: View {
             Bars(active: live.agentSpeaking || live.userSpeaking)
                 .foregroundStyle(live.agentSpeaking ? Theme.accent : .white)
             Text(text)
-                .font(.subheadline.weight(.medium))
+                .font(.brand(.subheadline, .medium))
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .contentTransition(.opacity)
@@ -330,7 +330,7 @@ private struct CallTimer: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             Label(elapsed(at: context.date), systemImage: "phone.fill")
-                .font(.caption.monospacedDigit().weight(.semibold))
+                .font(.brand(.caption, .semibold).monospacedDigit())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)

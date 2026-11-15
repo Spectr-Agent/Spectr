@@ -10,6 +10,7 @@ import type {
   InboundKind,
   PendingInboundMessage,
   PersistAgentStepInput,
+  SessionTurn,
 } from "./agent/types.js";
 
 export interface TaskStore {
@@ -21,6 +22,8 @@ export interface TaskStore {
     replyProvider: "sendblue" | "chert" | "call" | "app";
     replyHandle: string;
     now: Date;
+    /** Continue this chat when the message starts a new task. */
+    sessionId?: string;
   }): Promise<{ taskId: string; kind: InboundKind; created: boolean }>;
   isInboundReplySent(providerMessageId: string): Promise<boolean>;
   markInboundReplySent(providerMessageId: string): Promise<void>;
@@ -39,6 +42,8 @@ export interface TaskStore {
   getUnconsumedInboundMessages(
     taskId: string,
   ): Promise<PendingInboundMessage[]>;
+  /** Earlier tasks in the same chat, oldest first. Optional so simple stores can skip it. */
+  getEarlierSessionTurns?(task: AgentTaskRecord): Promise<SessionTurn[]>;
   persistAgentStep(input: PersistAgentStepInput): Promise<boolean>;
   claimResultNotification(taskId: string, now: Date): Promise<AgentTaskRecord | null>;
 }

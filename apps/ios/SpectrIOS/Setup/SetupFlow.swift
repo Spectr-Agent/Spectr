@@ -91,10 +91,10 @@ private struct StepHeader: View {
                 .frame(height: 96)
                 .accessibilityHidden(true)
             Text(title)
-                .font(.title.weight(.bold))
+                .font(.brand(.title, .bold))
                 .foregroundStyle(Theme.ink)
             Text(subtitle)
-                .font(.body)
+                .font(.brand(.body))
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -120,7 +120,7 @@ private struct PairStep: View {
             )
             if let paired {
                 Label("\(paired) is paired", systemImage: "checkmark.circle.fill")
-                    .font(.headline)
+                    .font(.brand(.headline))
                     .foregroundStyle(.green)
             } else {
                 CodeField(code: $code)
@@ -131,7 +131,7 @@ private struct PairStep: View {
                     }
                 if let error {
                     Label(error, systemImage: "exclamationmark.circle")
-                        .font(.callout)
+                        .font(.brand(.callout))
                         .foregroundStyle(Theme.critical)
                 }
                 Button(action: submit) {
@@ -143,11 +143,11 @@ private struct PairStep: View {
                     Text(
                         "Install the Spectr Mac app, open it, and allow Screen Recording and Accessibility when it asks. The pairing code appears in its Setup window."
                     )
-                    .font(.callout)
+                    .font(.brand(.callout))
                     .foregroundStyle(Theme.inkSecondary)
                     .padding(.top, 4)
                 }
-                .font(.callout)
+                .font(.brand(.callout))
                 .tint(Theme.ink)
             }
         }
@@ -241,7 +241,7 @@ private struct PhoneStep: View {
             if !model.phones.isEmpty, pending == nil, !addingAnother {
                 ForEach(model.phones, id: \.self) { phone in
                     Label(PhoneFormat.display(phone), systemImage: "checkmark.circle.fill")
-                        .font(.headline)
+                        .font(.brand(.headline))
                         .foregroundStyle(.green)
                 }
                 Button("Continue", action: next).buttonStyle(SolidButtonStyle())
@@ -249,7 +249,7 @@ private struct PhoneStep: View {
                     number = ""
                     addingAnother = true
                 }
-                .font(.callout)
+                .font(.brand(.callout))
             } else if let pending {
                 verify(pending)
             } else {
@@ -257,7 +257,7 @@ private struct PhoneStep: View {
             }
             if model.phones.isEmpty {
                 Button("Skip for now", action: next)
-                    .font(.callout)
+                    .font(.brand(.callout))
                     .foregroundStyle(Theme.inkSecondary)
                     .frame(maxWidth: .infinity)
             }
@@ -277,13 +277,13 @@ private struct PhoneStep: View {
             TextField("Your phone number", text: $number)
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
-                .font(.title3)
+                .font(.brand(.title3))
                 .padding(14)
                 .background(Theme.surface, in: .rect(cornerRadius: 12))
                 .overlay { RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline) }
             if let error {
                 Label(error, systemImage: "exclamationmark.circle")
-                    .font(.callout)
+                    .font(.brand(.callout))
                     .foregroundStyle(Theme.critical)
             }
             Button {
@@ -300,16 +300,16 @@ private struct PhoneStep: View {
         VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
             if linked {
                 Label("\(PhoneFormat.display(pending.phone)) is linked", systemImage: "checkmark.circle.fill")
-                    .font(.headline)
+                    .font(.brand(.headline))
                     .foregroundStyle(.green)
             } else {
                 Text("Call Spectr from \(PhoneFormat.display(pending.phone))")
-                    .font(.headline)
+                    .font(.brand(.headline))
                     .foregroundStyle(Theme.ink)
                 Text(
                     "Spectr recognises the number, links it, and says so. You can hang up after that or give it a task right away."
                 )
-                .font(.callout)
+                .font(.brand(.callout))
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 Button {
@@ -320,10 +320,10 @@ private struct PhoneStep: View {
                 .buttonStyle(SolidButtonStyle(tint: Theme.accent))
                 HStack(spacing: Theme.spacing) {
                     ProgressView()
-                    Text("Waiting for the call…").font(.callout).foregroundStyle(Theme.inkSecondary)
+                    Text("Waiting for the call…").font(.brand(.callout)).foregroundStyle(Theme.inkSecondary)
                 }
                 Button("Use a different number") { self.pending = nil }
-                    .font(.callout)
+                    .font(.brand(.callout))
             }
         }
     }
@@ -384,7 +384,7 @@ private struct ShareStep: View {
             }
             Text(text).foregroundStyle(Theme.ink)
         }
-        .font(.body)
+        .font(.brand(.body))
         .animation(.snappy, value: done)
     }
 }
@@ -405,7 +405,7 @@ private struct DoneStep: View {
                 Label("Text the same number", systemImage: "message.fill")
                 Label("Say “stop” at any time", systemImage: "stop.circle")
             }
-            .font(.body)
+            .font(.brand(.body))
             .foregroundStyle(Theme.ink)
             .card()
             Button("Start", action: finish).buttonStyle(SolidButtonStyle(tint: Theme.accent))

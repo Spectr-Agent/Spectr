@@ -7,6 +7,8 @@ export type AppTaskState = "accepted" | "running" | "waitingForUser" | "succeede
 
 export interface AppTaskView {
   taskId: string;
+  /** The chat this task belongs to. A task that starts a chat is its own session. */
+  sessionId: string;
   deviceId: string;
   state: AppTaskState;
   revision: number;
@@ -52,6 +54,26 @@ export interface TaskRow {
   created_at: Date | string;
   updated_at: Date | string;
   has_screenshot: boolean;
+  session_id?: string | null;
+}
+
+export interface InboundRow {
+  task_id: string;
+  kind: "task" | "correction" | "answer" | "stop";
+  text: string;
+  created_at: Date | string;
+}
+
+/** One bubble in a chat: something the user said, or Spectr's question or result. */
+export interface AppChatMessage {
+  id: string;
+  taskId: string;
+  role: "user" | "spectr";
+  text: string;
+  at: string;
+  /** For Spectr's messages: the task state the message reports. */
+  state: AppTaskState | null;
+  screenshotUrl: string | null;
 }
 
 export const ONLINE_WINDOW_MS = 60_000;
@@ -132,6 +154,7 @@ export function activityFor(row: Pick<TaskRow, "state" | "last_step_response" | 
 export function taskView(row: TaskRow, screenshotUrl: (taskId: string) => string | null): AppTaskView {
   return {
     taskId: row.id,
+    sessionId: row.session_id ?? row.id,
     deviceId: row.device_id,
     state: row.state,
     revision: row.revision,
@@ -163,3 +186,44 @@ export function macView(
     lastSeenAt: lastSeen?.toISOString() ?? null,
   };
 }
+
+/** The conversation of a chat, oldest first, built from its tasks and the messages routed to them. */
+export function chatMessages(
+  tasks: TaskRow[],
+  inbound: InboundRow[],
+  screenshotUrl: (taskId: string) => string | null,
+): AppChatMessage[] {
+  const messages: AppChatMessage[] = [];
+  for (const task of tasks) {
+    const said = inbound.filter((message) => message.task_id === task.id);
+    if (!said.some((message) => message.kind === "task")) {
+      said.unshift({ task_id: task.id, kind: "task", text: task.instruction, created_at: task.created_at });
+    }
+    said.forEach((message, index) => {
+      messages.push({
+        id: `${task.id}:u${index}`,
+        taskId: task.id,
+        role: "user",
+        text: message.text,
+        at: iso(message.created_at),
+        state: null,
+        screenshotUrl: null,
+      });
+    });
+    const reply = task.state === "waitingForUser" ? task.question : TERMINAL.has(task.state) ? task.summary : null;
+    if (reply) {
+      messages.push({
+        id: `${task.id}:s`,
+        taskId: task.id,
+        role: "spectr",
+        text: reply,
+        at: iso(task.updated_at),
+        state: task.state,
+        screenshotUrl: TERMINAL.has(task.state) && task.has_screenshot ? screenshotUrl(task.id) : null,
+      });
+    }
+  }
+  return messages;
+}
+
+const TERMINAL = new Set<AppTaskState>(["succeeded", "failed", "cancelled"]);

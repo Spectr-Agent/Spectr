@@ -5,6 +5,7 @@ import type {
   InboundKind,
   PendingInboundMessage,
   PersistAgentStepInput,
+  SessionTurn,
 } from "./agent/types.js";
 import { isStop, type TaskStore } from "./inbound.js";
 
@@ -33,9 +34,10 @@ export class InMemoryTaskStore implements TaskStore {
     ownerId: string;
     deviceId: string;
     text: string;
-    replyProvider: "sendblue" | "chert";
+    replyProvider: "sendblue" | "chert" | "call" | "app";
     replyHandle: string;
     now: Date;
+    sessionId?: string;
   }): Promise<{ taskId: string; kind: InboundKind; created: boolean }> {
     const existing = this.inboundMessages.get(input.providerMessageId);
     if (existing) {
@@ -70,8 +72,10 @@ export class InMemoryTaskStore implements TaskStore {
 
     if (!task) {
       kind = "task";
+      const taskId = `tsk_${randomUUID()}`;
       task = {
-        taskId: `tsk_${randomUUID()}`,
+        taskId,
+        sessionId: input.sessionId ?? taskId,
         ownerId: input.ownerId,
         deviceId: input.deviceId,
         state: "accepted",
@@ -191,6 +195,18 @@ export class InMemoryTaskStore implements TaskStore {
 
   async getTask(taskId: string): Promise<AgentTaskRecord | null> {
     return this.tasks.get(taskId) ?? null;
+  }
+
+  async getEarlierSessionTurns(task: AgentTaskRecord): Promise<SessionTurn[]> {
+    if (!task.sessionId || task.sessionId === task.taskId) return [];
+    const turns: SessionTurn[] = [];
+    for (const candidate of this.tasks.values()) {
+      if (candidate.taskId === task.taskId) break;
+      if (candidate.ownerId === task.ownerId && candidate.sessionId === task.sessionId) {
+        turns.push({ instruction: candidate.instruction, state: candidate.state, summary: candidate.summary });
+      }
+    }
+    return turns;
   }
 
   async getUnconsumedInboundMessages(

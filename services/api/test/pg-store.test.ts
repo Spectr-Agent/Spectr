@@ -76,6 +76,24 @@ describe.skipIf(!databaseUrl)("PostgresTaskStore", () => {
     await sql.end();
   });
 
+  it("continues a chat: a new task joins the session and sees the earlier turns", async () => {
+    const first = await store.routeInbound(routeInput("sendblue:chat:1", "write milk in Notes"));
+    await sql`update public.tasks set state = 'succeeded', summary = 'Wrote milk.' where id = ${first.taskId}`;
+    const firstTask = (await store.getTask(first.taskId))!;
+    expect(firstTask.sessionId).toBe(first.taskId);
+    expect(await store.getEarlierSessionTurns(firstTask)).toEqual([]);
+
+    const next = await store.routeInbound({
+      ...routeInput("app:chat:2", "add eggs", new Date(Date.now() + 1_000)),
+      sessionId: first.taskId,
+    });
+    const nextTask = (await store.getTask(next.taskId))!;
+    expect(nextTask.sessionId).toBe(first.taskId);
+    expect(await store.getEarlierSessionTurns(nextTask)).toEqual([
+      { instruction: "write milk in Notes", state: "succeeded", summary: "Wrote milk." },
+    ]);
+  });
+
   it("deduplicates inbound provider IDs without reapplying task effects", async () => {
     const input = routeInput("sendblue:route:duplicate");
     const first = await store.routeInbound(input);

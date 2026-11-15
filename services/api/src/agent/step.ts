@@ -10,6 +10,7 @@ import type {
   AgentMessage,
   AgentTaskRecord,
   PendingInboundMessage,
+  SessionTurn,
 } from "./types.js";
 import { profileContext } from "./onboarding/context.js";
 import { shouldSendProgress } from "./onboarding/updates.js";
@@ -524,6 +525,24 @@ async function notifyResultSafely(
   }
 }
 
+async function loadEarlierTurns(options: RunAgentStepOptions, task: AgentTaskRecord): Promise<SessionTurn[]> {
+  return (await options.store.getEarlierSessionTurns?.(task).catch(() => [])) ?? [];
+}
+
+/** Earlier tasks in this chat, so a resumed chat can refer back to them. */
+export function sessionContext(turns: SessionTurn[]): string | null {
+  if (turns.length === 0) return null;
+  const lines = turns.slice(-6).map((turn, index) => {
+    const result = turn.summary ? ` Result (${turn.state}): ${turn.summary}` : ` It ended as ${turn.state}.`;
+    return `${index + 1}. The user asked: "${turn.instruction}".${result}`;
+  });
+  return [
+    "This continues an earlier chat with the user. Earlier in this chat:",
+    ...lines,
+    "Use this only as background for the new task; check the current screen before acting.",
+  ].join("\n");
+}
+
 async function loadProfile(options: RunAgentStepOptions, ownerId: string) {
   return (await options.profiles?.getProfile(ownerId).catch(() => null)) ?? null;
 }
@@ -663,6 +682,8 @@ export async function runAgentStep(
         });
       }
     }
+    const earlier = sessionContext(await loadEarlierTurns(options, task));
+    if (earlier) firstTurnContent.unshift({ type: "text", text: earlier });
     const note = profileContext(await loadProfile(options, task.ownerId));
     if (note) firstTurnContent.unshift({ type: "text", text: note });
     firstTurnContent.push(imageBlock(options.request));

@@ -10,6 +10,7 @@ import type {
   InboundKind,
   PendingInboundMessage,
   PersistAgentStepInput,
+  SessionTurn,
 } from "./agent/types.js";
 import { isStop, type InboundDeps, type TaskStore } from "./inbound.js";
 
@@ -45,6 +46,7 @@ function agentTaskFromRow(row: postgres.Row): AgentTaskRecord {
     pendingToolResults: Array.isArray(pendingToolResults)
       ? pendingToolResults
       : [],
+    sessionId: row.session_id ?? row.id,
     stepCount: row.step_count,
     lastStepResponse,
     screenWidth: row.screen_width,
@@ -86,6 +88,7 @@ export class PostgresTaskStore implements TaskStore {
     replyProvider: "sendblue" | "chert" | "call" | "app";
     replyHandle: string;
     now: Date;
+    sessionId?: string;
   }): Promise<{ taskId: string; kind: InboundKind; created: boolean }> {
     return this.sql.begin(async (tx) => {
       await tx`select pg_advisory_xact_lock(hashtext(${input.providerMessageId}))`;
@@ -151,6 +154,7 @@ export class PostgresTaskStore implements TaskStore {
             provider_message_id,
             reply_provider,
             reply_handle,
+            session_id,
             updated_at
           )
           values (
@@ -162,6 +166,7 @@ export class PostgresTaskStore implements TaskStore {
             ${input.providerMessageId},
             ${input.replyProvider},
             ${input.replyHandle},
+            ${input.sessionId ?? taskId},
             ${input.now}
           )
         `;
@@ -342,6 +347,24 @@ export class PostgresTaskStore implements TaskStore {
       where id = ${taskId}
     `;
     return row ? agentTaskFromRow(row) : null;
+  }
+
+  async getEarlierSessionTurns(task: AgentTaskRecord): Promise<SessionTurn[]> {
+    if (!task.sessionId || task.sessionId === task.taskId) return [];
+    const rows = await this.sql`
+      select instruction, state, summary
+      from public.tasks
+      where owner_id = ${task.ownerId}
+        and session_id = ${task.sessionId}
+        and id <> ${task.taskId}
+        and created_at < (select created_at from public.tasks where id = ${task.taskId})
+      order by created_at
+    `;
+    return rows.map((row) => ({
+      instruction: row.instruction,
+      state: row.state,
+      summary: row.summary,
+    }));
   }
 
   async getUnconsumedInboundMessages(
