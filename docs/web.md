@@ -10,6 +10,7 @@ npm install
 npm run dev          # http://localhost:3000
 npm run build        # runs check:copy first, then builds
 npm run check:copy   # the writing rules, on their own
+npm run check:style  # the look rules (sharp corners, no shadows), on their own
 npm run typecheck
 npm test
 ```
@@ -29,7 +30,7 @@ Each section fills the screen and the page snaps from one to the next.
 | safety | four short promises |
 | research | the three big numbers, on a dark slide |
 | more research | the other numbers, as a small carousel, each with its source |
-| end | the mascot says hi, text is mentioned as a side option, and the footer |
+| end | the star says hi, text is mentioned as a side option, and the footer |
 
 The change between slides is a scroll linked animation: the slide you leave fades up and the next one rises in. It uses CSS scroll driven animations, so browsers without them simply show the slides with no transition. Reduced motion turns the animation and the snapping off. Dots on the side jump to a slide.
 
@@ -48,14 +49,21 @@ The change between slides is a scroll linked animation: the slide you leave fade
 | `hooks/useActiveSlide.ts` | Which slide is showing, for the dots |
 | `hooks/useReducedMotion.ts` | System setting, `?rm=`, and the prototype shell's `postMessage` toggle |
 | `components/` | One file per slide, plus `CallPhone` (the FaceTime screen), `Scene` (the Mac screen in the call video), `Source` and `Reveal` |
-| `public/assets/` | The mascot and logo files the page uses |
+| `components/Icon.tsx`, `lib/icons.ts` | Flat line icons with square ends, drawn as SVG paths. Add a name in `lib/icons.ts` to add one |
+| `components/Picture.tsx` | A black placeholder block where a photo goes. Its label says what picture belongs there |
+| `public/assets/` | The flat logo and star files the page uses |
 | `scripts/check-copy.mjs` | The copy checker |
+| `scripts/check-style.mjs` | The style checker (see Look) |
 
 The call screen, the Mac windows in the video and the phone frames are HTML and CSS, not images.
 
 ### Images
 
-All mascot images are the repo originals (`assets/mascot/...@2x.png`). The logo is `assets/logo/clay_black_3d/spectr_logo_clay_black_lockup.png` cropped to its artwork, because the original has wide empty margins that would shrink it in the nav. Images go through `next/image`, and Nunito (latin, weights 600 to 900) goes through `next/font/local`.
+The logo and the little star are the flat black and white versions from `assets/logo/flat/`. Images go through `next/image`. Every other picture on the page is a black placeholder (`Picture`) with a small label saying what photo to put there. Replace a placeholder by swapping the component for an image of the same shape.
+
+## Look
+
+Sharp and flat, in the spirit of Waymo's layout with the page's own colors. Helvetica Neue (then Helvetica, then Arial) for text and the system monospace for tiny labels. Square corners everywhere except the phone and the call on it. No shadows, no gradients, no bouncy easing. `npm run check:style` fails the build if any of that comes back (it runs before `next build`, next to `check:copy`).
 
 ## Copy rules
 
@@ -108,7 +116,7 @@ The page keeps its own palette. Almost nothing matches `design-system/tokens/tok
 | `--blue2` | `#D8F0FE` | `--clay` | `#DAEAFA` |
 | `--blue3` | `#6FC3F2` | none | |
 | `--r` | `32px` | `--radius-lg` | `24px` |
-| Font | Nunito | `--font-display` / `--font-sans` | Outfit / Inter |
+| Font | Helvetica Neue | `--font-display` / `--font-sans` | Outfit / Inter |
 
 The design system says "black, white and one light blue". The page adds a warm cream background, a dark research slide, and the iMessage blue and gray in the text example. If the site should follow the design system, that is a design decision for Sweeya.
 
@@ -116,13 +124,14 @@ The design system says "black, white and one light blue". The page adds a warm c
 
 - `.car { overflow-x: clip }`. The carousel's hidden cards sat off screen and made the page wider than a phone, which can let iOS Safari pan sideways. The edge mask already hid them, so nothing looks different.
 - **FaceTime redesign.** The prototype was built around texting. The page now leads with a FaceTime call, with the Mac's screen as the call video.
-- **Slides, lowercase and fewer boxes.** Full screen slides, all copy lowercase, bigger mascots, and most rounded card backgrounds removed.
+- **Slides and lowercase.** Full screen slides and all copy lowercase.
+- **Sharp redesign.** Square corners, flat fills, Helvetica, line icons, black photo placeholders and the flat star. The 3D mascot pictures are no longer on the page.
 - The prototype's `.slide` class for the text size slider was renamed `.sizer`, because `.slide` now means a full screen slide.
-- Fonts and images come from `next/font` and `next/image`.
+- Images come from `next/image`. Fonts are system fonts, so there is no font file to load.
 
 ## Open items (marked in the code)
 
-1. **Password mascot pose.** The gray "mascot pose needed: passwords" box in Safety is a placeholder. See `content/copy.ts` and `components/Safety.tsx`, "OPEN ITEM 1".
+1. **Photos.** The black boxes in the hero, how it works, use cases and the end slide need real pictures. Each box says what picture belongs there.
 2. **Example call details.** The names, times and files in the scripted calls are made up. "OPEN ITEM 3".
 3. **Research links.** Ten of the twelve sources need a link in `lib/sources.ts`.
 4. **FaceTime is shown as working, but it is a scripted preview.** Sweeya decided FaceTime is the main feature and asked for it to be shown before it is built. The team's status table (`docs/native/STATUS.md`) says phone calls and FaceTime have not been tested end to end on a real call. Check that before the link is shared publicly, or add a label such as "coming soon".
@@ -136,4 +145,4 @@ Run against the production build (`next build`, then `next start`) in headless C
 - **Mobile menu** and **reduced motion** (system setting, `?rm=1`): the menu opens and closes, and with reduced motion nothing animates.
 - **Carousel:** arrows, dots, keyboard, swipe, side card click and rapid switching were checked on the earlier build. The carousel code is unchanged, but it was not rerun on the final build.
 - **Not checked:** the slide transition itself on a real scroll, the phone layout of the research slides by eye, and the research carousel's behavior.
-- `npm run build`, `npm run check:copy`, `npm run typecheck` and `npm test` (21 tests) pass.
+- `npm run build`, `npm run check:copy`, `npm run check:style`, `npm run typecheck` and `npm test` (26 tests) pass.

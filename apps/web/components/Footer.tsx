@@ -9,7 +9,7 @@ export function Footer() {
     <footer>
       <div className="wrap">
         <div className="foot">
-          <Image src={images.logo} alt={a11y.logoAlt} sizes="180px" />
+          <Image src={images.logoBlack} alt={a11y.logoAlt} sizes="180px" />
           <div className="team">
             <span className="l">{footer.builtBy}</span>
             {footer.team.map((name) => (

@@ -7,9 +7,10 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { images } from "@/lib/images";
 import { Footer } from "./Footer";
+import { Picture } from "./Picture";
 import { Reveal } from "./Reveal";
 
-/** The last slide: the mascot says hi, text is mentioned as a side option, and the footer sits at the bottom. */
+/** The last slide: the star says hi, text is mentioned as a side option, and the footer sits at the bottom. */
 export function Closing() {
   const { closing } = copy;
   const reduced = useReducedMotion();
@@ -17,10 +18,11 @@ export function Closing() {
   const onReveal = useStartOnReveal(useCallback(() => setWaving(!reduced), [reduced]), 900);
   return (
     <section id="closing" className="slide closing">
+      <Picture fill label={closing.picture} />
       <div className="wrap center">
         <Reveal onReveal={onReveal}>
           <div className={`m${waving ? " waving" : ""}`}>
-            <Image src={images.welcome} alt={closing.mascotAlt} sizes="(max-width: 760px) 260px, 420px" />
+            <Image src={images.starWhite} alt="" sizes="(max-width: 760px) 120px, 180px" />
           </div>
           <h2>{closing.title}</h2>
           <p className="lead">{closing.lead}</p>

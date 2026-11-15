@@ -5,23 +5,14 @@
 // at most one exclamation point, and short sentences.
 // keep links, class names and other non copy out of this file.
 
-import type { ImageKey } from "@/lib/images";
+import type { IconName } from "@/lib/icons";
 import type { Script } from "@/lib/thread";
 
-type SafetyTile =
-  | { title: string; text: string; image: ImageKey; alt: string; zoom?: boolean }
-  | { title: string; text: string; placeholder: { lines: string[]; label: string } };
-
-const safetyTiles: SafetyTile[] = [
-  { title: "asks before risky actions", text: "sending, buying, submitting and deleting all wait for your yes.", image: "waiting", alt: "spectr mascot waiting for an answer" },
-  // OPEN ITEM 1: the passwords tile still needs a mascot pose. the gray box below is a placeholder.
-  {
-    title: "never types passwords",
-    text: "logins stay with you.",
-    placeholder: { lines: ["placeholder", "mascot pose needed:", "passwords"], label: "placeholder for a password mascot pose" },
-  },
-  { title: "say stop anytime", text: "one word ends the task.", image: "stopped", alt: "spectr mascot with a stop sign" },
-  { title: "only uses your own mac", text: "spectr works on your computer and nowhere else.", image: "automation", alt: "spectr mascot next to a laptop", zoom: true },
+const safetyTiles: Array<{ title: string; text: string; icon: IconName }> = [
+  { title: "asks before risky actions", text: "sending, buying, submitting and deleting all wait for your yes.", icon: "shield" },
+  { title: "never types passwords", text: "logins stay with you.", icon: "lock" },
+  { title: "say stop anytime", text: "one word ends the task.", icon: "stop" },
+  { title: "only uses your own mac", text: "spectr works on your computer and nowhere else.", icon: "screen" },
 ];
 
 interface Stat {
@@ -88,8 +79,7 @@ export const copy = {
     cta: "see how it works",
     note: "say stop to cancel any task.",
     replay: "replay",
-    mascotWorking: "spectr mascot working on a task",
-    mascotSuccess: "spectr mascot celebrating a finished task",
+    picture: "photo: someone on a couch, facetiming a laptop across the room",
   },
 
   how: {
@@ -97,11 +87,11 @@ export const copy = {
     title: "four steps. one call.",
     lead: "you talk. your mac works. you watch it happen.",
     steps: [
-      { title: "start a facetime call", text: "call spectr like you would call a friend.", image: "welcome", alt: "spectr mascot greeting you" },
-      { title: "say what you need", text: "talk in plain words. spectr listens.", image: "listening", alt: "spectr mascot listening" },
-      { title: "watch your mac work", text: "your mac screen shows on the call as spectr clicks and types.", image: "screen", alt: "spectr mascot next to a mac screen" },
-      { title: "hear the result", text: "spectr tells you what it did. say stop any time.", image: "success", alt: "spectr mascot with a check mark" },
-    ] satisfies Array<{ title: string; text: string; image: ImageKey; alt: string }>,
+      { title: "start a facetime call", text: "call spectr like you would call a friend.", icon: "facetime", picture: "photo: a hand holding a phone, about to call" },
+      { title: "say what you need", text: "talk in plain words. spectr listens.", icon: "mic", picture: "photo: a person talking to their phone" },
+      { title: "watch your mac work", text: "your mac screen shows on the call as spectr clicks and types.", icon: "screen", picture: "photo: a mac screen with a cursor moving" },
+      { title: "hear the result", text: "spectr tells you what it did. say stop any time.", icon: "check", picture: "photo: a person smiling at a finished task" },
+    ] satisfies Array<{ title: string; text: string; icon: IconName; picture: string }>,
   },
 
   cases: {
@@ -109,11 +99,11 @@ export const copy = {
     title: "calls that sound like you.",
     lead: "swipe through the cards and watch each call play out.",
     cards: [
-      { role: "student", title: "brief replies. just the answer.", example: "when is my bio lab due", traits: ["brief", "direct"], image: "launch", alt: "spectr mascot with sparkles" },
-      { role: "accessibility", title: "short sentences and a word at each step.", example: "make the text on my screen bigger", traits: ["simple", "step by step", "asks first"], image: "waiting", alt: "spectr mascot waiting for an answer" },
-      { role: "corporate", title: "concise and professional.", example: "send the q3 report to my manager", traits: ["concise", "preview first"], image: "success", alt: "spectr mascot with a check mark" },
-      { role: "frequent traveler", title: "watch it happen and hear a clear confirmation.", example: "rename the trip photos folder to tokyo 2026", traits: ["live screen", "confirms"], image: "pairing", alt: "spectr mascot between a laptop and a phone" },
-    ] satisfies Array<{ role: string; title: string; example: string; traits: string[]; image: ImageKey; alt: string }>,
+      { role: "student", icon: "calendar", title: "brief replies. just the answer.", example: "when is my bio lab due", traits: ["brief", "direct"], picture: "photo: a student at a library table with a laptop" },
+      { role: "accessibility", icon: "eye", title: "short sentences and a word at each step.", example: "make the text on my screen bigger", traits: ["simple", "step by step", "asks first"], picture: "photo: an older adult at a desk, smiling at a screen" },
+      { role: "corporate", icon: "mail", title: "concise and professional.", example: "send the q3 report to my manager", traits: ["concise", "preview first"], picture: "photo: a person in an office, phone propped on the desk" },
+      { role: "frequent traveler", icon: "folder", title: "watch it happen and hear a clear confirmation.", example: "rename the trip photos folder to tokyo 2026", traits: ["live screen", "confirms"], picture: "photo: a traveler in an airport with a phone" },
+    ] satisfies Array<{ role: string; icon: IconName; title: string; example: string; traits: string[]; picture: string }>,
   },
 
   demo: {
@@ -187,7 +177,7 @@ export const copy = {
   closing: {
     title: "say hi to spectr.",
     lead: "facetime it. say what you need. watch your mac do it.",
-    mascotAlt: "spectr mascot greeting you",
+    picture: "photo: a phone on a desk showing a facetime call",
     textLine: "prefer to text? that works too.",
     me: "find my resume",
     bot: "here it is. resume_2026.pdf is open on your mac.",

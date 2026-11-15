@@ -1,20 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { copy } from "@/content/copy";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
-
-const nunito = localFont({
-  src: [
-    { path: "./fonts/nunito-600.woff2", weight: "600", style: "normal" },
-    { path: "./fonts/nunito-700.woff2", weight: "700", style: "normal" },
-    { path: "./fonts/nunito-800.woff2", weight: "800", style: "normal" },
-    { path: "./fonts/nunito-900.woff2", weight: "900", style: "normal" },
-  ],
-  variable: "--font-nunito",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: copy.meta.title,
@@ -32,7 +20,7 @@ const BOOT = `(function(){var d=document.documentElement;d.classList.add("js");v
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={nunito.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT }} />
       </head>

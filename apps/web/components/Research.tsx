@@ -1,4 +1,5 @@
 import { copy } from "@/content/copy";
+import { Eyebrow } from "./Eyebrow";
 import { Reveal } from "./Reveal";
 import { Source } from "./Source";
 
@@ -9,7 +10,7 @@ export function Research() {
     <section id="research" className="slide research">
       <div className="wrap">
         <Reveal>
-          <span className="eyebrow">{research.eyebrow}</span>
+          <Eyebrow light>{research.eyebrow}</Eyebrow>
           <h2>{research.title}</h2>
         </Reveal>
         <div className="bigstats">

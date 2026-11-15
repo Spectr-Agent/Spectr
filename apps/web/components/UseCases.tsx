@@ -1,12 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { caseScripts, copy } from "@/content/copy";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStartOnReveal } from "@/hooks/useStartOnReveal";
 import { useCall } from "@/hooks/useCall";
-import { images } from "@/lib/images";
+import { Eyebrow } from "./Eyebrow";
+import { Icon } from "./Icon";
+import { Picture } from "./Picture";
 import { CallPhone } from "./CallPhone";
 import { Reveal } from "./Reveal";
 
@@ -54,7 +55,7 @@ export function UseCases() {
     <section id="cases" className="slide cases">
       <div className="wrap">
         <Reveal onReveal={onReveal}>
-          <span className="eyebrow">{cases.eyebrow}</span>
+          <Eyebrow>{cases.eyebrow}</Eyebrow>
           <h2>{cases.title}</h2>
           <p className="lead">{cases.lead}</p>
         </Reveal>
@@ -68,11 +69,11 @@ export function UseCases() {
                 return (
                   <div key={card.role} className={`ccard${offset === 0 ? " act" : ""}`} data-a={distance} style={style} onClick={() => go(index)}>
                     <div className="cart">
-                      <div className="cmasc">
-                        <span className="disc" />
-                        <Image src={images[card.image]} alt={card.alt} sizes="200px" />
-                      </div>
-                      <span className="role">{card.role}</span>
+                      <Picture label={card.picture} ratio="16 / 9" />
+                      <span className="role">
+                        <Icon name={card.icon} />
+                        {card.role}
+                      </span>
                       <h3>{card.title}</h3>
                       <div className="ex">{card.example}</div>
                       <div className="traits">
