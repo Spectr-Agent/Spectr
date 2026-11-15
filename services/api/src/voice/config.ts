@@ -1,6 +1,6 @@
 export const voiceConfig = Object.freeze({
-  voiceId: "NyxenPOqNyllHIzSoPbJ",
-  voiceName: "Theo - Warm and Young",
+  voiceId: "ynTHHllfDmGsZ3G8QJt9",
+  voiceName: "Daniel",
   modelId: "eleven_v4_turbo",
   voiceSettings: Object.freeze({
     stability: 0.5,

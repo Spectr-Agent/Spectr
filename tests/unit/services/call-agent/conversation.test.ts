@@ -5,6 +5,7 @@ import {
   greeting,
   GOODBYE,
   isTerminal,
+  localHour,
   MOOD,
   narration,
   NOT_LINKED,
@@ -55,16 +56,40 @@ describe("phrases", () => {
     expect(greeting("phone")).toContain("your Mac");
     expect(greeting("facetime")).toContain("looking at your Mac");
     expect(greeting("app")).toContain("with you");
-    expect(greeting("phone", true)).toContain("now linked");
+    expect(greeting("phone", { justLinked: true })).toContain("now linked");
     expect(NOT_LINKED).toContain("isn't linked");
     expect(GOODBYE).toBe(`${MOOD.warm} Very good. Goodbye.`);
     expect(ROUTE_FAILED).toContain("couldn't reach");
   });
 
+  it("opens with the time of day, the caller's name and the Mac's state", () => {
+    expect(greeting("facetime", { hour: 9, name: "Poorav" })).toBe(
+      `${MOOD.warm} Good morning, Poorav. Spectr here. You're looking at your Mac, live. Everything's in order. What may I do for you?`,
+    );
+    expect(greeting("phone", { hour: 14 })).toContain("Good afternoon. Spectr here");
+    expect(greeting("phone", { hour: 20 })).toContain("Good evening.");
+    expect(greeting("phone", { hour: 2 })).toContain("Good evening.");
+    expect(greeting("phone")).toContain("Hello. Spectr here");
+    expect(greeting("phone", { name: "  " })).toContain("Hello. Spectr");
+    const asking = status({ state: "waitingForUser", question: "Send the email?" });
+    expect(greeting("phone", { active: asking })).toContain("paused on a question for you: Send the email?");
+    expect(greeting("phone", { active: status({ state: "running" }) })).toContain("still working on your last task");
+    expect(greeting("phone", { active: status({ state: "succeeded" }) })).toContain("Everything's in order");
+    expect(greeting("phone", { justLinked: true, hour: 9 })).toMatch(/^\[warmly\] You're all set, this number is now linked to Spectr\. Good morning\./u);
+  });
+
+  it("finds the caller's local hour from a time zone", () => {
+    const noon = new Date("2026-06-01T16:00:00Z");
+    expect(localHour("America/New_York", noon)).toBe(12);
+    expect(localHour("Europe/London", noon)).toBe(17);
+    expect(localHour(undefined, noon)).toBeUndefined();
+    expect(localHour("Not/AZone", noon)).toBeUndefined();
+  });
+
   it("starts every spoken line with a mood tag", () => {
     const tags = Object.values(MOOD);
     const startsWithTag = (line: string) => tags.some((tag) => line.startsWith(`${tag} `));
-    for (const line of [greeting("phone"), greeting("facetime", true), acknowledgement("task"), GOODBYE, NOT_LINKED, ROUTE_FAILED]) {
+    for (const line of [greeting("phone"), greeting("facetime", { justLinked: true }), acknowledgement("task"), GOODBYE, NOT_LINKED, ROUTE_FAILED]) {
       expect(startsWithTag(line)).toBe(true);
     }
     expect(startsWithTag(narration(null, status({ state: "succeeded", summary: "x" })) ?? "")).toBe(true);

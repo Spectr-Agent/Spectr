@@ -82,15 +82,58 @@ export function acknowledgement(kind: InboundKind): string {
   }
 }
 
-export function greeting(medium: CallMedium, justLinked = false): string {
-  const hello =
-    medium === "facetime"
-      ? "Hello, this is Spectr. You're looking at your Mac. What shall I do?"
-      : medium === "app"
-        ? "Hello, it's Spectr. I'm on your Mac with you. What shall I do?"
-        : "Hello, this is Spectr. What shall I do on your Mac?";
-  return withMood("warm", justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello);
+export interface GreetingOptions {
+  /** Confirms a number that was linked during this call. */
+  justLinked?: boolean;
+  /** The caller's first name, when Spectr knows it. */
+  name?: string | null;
+  /** The task already running for this Mac when the call starts. */
+  active?: TaskStatus | null;
+  /** The caller's local hour (0-23), for "good morning"; omitted means a plain hello. */
+  hour?: number;
 }
+
+/** The caller's local hour, or undefined when the time zone is unknown to the runtime. */
+export function localHour(timeZone: string | undefined, now = new Date()): number | undefined {
+  if (!timeZone) return undefined;
+  try {
+    const hour = new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now);
+    return Number(hour) % 24;
+  } catch {
+    return undefined;
+  }
+}
+
+function hello(hour: number | undefined, name: string | null | undefined): string {
+  const who = name?.trim() ? `, ${name.trim()}` : "";
+  if (hour === undefined) return `Hello${who}.`;
+  const part = hour < 5 ? "evening" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+  return `Good ${part}${who}.`;
+}
+
+/**
+ * How Spectr opens a call: a greeting, where it is, and whether it is already busy, so
+ * the caller knows the state of their Mac before saying anything.
+ */
+export function greeting(medium: CallMedium, options: GreetingOptions = {}): string {
+  const where =
+    medium === "facetime"
+      ? "Spectr here. You're looking at your Mac, live."
+      : medium === "app"
+        ? "Spectr here, on your Mac with you."
+        : "Spectr here, on your Mac.";
+  const active = options.active && !isTerminal(options.active.state) ? options.active : null;
+  const status = active
+    ? active.state === "waitingForUser" && active.question
+      ? `I'm paused on a question for you: ${clip(active.question, 120)}`
+      : "I'm still working on your last task. Say stop, or give me something new."
+    : "Everything's in order. What may I do for you?";
+  const linked = options.justLinked ? "You're all set, this number is now linked to Spectr. " : "";
+  return withMood("warm", `${linked}${hello(options.hour, options.name)} ${where} ${status}`);
+}
+
+/** When the caller says hello again mid-call. */
+export const STILL_HERE = withMood("warm", "Still here. What may I do for you?");
 
 export const NOT_LINKED = withMood(
   "sorry",

@@ -8,6 +8,7 @@ import {
   isTerminal,
   narration,
   ROUTE_FAILED,
+  STILL_HERE,
   type CallMedium,
   type TaskStatus,
   utteranceAction,
@@ -37,9 +38,9 @@ export class CallSession {
   ) {}
 
   /** Greets, and picks up a task that is already running for this Mac. */
-  async begin(options: { justLinked?: boolean } = {}): Promise<void> {
+  async begin(options: { justLinked?: boolean; name?: string | null; hour?: number } = {}): Promise<void> {
     this.current = await this.tasks.activeTask(this.caller).catch(() => null);
-    this.output.say(greeting(this.medium, options.justLinked));
+    this.output.say(greeting(this.medium, { ...options, active: this.current }));
     this.startPolling();
   }
 
@@ -52,7 +53,7 @@ export class CallSession {
       case "ignore":
         return;
       case "greeting":
-        this.output.say(greeting(this.medium));
+        this.output.say(STILL_HERE);
         return;
       case "goodbye":
         this.output.say(GOODBYE);
