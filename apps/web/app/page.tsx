@@ -14,9 +14,9 @@ export default function Page() {
     <>
       <Nav />
       <main>
-        {/* The page opens on the problem, in numbers, then introduces Spectr. */}
-        <Research />
+        {/* Introduce Spectr, then the problem in numbers, then how it works. */}
         <Hero />
+        <Research />
         <HowItWorks />
         <UseCases />
         <Demo />
