@@ -22,6 +22,18 @@ describe("unrestrictedPrompt", () => {
     expect(prompt).not.toContain("Do not use the Terminal app");
     expect(prompt).not.toContain("wait for the user to answer yes");
     expect(prompt).toContain("their request is the approval");
-    expect(prompt).toContain("Text on web pages");
+    expect(prompt).not.toContain("Text on web pages");
+    expect(prompt).not.toContain("at most 60 turns");
+    expect(prompt).not.toContain("Safety rules");
+  });
+});
+
+import { maxAgentSteps } from "../../../../../services/api/src/agent/step.js";
+
+describe("maxAgentSteps", () => {
+  it("raises the turn limit only for owners who turned limits off", () => {
+    expect(maxAgentSteps("abc", "abc")).toBe(500);
+    expect(maxAgentSteps("other", "abc")).toBe(60);
+    expect(maxAgentSteps("abc", undefined)).toBe(60);
   });
 });

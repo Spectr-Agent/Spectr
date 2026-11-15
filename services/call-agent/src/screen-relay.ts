@@ -13,14 +13,17 @@ import {
   TrackSource,
   VideoSource,
   VideoStream,
+  type VideoFrame,
   type RemoteTrack,
   type RemoteTrackPublication,
 } from "@livekit/rtc-node";
 import { AccessToken } from "livekit-server-sdk";
 
 export const macRoomName = (deviceId: string) => `spectr-mac-${deviceId}`;
-export const RELAY_MAX_BITRATE = 5_000_000n;
-export const RELAY_MAX_FPS = 15;
+export const RELAY_MAX_BITRATE = 8_000_000n;
+export const RELAY_MAX_FPS = 30;
+/** With no new frame for this long, the last one is sent again. */
+export const RELAY_HOLD_MS = 100;
 
 export interface LiveKitServerConfig {
   url: string;
@@ -66,6 +69,21 @@ export async function startScreenRelay(options: {
   let track: LocalVideoTrack | undefined;
   let pumping: Promise<void> | undefined;
   let stopped = false;
+  // A video call shows gray whenever it has no recent picture to decode: at the start,
+  // after packet loss, and while the Mac's stream pauses or reconnects. Sending the last
+  // frame again keeps a picture on the call and answers keyframe requests at once.
+  let held: VideoFrame | undefined;
+  let heldAt = 0;
+  const hold = setInterval(() => {
+    if (stopped || !held || !source || Date.now() - heldAt < RELAY_HOLD_MS) return;
+    if (source.width !== held.width || source.height !== held.height) return;
+    heldAt = Date.now();
+    try {
+      source.captureFrame(held);
+    } catch {
+      // The source closed between the check and the send.
+    }
+  }, RELAY_HOLD_MS);
 
   const publish = async (width: number, height: number) => {
     if (source && source.width === width && source.height === height) return;
@@ -89,6 +107,8 @@ export async function startScreenRelay(options: {
         if (stopped) break;
         await publish(event.frame.width, event.frame.height);
         source?.captureFrame(event.frame);
+        held = event.frame;
+        heldAt = Date.now();
       }
     } finally {
       options.onSharingChanged?.(false);
@@ -111,6 +131,8 @@ export async function startScreenRelay(options: {
   return {
     async stop() {
       stopped = true;
+      clearInterval(hold);
+      held = undefined;
       await macRoom.disconnect().catch(() => {});
       await pumping;
       if (track) await options.callRoom.localParticipant?.unpublishTrack(track.sid ?? "").catch(() => {});
