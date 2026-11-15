@@ -370,6 +370,15 @@ final class MacAgentLoop {
         }.max() ?? .zero
     }
 
+    /// The shortest settle for a given maximum. A page that is still loading often
+    /// shows a blank or skeleton frame that looks stable, so URL and app opens wait a
+    /// little before stillness counts; input events settle almost at once.
+    static func settleMinimum(forMax max: Duration) -> Duration {
+        if max >= .milliseconds(2_500) { return .milliseconds(800) }
+        if max >= .milliseconds(1_500) { return .milliseconds(500) }
+        return .milliseconds(120)
+    }
+
     static func message(for error: MacAgentError) -> String {
         switch error {
         case .offline: "Can't reach the Spectr server. Check this Mac's internet connection."

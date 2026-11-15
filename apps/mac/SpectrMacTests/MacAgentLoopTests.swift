@@ -287,6 +287,12 @@ struct MacAgentLoopTests {
         #expect(settle([]) == .zero)
     }
 
+    @Test func pagesAndAppsGetALongerMinimumSettleThanInput() {
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(2_500)) == .milliseconds(800))
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(1_500)) == .milliseconds(500))
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(400)) == .milliseconds(120))
+    }
+
     @Test func pausesAfterABatchBeforeCapturingAgain() async {
         let pauses = PauseRecorder()
         let api = FakeAgentAPI(
