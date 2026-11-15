@@ -121,11 +121,12 @@ final class ScreenPublisher {
         state = .idle
     }
 
-    /// Quality first: a high bitrate at up to 30 fps, and under congestion drop frames,
-    /// never resolution.
+    /// Quality first: a high bitrate, and under congestion drop frames, never resolution.
+    /// 15 fps, because the FaceTime relay decodes this stream beside the call's voice and
+    /// 30 fps starved it.
     static let publishOptions = VideoPublishOptions(
-        encoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 30),
-        screenShareEncoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 30),
+        encoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 15),
+        screenShareEncoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 15),
         simulcast: false,
         degradationPreference: .maintainResolution
     )
