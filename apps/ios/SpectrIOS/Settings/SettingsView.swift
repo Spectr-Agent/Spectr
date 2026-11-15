@@ -74,11 +74,11 @@ struct SettingsView: View {
                     Button("Sign Out", role: .destructive, action: signOut)
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle("settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("done") { dismiss() }
                 }
             }
         }
