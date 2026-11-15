@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CallSession, type CallOutput } from "../../../../services/call-agent/src/call.js";
 import type { Caller, TaskGateway } from "../../../../services/call-agent/src/tasks.js";
-import type { TaskStatus } from "../../../../services/call-agent/src/conversation.js";
+import { FIRST_WORDING, type TaskStatus } from "../../../../services/call-agent/src/conversation.js";
 
 const caller: Caller = { ownerId: "u1", deviceId: "d1", handle: "+1" };
 
@@ -14,7 +14,7 @@ function setup(tasks: Partial<TaskGateway> = {}, pollMs = 0) {
     activeTask: vi.fn(async () => null),
     ...tasks,
   };
-  const session = new CallSession("c1", "phone", caller, gateway, output, pollMs);
+  const session = new CallSession("c1", "phone", caller, gateway, output, { pollMs, phrasing: FIRST_WORDING });
   return { session, said, output, gateway };
 }
 
@@ -57,7 +57,10 @@ describe("CallSession", () => {
     await session.begin();
     said.length = 0;
     await session.hear("do something");
-    expect(said).toEqual(["[apologetic] I'm afraid I couldn't reach your Mac's task list. Please try again in a moment."]);
+    expect(said).toEqual([
+      "[cheerfully] Right away.",
+      "[apologetic] I'm afraid I couldn't reach your Mac's task list. Please try again in a moment.",
+    ]);
   });
 
   it("hangs up on goodbye and stops processing", async () => {
