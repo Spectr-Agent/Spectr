@@ -20,6 +20,23 @@ export interface TaskStatus {
   summary: string | null;
 }
 
+/**
+ * ElevenLabs v3/v4 audio tags: how a line should sound. Only ever spoken, never shown,
+ * so every line Spectr says on a call starts with one.
+ */
+export const MOOD = Object.freeze({
+  warm: "[warmly]",
+  cheerful: "[cheerfully]",
+  calm: "[calmly]",
+  curious: "[curious]",
+  sorry: "[apologetic]",
+} as const);
+export type Mood = keyof typeof MOOD;
+
+export function withMood(mood: Mood, text: string): string {
+  return `${MOOD[mood]} ${text}`;
+}
+
 export type UtteranceAction =
   | { type: "ignore" }
   | { type: "greeting" }
@@ -55,13 +72,13 @@ export function utteranceAction(transcript: string, hasActiveTask: boolean): Utt
 export function acknowledgement(kind: InboundKind): string {
   switch (kind) {
     case "task":
-      return "On it.";
+      return withMood("cheerful", "On it.");
     case "correction":
-      return "Got it, changing that.";
+      return withMood("calm", "Got it, changing that.");
     case "answer":
-      return "Thanks.";
+      return withMood("warm", "Thanks.");
     case "stop":
-      return "Stopping.";
+      return withMood("calm", "Stopping.");
   }
 }
 
@@ -72,16 +89,21 @@ export function greeting(medium: CallMedium, justLinked = false): string {
       : medium === "app"
         ? "Hi, it's Spectr. I'm on your Mac with you. What should I do?"
         : "Hi, this is Spectr. What should I do on your Mac?";
-  return justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello;
+  return withMood("warm", justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello);
 }
 
-export const NOT_LINKED =
-  "This number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.";
-export const GOODBYE = "Okay. Bye.";
-export const ROUTE_FAILED = "Sorry, I couldn't reach your Mac's task list. Try again in a moment.";
+export const NOT_LINKED = withMood(
+  "sorry",
+  "This number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.",
+);
+export const GOODBYE = withMood("warm", "Okay. Bye.");
+export const ROUTE_FAILED = withMood("sorry", "Sorry, I couldn't reach your Mac's task list. Try again in a moment.");
 
-/** Speakable text is capped so a long summary never becomes a monologue. */
-export function clip(text: string, max = 300): string {
+/**
+ * Speakable text is capped so a long summary never becomes a monologue. The default
+ * leaves room for a mood tag under the speech client's 300-character limit.
+ */
+export function clip(text: string, max = 280): string {
   const clean = text.replace(/\s+/gu, " ").trim();
   if (clean.length <= max) return clean;
   const cut = clean.slice(0, max);
@@ -100,17 +122,19 @@ export function narration(previous: TaskStatus | null, next: TaskStatus): string
   }
   switch (next.state) {
     case "waitingForUser":
-      if (next.question && (!sameTask || previous?.question !== next.question)) return clip(next.question);
+      if (next.question && (!sameTask || previous?.question !== next.question)) {
+        return withMood("curious", clip(next.question));
+      }
       return null;
     case "succeeded":
       if (sameTask && previous?.state === "succeeded") return null;
-      return next.summary ? clip(`Done. ${next.summary}`) : "Done.";
+      return withMood("cheerful", next.summary ? clip(`Done. ${next.summary}`) : "Done.");
     case "failed":
       if (sameTask && previous?.state === "failed") return null;
-      return next.summary ? clip(`I couldn't finish that. ${next.summary}`) : "I couldn't finish that.";
+      return withMood("sorry", next.summary ? clip(`I couldn't finish that. ${next.summary}`) : "I couldn't finish that.");
     case "cancelled":
       if (sameTask && previous?.state === "cancelled") return null;
-      return "Stopped.";
+      return withMood("calm", "Stopped.");
     case "accepted":
     case "running":
       return null;
