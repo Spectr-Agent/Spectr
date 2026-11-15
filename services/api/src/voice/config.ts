@@ -1,11 +1,11 @@
 export const voiceConfig = Object.freeze({
   voiceId: "NyxenPOqNyllHIzSoPbJ",
   voiceName: "Theo - Warm and Young",
-  modelId: "eleven_flash_v2_5",
+  modelId: "eleven_v4_turbo",
   voiceSettings: Object.freeze({
-    stability: 0.55,
+    stability: 0.5,
     similarity_boost: 0.75,
-    style: 0,
+    style: 0.4,
     use_speaker_boost: true,
     speed: 1.0,
   }),
