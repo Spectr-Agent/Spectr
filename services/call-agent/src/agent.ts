@@ -78,6 +78,8 @@ export default defineAgent({
           deviceId: lineOwner.deviceId,
           callId: chert.callId ?? ctx.job.id,
           callRoom: ctx.room,
+          // Nobody is on the call yet: hold one recent frame instead of transcoding.
+          active: false,
         }).catch(() => undefined);
       }
     }
@@ -99,6 +101,7 @@ export default defineAgent({
     } else {
       participant = await ctx.waitForParticipant();
     }
+    relay?.setActive(true);
     const claim = claimCaller({
       jobMetadata: ctx.job.metadata,
       roomName: ctx.room.name ?? "",
@@ -175,7 +178,13 @@ export default defineAgent({
       })().catch(() => undefined);
     }
 
+    // When the caller hangs up, the task they were watching stops with the call.
+    const callerIdentity = participant.identity;
+    ctx.room.on(RoomEvent.ParticipantDisconnected, (left: RemoteParticipant) => {
+      if (left.identity === callerIdentity) void call?.stopTask();
+    });
     ctx.addShutdownCallback(async () => {
+      await call?.stopTask();
       call?.end();
       await relay?.stop();
       await session?.close();

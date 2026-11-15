@@ -51,7 +51,16 @@ export async function relayToken(config: LiveKitServerConfig, deviceId: string, 
   return token.toJwt();
 }
 
+/** How often an idle relay takes one fresh frame, so a new caller sees a recent screen. */
+export const RELAY_IDLE_REFRESH_MS = 20_000;
+
 export interface ScreenRelay {
+  /**
+   * Idle (no caller yet): keeps one recent frame on the call and stops receiving video,
+   * because decoding and re-encoding the screen competes with the voice of every live
+   * call in the same container. Active: relays every frame.
+   */
+  setActive(active: boolean): void;
   stop(): Promise<void>;
 }
 
@@ -66,7 +75,23 @@ export async function startScreenRelay(options: {
   callId: string;
   callRoom: Room;
   onSharingChanged?: (sharing: boolean) => void;
+  /** Start relaying every frame at once (a caller is present). Default true. */
+  active?: boolean;
 }): Promise<ScreenRelay> {
+  let active = options.active ?? true;
+  const screens = new Set<RemoteTrackPublication>();
+  const subscribe = (on: boolean) => {
+    for (const publication of screens) {
+      try {
+        publication.setSubscribed(on);
+      } catch {
+        // The Mac unpublished it; a new publication subscribes itself.
+      }
+    }
+  };
+  const refresh = setInterval(() => {
+    if (!stopped && !active) subscribe(true);
+  }, RELAY_IDLE_REFRESH_MS);
   const macRoom = new Room();
   let source: VideoSource | undefined;
   let track: LocalVideoTrack | undefined;
@@ -102,7 +127,7 @@ export async function startScreenRelay(options: {
     } as never);
   };
 
-  const pump = async (remote: RemoteTrack) => {
+  const pump = async (remote: RemoteTrack, publication: RemoteTrackPublication) => {
     const stream = new VideoStream(remote);
     options.onSharingChanged?.(true);
     try {
@@ -112,6 +137,11 @@ export async function startScreenRelay(options: {
         source?.captureFrame(event.frame);
         held = event.frame;
         heldAt = Date.now();
+        if (!active) {
+          // One fresh frame is enough until a caller arrives.
+          publication.setSubscribed(false);
+          break;
+        }
       }
     } finally {
       options.onSharingChanged?.(false);
@@ -122,7 +152,8 @@ export async function startScreenRelay(options: {
     RoomEvent.TrackSubscribed,
     (remote: RemoteTrack, publication: RemoteTrackPublication) => {
       if (remote.kind !== TrackKind.KIND_VIDEO || publication.source !== TrackSource.SOURCE_SCREENSHARE) return;
-      pumping = pump(remote).catch(() => {});
+      screens.add(publication);
+      pumping = pump(remote, publication).catch(() => {});
     },
   );
 
@@ -132,9 +163,15 @@ export async function startScreenRelay(options: {
   });
 
   return {
+    setActive(next: boolean) {
+      if (stopped || active === next) return;
+      active = next;
+      if (next) subscribe(true);
+    },
     async stop() {
       stopped = true;
       clearInterval(hold);
+      clearInterval(refresh);
       held = undefined;
       await macRoom.disconnect().catch(() => {});
       await pumping;

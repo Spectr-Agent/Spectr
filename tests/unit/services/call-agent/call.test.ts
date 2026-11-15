@@ -115,3 +115,43 @@ describe("CallSession", () => {
     }
   });
 });
+
+describe("CallSession.stopTask", () => {
+  const running: TaskStatus = { taskId: "t1", state: "running", revision: 1, question: null, summary: null };
+
+  it("stops the running task once when the caller leaves", async () => {
+    const { session, gateway } = setup({ activeTask: async () => running, status: vi.fn(async () => running) });
+    await session.begin();
+    await session.stopTask();
+    await session.stopTask();
+    expect(gateway.route).toHaveBeenCalledTimes(1);
+    expect(gateway.route).toHaveBeenCalledWith(caller, "stop", "call:c1:end");
+  });
+
+  it("still stops when the status or the stop itself fails", async () => {
+    const route = vi.fn(async () => {
+      throw new Error("down");
+    });
+    const { session } = setup({ activeTask: async () => running, status: async () => Promise.reject(new Error("x")), route });
+    await session.begin();
+    await expect(session.stopTask()).resolves.toBeUndefined();
+    expect(route).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing without a task, or when it already finished", async () => {
+    const none = setup();
+    await none.session.begin();
+    await none.session.stopTask();
+    expect(none.gateway.route).not.toHaveBeenCalled();
+
+    const done = setup({ activeTask: async () => ({ ...running, state: "succeeded" as const }) });
+    await done.session.begin();
+    await done.session.stopTask();
+    expect(done.gateway.route).not.toHaveBeenCalled();
+
+    const justDone = setup({ activeTask: async () => running, status: async () => ({ ...running, state: "succeeded" as const }) });
+    await justDone.session.begin();
+    await justDone.session.stopTask();
+    expect(justDone.gateway.route).not.toHaveBeenCalled();
+  });
+});
