@@ -37,6 +37,7 @@ export class CallSession {
   private turn = 0;
   private current: TaskStatus | null = null;
   private stopped = false;
+  private taskStopped = false;
   private polling: ReturnType<typeof setInterval> | undefined;
   private prepared: string | null = null;
   private readonly pollMs: number;
@@ -117,6 +118,19 @@ export class CallSession {
     const line = narration(this.current, next);
     this.current = next;
     if (line) this.output.say(line);
+  }
+
+  /**
+   * The caller has gone, so nobody is watching or able to answer: stop the task this
+   * call was working on. Safe to call more than once.
+   */
+  async stopTask(): Promise<void> {
+    const task = this.current;
+    if (this.taskStopped || !task || isTerminal(task.state)) return;
+    this.taskStopped = true;
+    const latest = await this.tasks.status(task.taskId).catch(() => null);
+    if (latest && isTerminal(latest.state)) return;
+    await this.tasks.route(this.caller, "stop", `call:${this.callId}:end`).catch(() => undefined);
   }
 
   end(): void {
