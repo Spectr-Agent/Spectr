@@ -83,6 +83,11 @@ export interface RunAgentStepOptions {
   clock?: () => number;
   linkSecret?: string;
   publicUrl?: string;
+  /**
+   * Runs work after the response has been sent (Vercel's `waitUntil`), so the Mac gets its
+   * next actions without waiting for a text to go out. Without it, notifications are awaited.
+   */
+  defer?: (work: Promise<void>) => void;
 }
 
 type ToolResultBlock = {
@@ -431,6 +436,13 @@ async function persist(
   );
 }
 
+/** Notifications never throw (the *Safely wrappers log instead), so deferring is safe. */
+function later(options: RunAgentStepOptions, work: Promise<void>): Promise<void> {
+  if (!options.defer) return work;
+  options.defer(work);
+  return Promise.resolve();
+}
+
 async function notifyQuestion(
   options: RunAgentStepOptions,
   task: AgentTaskRecord,
@@ -655,7 +667,7 @@ export async function runAgentStep(
       stepCount: task.stepCount,
     });
     if (saved.kind === "finished" && saved.state === "failed") {
-      await notifyResultSafely(options, task.taskId, summary, "failed", true);
+      await later(options, notifyResultSafely(options, task.taskId, summary, "failed", true));
     }
     return saved;
   }
@@ -737,7 +749,7 @@ export async function runAgentStep(
           consumedInboundIds: consumed,
           stepCount: task.stepCount + 1,
         });
-        await notifyResultSafely(options, task.taskId, summary, "failed", true);
+        await later(options, notifyResultSafely(options, task.taskId, summary, "failed", true));
         return saved;
       }
       throw upstreamError(task.revision);
@@ -774,7 +786,7 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
-      await notifyResultSafely(options, task.taskId, summary, "failed", true);
+      await later(options, notifyResultSafely(options, task.taskId, summary, "failed", true));
       return saved;
     }
 
@@ -822,13 +834,13 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
-      await notifyResultSafely(
+      await later(options, notifyResultSafely(
         options,
         task.taskId,
         failureSummary,
         "failed",
         true,
-      );
+      ));
       return saved;
     }
 
@@ -878,12 +890,12 @@ export async function runAgentStep(
           consumedInboundIds: consumed,
           stepCount: task.stepCount + 1,
         });
-        await notifyQuestionSafely(
+        await later(options, notifyQuestionSafely(
           options,
           task,
           question,
           task.stepCount + 1,
-        );
+        ));
         return saved;
       }
       if (mapped.kind === "finish") {
@@ -909,13 +921,13 @@ export async function runAgentStep(
           consumedInboundIds: consumed,
           stepCount: task.stepCount + 1,
         });
-        await notifyResultSafely(
+        await later(options, notifyResultSafely(
           options,
           task.taskId,
           summary,
           state,
           state === "succeeded" ? mapped.attachScreenshot : true,
-        );
+        ));
         return saved;
       }
     }
@@ -974,7 +986,7 @@ export async function runAgentStep(
         consumedInboundIds: consumed,
         stepCount: task.stepCount + 1,
       });
-      if (saved === actionResponse) await sendProgressSafely(options, task, saved);
+      if (saved === actionResponse) await later(options, sendProgressSafely(options, task, saved));
       return saved;
     }
 
@@ -1007,12 +1019,12 @@ export async function runAgentStep(
     consumedInboundIds: consumed,
     stepCount: task.stepCount + 1,
   });
-  await notifyResultSafely(
+  await later(options, notifyResultSafely(
     options,
     task.taskId,
     failureSummary,
     "failed",
     true,
-  );
+  ));
   return saved;
 }

@@ -18,6 +18,8 @@ export interface AnthropicResponse {
   stop_reason?: string | null;
   /** Set on refusals; `category` is safe to log. */
   stop_details?: { category?: string | null } | null;
+  /** Token counts, for timing logs; never used for control flow. */
+  usage?: Record<string, unknown>;
 }
 
 export class AnthropicHttpError extends Error {
@@ -104,10 +106,12 @@ export function createAnthropicCaller(
       typeof details === "object" && details !== null && typeof (details as Record<string, unknown>).category === "string"
         ? ((details as Record<string, unknown>).category as string)
         : null;
+    const usage = record.usage;
     return {
       content: payload.content,
       stop_reason: stopReason,
       stop_details: details == null ? null : { category },
+      ...(typeof usage === "object" && usage !== null ? { usage: usage as Record<string, unknown> } : {}),
     };
   };
 }

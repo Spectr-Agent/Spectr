@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import postgres from "postgres";
+import { waitUntil } from "@vercel/functions";
 import type { TaskStore } from "../inbound.js";
 import {
   ApiErrorSchema,
@@ -14,6 +15,7 @@ import { createAnthropicCaller } from "./anthropic.js";
 import type { CallClaude } from "./anthropic.js";
 import { apiErrorResponse } from "./errors.js";
 import { runAgentStep, type StepNotifier } from "./step.js";
+import { newStepTiming, stepTimingLine, timeClaude } from "./timing.js";
 import type { AgentTaskRecord } from "./types.js";
 import type { RouteOverrides } from "../route-deps.js";
 
@@ -263,19 +265,33 @@ export function createMacStepRoute(
       if (!deviceId) {
         return unauthorized();
       }
+      const started = Date.now();
+      const timing = newStepTiming();
       const response = await runAgentStep({
         store,
         deviceId,
         request: parsed.data,
-        callClaude:
+        callClaude: timeClaude(
           overrides?.callClaude ??
-          createAnthropicCaller(env.ANTHROPIC_API_KEY!),
+            createAnthropicCaller(env.ANTHROPIC_API_KEY!),
+          timing,
+        ),
         notifier: notifier(env, overrides),
+        defer: overrides?.defer ?? waitUntil,
         profiles: new PostgresOnboardingStore(connection),
         model: env.ANTHROPIC_MODEL ?? "claude-opus-5-5",
         linkSecret: env.SPECTR_LINK_SECRET,
         publicUrl: env.SPECTR_PUBLIC_URL,
       });
+      (overrides?.log ?? console.info)(
+        stepTimingLine({
+          taskId: parsed.data.taskId,
+          afterStep: parsed.data.afterStep,
+          kind: response.kind,
+          totalMs: Date.now() - started,
+          timing,
+        }),
+      );
       return Response.json(response);
     } catch (error) {
       return apiErrorResponse(error);
