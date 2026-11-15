@@ -43,7 +43,7 @@ no new app to learn. no small buttons. no steps to remember. if you can send a t
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_listening.png" width="110" alt=""><br>
 <b>phone call</b><br>
-<sub>call <b>+1 (470) 596 9455</b> and just say it. spectr talks back.</sub>
+<sub>call and just say it. spectr talks back.</sub>
 </td>
 <td align="center" width="25%">
 <img src="design-system/assets/mascot/spectr_pitch_hero.png" width="110" alt=""><br>
@@ -261,25 +261,6 @@ spectr opens the document, makes the change and sends you the result. mac at hom
 </td>
 </tr>
 </table>
-
-## what works today
-
-| | status |
-| --- | --- |
-| text a task and get a verified result back | ✅ works |
-| stop or correct a task by text, call or app | ✅ works |
-| ask before sending, buying or submitting. pause for logins | ✅ works |
-| a message that arrives twice runs once | ✅ works |
-| phone calls to +1 (470) 596 9455 | ✅ works on real hardware |
-| pair a mac with a code from the iphone | ✅ works |
-| mac screen streaming over livekit | ✅ works against production |
-| iphone app: chats, mac card, approvals, stop | ✅ works in the simulator against production |
-| iphone live screen and hands free calls | 🟡 works in testing, physical iphone run pending |
-| facetime with the mac's screen as video | 🟡 built, still testing |
-| onboarding questions and "shall i remember this?" | 🟡 built, not connected to imessage yet |
-| `status` and `continue` after an interruption | ⚪ planned |
-
-full ledger: [docs/native/STATUS.md](docs/native/STATUS.md).
 
 ## getting started
 
