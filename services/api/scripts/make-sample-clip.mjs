@@ -8,7 +8,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pinned = {
-  voiceId: "ynTHHllfDmGsZ3G8QJt9",
+  voiceId: "NyxenPOqNyllHIzSoPbJ",
   modelId: "eleven_flash_v2_5",
   outputFormat: "mp3_44100_128",
   voiceSettings: {
