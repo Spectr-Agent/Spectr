@@ -20,10 +20,13 @@ import {
 import { AccessToken } from "livekit-server-sdk";
 
 export const macRoomName = (deviceId: string) => `spectr-mac-${deviceId}`;
-export const RELAY_MAX_BITRATE = 8_000_000n;
-export const RELAY_MAX_FPS = 30;
+// The relay decodes and re-encodes video in the same container that runs the call's
+// voice. At 30 fps it starved the voice (speech detection ran seconds behind), so the
+// frame rate stays at 15.
+export const RELAY_MAX_BITRATE = 5_000_000n;
+export const RELAY_MAX_FPS = 15;
 /** With no new frame for this long, the last one is sent again. */
-export const RELAY_HOLD_MS = 100;
+export const RELAY_HOLD_MS = 600;
 
 export interface LiveKitServerConfig {
   url: string;

@@ -4,9 +4,9 @@ import Foundation
 /// Hands captured frames to the LiveKit publisher from the capture queue.
 ///
 /// When the screen doesn't change, ScreenCaptureKit sends only "idle" signals. The sink
-/// re-sends the last frame ten times a second, so a viewer who joins, or one that lost
-/// packets, gets a picture within a tenth of a second instead of a gray frame. A repeated
-/// frame costs the encoder almost nothing.
+/// re-sends the last frame twice a second, so a viewer who joins, or one that lost
+/// packets, gets a picture within half a second instead of a gray frame. Not faster:
+/// the FaceTime relay decodes every frame next to the call's voice.
 final class FrameSink: @unchecked Sendable {
     private let lock = NSLock()
     private var target: ((CVPixelBuffer) -> Void)?
@@ -14,7 +14,7 @@ final class FrameSink: @unchecked Sendable {
     private var lastSent = Date.distantPast
     private let refresh: TimeInterval
 
-    init(refresh: TimeInterval = 0.1) {
+    init(refresh: TimeInterval = 0.5) {
         self.refresh = refresh
     }
 
