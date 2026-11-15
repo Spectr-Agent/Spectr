@@ -56,9 +56,9 @@ Call +1 470 596 9455 from a number linked for iMessage, with the agent running a
 
 | Test | Expected (from the code) | Result | Reason |
 | --- | --- | --- | --- |
-| "open Notes and write milk" | "On it.", the Mac writes milk, then "Done. …" | | |
+| "open Notes and write milk" | "Right away.", the Mac writes milk, then "Done. …" | | |
 | Interrupt Spectr while it's talking | Spectr stops talking at once and handles what you said | | |
-| "actually write eggs" mid-task | "Got it, changing that.", the Mac writes eggs instead | | |
+| "actually write eggs" mid-task | "Understood, changing course.", the Mac writes eggs instead | | |
 | "stop" | "Stopping.", then "Stopped."; the Mac stops acting | | |
 | Silent for 30 s | Nothing is said and the call stays open (no idle timeout) | | |
 | Hang up mid-task | The task keeps running on the Mac; no result is texted (results are sent only for texted tasks) | | |

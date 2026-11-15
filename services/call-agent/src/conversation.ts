@@ -72,11 +72,11 @@ export function utteranceAction(transcript: string, hasActiveTask: boolean): Utt
 export function acknowledgement(kind: InboundKind): string {
   switch (kind) {
     case "task":
-      return withMood("cheerful", "On it.");
+      return withMood("cheerful", "Right away.");
     case "correction":
-      return withMood("calm", "Got it, changing that.");
+      return withMood("calm", "Understood, changing course.");
     case "answer":
-      return withMood("warm", "Thanks.");
+      return withMood("warm", "Thank you.");
     case "stop":
       return withMood("calm", "Stopping.");
   }
@@ -85,19 +85,19 @@ export function acknowledgement(kind: InboundKind): string {
 export function greeting(medium: CallMedium, justLinked = false): string {
   const hello =
     medium === "facetime"
-      ? "Hi, this is Spectr. You're looking at your Mac. What should I do?"
+      ? "Hello, this is Spectr. You're looking at your Mac. What shall I do?"
       : medium === "app"
-        ? "Hi, it's Spectr. I'm on your Mac with you. What should I do?"
-        : "Hi, this is Spectr. What should I do on your Mac?";
+        ? "Hello, it's Spectr. I'm on your Mac with you. What shall I do?"
+        : "Hello, this is Spectr. What shall I do on your Mac?";
   return withMood("warm", justLinked ? `You're all set, this number is now linked to Spectr. ${hello}` : hello);
 }
 
 export const NOT_LINKED = withMood(
   "sorry",
-  "This number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.",
+  "I'm afraid this number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.",
 );
-export const GOODBYE = withMood("warm", "Okay. Bye.");
-export const ROUTE_FAILED = withMood("sorry", "Sorry, I couldn't reach your Mac's task list. Try again in a moment.");
+export const GOODBYE = withMood("warm", "Very good. Goodbye.");
+export const ROUTE_FAILED = withMood("sorry", "I'm afraid I couldn't reach your Mac's task list. Please try again in a moment.");
 
 /**
  * Speakable text is capped so a long summary never becomes a monologue. The default
@@ -131,7 +131,7 @@ export function narration(previous: TaskStatus | null, next: TaskStatus): string
       return withMood("cheerful", next.summary ? clip(`Done. ${next.summary}`) : "Done.");
     case "failed":
       if (sameTask && previous?.state === "failed") return null;
-      return withMood("sorry", next.summary ? clip(`I couldn't finish that. ${next.summary}`) : "I couldn't finish that.");
+      return withMood("sorry", next.summary ? clip(`I'm afraid I couldn't finish that. ${next.summary}`) : "I'm afraid I couldn't finish that.");
     case "cancelled":
       if (sameTask && previous?.state === "cancelled") return null;
       return withMood("calm", "Stopped.");

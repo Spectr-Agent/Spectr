@@ -87,11 +87,11 @@ export function isStop(text: string): boolean {
 function replyForInbound(kind: InboundKind): string {
   switch (kind) {
     case "task":
-      return "Working on it.";
+      return "Right away.";
     case "correction":
-      return "Okay, updating that.";
+      return "Understood. Changing course.";
     case "answer":
-      return "Thanks, continuing.";
+      return "Thank you. Continuing.";
     case "stop":
       return "Stopped.";
   }

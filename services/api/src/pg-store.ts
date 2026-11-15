@@ -119,7 +119,7 @@ export class PostgresTaskStore implements TaskStore {
       await tx`
         update public.tasks
         set state = 'failed',
-            summary = 'Lost connection to your Mac.',
+            summary = 'I''m afraid I''ve lost the connection to your Mac.',
             updated_at = ${input.now}
         where device_id = ${input.deviceId}
           and state in ('accepted', 'running', 'waitingForUser')
@@ -304,7 +304,7 @@ export class PostgresTaskStore implements TaskStore {
       await tx`
         update public.tasks
         set state = 'failed',
-            summary = 'Lost connection to your Mac.',
+            summary = 'I''m afraid I''ve lost the connection to your Mac.',
             updated_at = ${now}
         where device_id = ${deviceId}
           and state in ('accepted', 'running', 'waitingForUser')

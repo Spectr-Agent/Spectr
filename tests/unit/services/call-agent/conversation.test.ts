@@ -43,9 +43,9 @@ describe("utteranceAction", () => {
 
 describe("phrases", () => {
   it.each([
-    ["task", `${MOOD.cheerful} On it.`],
-    ["correction", `${MOOD.calm} Got it, changing that.`],
-    ["answer", `${MOOD.warm} Thanks.`],
+    ["task", `${MOOD.cheerful} Right away.`],
+    ["correction", `${MOOD.calm} Understood, changing course.`],
+    ["answer", `${MOOD.warm} Thank you.`],
     ["stop", `${MOOD.calm} Stopping.`],
   ] as const)("acknowledgement(%s)", (kind, expected) => {
     expect(acknowledgement(kind)).toBe(expected);
@@ -57,7 +57,7 @@ describe("phrases", () => {
     expect(greeting("app")).toContain("with you");
     expect(greeting("phone", true)).toContain("now linked");
     expect(NOT_LINKED).toContain("isn't linked");
-    expect(GOODBYE).toBe(`${MOOD.warm} Okay. Bye.`);
+    expect(GOODBYE).toBe(`${MOOD.warm} Very good. Goodbye.`);
     expect(ROUTE_FAILED).toContain("couldn't reach");
   });
 
@@ -107,8 +107,8 @@ describe("narration", () => {
     expect(narration(null, status({ state: "succeeded", summary: "Note written" }))).toBe(`${MOOD.cheerful} Done. Note written`);
     expect(narration(null, status({ state: "succeeded" }))).toBe(`${MOOD.cheerful} Done.`);
     expect(narration(status({ state: "succeeded" }), status({ state: "succeeded", summary: "x" }))).toBeNull();
-    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe(`${MOOD.sorry} I couldn't finish that. No app`);
-    expect(narration(null, status({ state: "failed" }))).toBe(`${MOOD.sorry} I couldn't finish that.`);
+    expect(narration(null, status({ state: "failed", summary: "No app" }))).toBe(`${MOOD.sorry} I'm afraid I couldn't finish that. No app`);
+    expect(narration(null, status({ state: "failed" }))).toBe(`${MOOD.sorry} I'm afraid I couldn't finish that.`);
     expect(narration(status({ state: "failed" }), status({ state: "failed", summary: "x" }))).toBeNull();
     expect(narration(null, status({ state: "cancelled" }))).toBe(`${MOOD.calm} Stopped.`);
     expect(narration(status({ state: "cancelled" }), status({ state: "cancelled" }))).toBeNull();

@@ -71,7 +71,7 @@ describe("createElevenLabsClient", () => {
 
   it("can return raw PCM for live calls while keeping the pinned voice, model and settings", async () => {
     const { client, fetchImpl } = makeClient(audioResponse);
-    await client.stream("On it.", { signal: new AbortController().signal, outputFormat: "pcm_24000" });
+    await client.stream("Right away.", { signal: new AbortController().signal, outputFormat: "pcm_24000" });
     const call = lastCall(fetchImpl);
     expect(call.url).toContain("output_format=pcm_24000");
     expect(call.url).not.toContain(`output_format=${voiceConfig.outputFormat}`);

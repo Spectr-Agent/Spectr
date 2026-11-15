@@ -79,7 +79,7 @@ describe("runAgentStep task states", () => {
       notifier: notifier({ sendResult }),
       linkSecret: "seal",
     });
-    expect(response).toMatchObject({ kind: "finished", state: "failed", summary: "This took too many steps." });
+    expect(response).toMatchObject({ kind: "finished", state: "failed", summary: "I'm afraid that took too many steps, so I've stopped." });
     expect(sendResult).toHaveBeenCalledWith(expect.objectContaining({ taskId }), expect.any(String), expect.stringContaining("sig="), `result-${taskId}`);
   });
 });

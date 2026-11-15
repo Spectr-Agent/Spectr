@@ -89,7 +89,7 @@ describe("narration", () => {
     expect(narration(status("running"), done)).toBe("[cheerfully] Done. Notes shows milk.");
     expect(narration(done, done)).toBeNull();
     expect(narration(status("running"), status("failed", { summary: "Notes isn't installed." }))).toBe(
-      "[apologetic] I couldn't finish that. Notes isn't installed.",
+      "[apologetic] I'm afraid I couldn't finish that. Notes isn't installed.",
     );
     expect(narration(status("running"), status("cancelled"))).toBe("[calmly] Stopped.");
   });

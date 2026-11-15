@@ -50,7 +50,7 @@ describe("handleInboundMessage", () => {
     expect(first.taskId).toBe(second.taskId);
     expect(deps.sendReply).toHaveBeenCalledWith(
       "+15555550100",
-      "Working on it.",
+      "Right away.",
       "reply-msg_demo_001",
     );
   });
@@ -139,7 +139,7 @@ describe("handleInboundMessage", () => {
     expect(sendReply).toHaveBeenNthCalledWith(
       2,
       "+15555550100",
-      "Okay, updating that.",
+      "Understood. Changing course.",
       "reply-message-correction",
     );
 
@@ -160,7 +160,7 @@ describe("handleInboundMessage", () => {
     expect(sendReply).toHaveBeenNthCalledWith(
       3,
       "+15555550100",
-      "Thanks, continuing.",
+      "Thank you. Continuing.",
       "reply-message-answer",
     );
 
