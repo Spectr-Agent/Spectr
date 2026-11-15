@@ -7,7 +7,6 @@
 
 import type { IconName } from "@/lib/icons";
 import type { ImageKey } from "@/lib/images";
-import type { Script } from "@/lib/thread";
 
 const safetyTiles: Array<{ title: string; text: string; icon: IconName; image?: ImageKey; alt?: string; zoom?: boolean }> = [
   { title: "asks before risky actions", text: "sending, buying, submitting and deleting all wait for your yes.", icon: "shield", image: "waiting", alt: "spectr mascot waiting for an answer" },
@@ -80,7 +79,6 @@ export const copy = {
     sub: "facetime spectr and say what you need. your mac does the work and you watch its screen on the call.",
     cta: "see how it works",
     note: "say stop to cancel any task.",
-    replay: "replay",
     picture: "photo: someone on a couch, facetiming a laptop across the room",
     mascotWorking: "spectr mascot working on a task",
     mascotSuccess: "spectr mascot celebrating a finished task",
@@ -101,13 +99,13 @@ export const copy = {
   cases: {
     eyebrow: "use cases",
     title: "calls that sound like you.",
-    lead: "swipe through the cards and watch each call play out.",
+    lead: "swipe through the cards to see how spectr talks to each person.",
     cards: [
-      { role: "student", icon: "calendar", title: "brief replies. just the answer.", example: "when is my bio lab due", traits: ["brief", "direct"], picture: "photo: a student at a library table with a laptop", image: "launch", alt: "spectr mascot with sparkles" },
-      { role: "accessibility", icon: "eye", title: "short sentences and a word at each step.", example: "make the text on my screen bigger", traits: ["simple", "step by step", "asks first"], picture: "photo: an older adult at a desk, smiling at a screen", image: "waiting", alt: "spectr mascot waiting for an answer" },
-      { role: "corporate", icon: "mail", title: "concise and professional.", example: "send the q3 report to my manager", traits: ["concise", "preview first"], picture: "photo: a person in an office, phone propped on the desk", image: "success", alt: "spectr mascot with a check mark" },
-      { role: "frequent traveler", icon: "folder", title: "watch it happen and hear a clear confirmation.", example: "rename the trip photos folder to tokyo 2026", traits: ["live screen", "confirms"], picture: "photo: a traveler in an airport with a phone", image: "pairing", alt: "spectr mascot between a laptop and a phone" },
-    ] satisfies Array<{ role: string; icon: IconName; title: string; example: string; traits: string[]; picture: string; image: ImageKey; alt: string }>,
+      { role: "student", icon: "calendar", title: "brief replies. just the answer.", example: "when is my bio lab due", reply: "friday at 11:59 pm.", traits: ["brief", "direct"], picture: "photo: a student at a library table with a laptop", image: "launch", alt: "spectr mascot with sparkles" },
+      { role: "accessibility", icon: "eye", title: "short sentences and a word at each step.", example: "make the text on my screen bigger", reply: "okay. i can do that. step 1 of 2. opening settings.", traits: ["simple", "step by step", "asks first"], picture: "photo: an older adult at a desk, smiling at a screen", image: "waiting", alt: "spectr mascot waiting for an answer" },
+      { role: "corporate", icon: "mail", title: "concise and professional.", example: "send the q3 report to my manager", reply: "found q3_report_final.pdf. here is the draft.", traits: ["concise", "preview first"], picture: "photo: a person in an office, phone propped on the desk", image: "success", alt: "spectr mascot with a check mark" },
+      { role: "frequent traveler", icon: "folder", title: "watch it happen and hear a clear confirmation.", example: "rename the trip photos folder to tokyo 2026", reply: "done. the folder is now tokyo 2026.", traits: ["live screen", "confirms"], picture: "photo: a traveler in an airport with a phone", image: "pairing", alt: "spectr mascot between a laptop and a phone" },
+    ] satisfies Array<{ role: string; icon: IconName; title: string; example: string; reply: string; traits: string[]; picture: string; image: ImageKey; alt: string }>,
   },
 
   demo: {
@@ -115,6 +113,8 @@ export const copy = {
     title: "one call. two screens.",
     lead: "what you see on the call is what happens on your mac.",
     replay: "replay",
+    macVideo: "screen recording of a mac booking a stay on airbnb",
+    phoneVideo: "screen recording of a facetime call showing the same booking on an iphone",
     mac: { app: "system settings", pane: "appearance", light: "light", dark: "dark" },
   },
 
@@ -198,48 +198,3 @@ export const copy = {
     year: "2026 spectr",
   },
 };
-
-// OPEN ITEM 3: the names, times and files in the example calls below are made up.
-
-export const heroScript: Script = [
-  { from: "me", text: "find my resume", pre: 900 },
-  { from: "bot", text: "on it.", typing: 1000 },
-  { from: "bot", text: "found it. resume_2026.pdf is open.", typing: 1300, scene: "resume", pose: "success" },
-];
-
-export const caseScripts: readonly Script[] = [
-  [
-    { from: "me", text: "when is my bio lab due" },
-    { from: "bot", text: "let me check.", typing: 700 },
-    { from: "bot", text: "friday at 11:59 pm.", typing: 900, scene: "due" },
-  ],
-  [
-    { from: "me", text: "make the text on my screen bigger" },
-    { from: "bot", text: "okay. i can do that.", typing: 800 },
-    { from: "bot", text: "step 1 of 2. opening settings.", typing: 900 },
-    { from: "bot", text: "quick question. bigger for everything or only the text? say one for everything. say two for only the text.", typing: 1100 },
-    { from: "me", text: "one" },
-    { from: "bot", text: "step 2 of 2. making everything bigger.", typing: 900, scene: "text" },
-    { from: "bot", text: "done. is this easy to read? say bigger if you want more.", typing: 800 },
-  ],
-  [
-    { from: "me", text: "send the q3 report to my manager" },
-    { from: "bot", text: "found q3_report_final.pdf. here is the draft.", typing: 900, scene: "mail" },
-    { from: "bot", text: "send it? say yes or tell me what to change.", typing: 800 },
-    { from: "me", text: "yes" },
-    { from: "bot", text: "sent at 9:42 am.", typing: 700 },
-  ],
-  [
-    { from: "me", text: "rename the trip photos folder to tokyo 2026" },
-    { from: "bot", text: "on it.", typing: 700 },
-    { from: "bot", text: "done. the folder is now tokyo 2026.", typing: 1000, scene: "folder" },
-    { from: "bot", text: "say the word if you want a different name.", typing: 900 },
-  ],
-];
-
-export const demoScript: Script = [
-  { from: "me", text: "turn on dark mode" },
-  { from: "bot", text: "on it.", typing: 800 },
-  { action: "mac" },
-  { from: "bot", text: "dark mode is on.", typing: 700 },
-];
