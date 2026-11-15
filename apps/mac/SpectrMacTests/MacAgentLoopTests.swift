@@ -10,6 +10,7 @@ actor FakeAgentAPI: MacAgentAPI {
     var tasks: [Result<MacTaskResponse.Task?, MacAgentError>]
     var steps: [Result<MacStepResponse, MacAgentError>]
     private(set) var stepRequests: [MacStepRequest] = []
+    private(set) var polls = 0
 
     init(tasks: [Result<MacTaskResponse.Task?, MacAgentError>], steps: [Result<MacStepResponse, MacAgentError>]) {
         self.tasks = tasks
@@ -17,6 +18,7 @@ actor FakeAgentAPI: MacAgentAPI {
     }
 
     func activeTask() async throws(MacAgentError) -> MacTaskResponse.Task? {
+        polls += 1
         guard !tasks.isEmpty else { return nil }
         return try tasks.removeFirst().get()
     }
@@ -285,6 +287,12 @@ struct MacAgentLoopTests {
         #expect(settle([]) == .zero)
     }
 
+    @Test func pagesAndAppsGetALongerMinimumSettleThanInput() {
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(2_500)) == .milliseconds(800))
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(1_500)) == .milliseconds(500))
+        #expect(MacAgentLoop.settleMinimum(forMax: .milliseconds(400)) == .milliseconds(120))
+    }
+
     @Test func pausesAfterABatchBeforeCapturingAgain() async {
         let pauses = PauseRecorder()
         let api = FakeAgentAPI(
@@ -298,6 +306,113 @@ struct MacAgentLoopTests {
             performer: performer, store: store, pause: { await pauses.record($0) })
         #expect(await agent.cycle())
         #expect(await pauses.values == [.milliseconds(2_500)])
+    }
+
+    @Test func settlingWaitsForTheScreenWithTheSettleTimeAsTheLimit() async {
+        let pauses = PauseRecorder()
+        let settles = PauseRecorder()
+        let api = FakeAgentAPI(
+            tasks: [.success(task())],
+            steps: [
+                .success(batch(1, [("a1", .openApp(name: "Notes"))])),
+                .success(.finished(taskId: "tsk_1", step: 2, state: .succeeded, summary: "Notes is open.")),
+            ])
+        let agent = MacAgentLoop(
+            api: api, frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { await pauses.record($0) },
+            settle: { await settles.record($0) })
+        #expect(await agent.cycle())
+        #expect(await settles.values == [.milliseconds(1_500)])
+        #expect(await pauses.values.isEmpty)
+    }
+
+    @Test func actionsThatChangeNothingOnScreenSkipSettling() async {
+        let settles = PauseRecorder()
+        let api = FakeAgentAPI(
+            tasks: [.success(task())],
+            steps: [
+                .success(batch(1, [("a1", .screenshot)])),
+                .success(.finished(taskId: "tsk_1", step: 2, state: .succeeded, summary: "")),
+            ])
+        let agent = MacAgentLoop(
+            api: api, frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { _ in }, settle: { await settles.record($0) })
+        #expect(await agent.cycle())
+        #expect(await api.stepRequests.count == 2)
+        #expect(await settles.values.isEmpty)
+    }
+
+    /// A loop whose idle wait lasts a minute unless woken.
+    func slowIdleLoop(_ api: FakeAgentAPI) -> MacAgentLoop {
+        MacAgentLoop(
+            api: api, frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { _ in try? await Task.sleep(for: .seconds(60)) })
+    }
+
+    @Test func aWakeEndsTheIdleWaitAtOnce() async throws {
+        let agent = slowIdleLoop(FakeAgentAPI(tasks: [], steps: []))
+        let clock = ContinuousClock()
+        let started = clock.now
+        let waiting = Task { await agent.idlePause() }
+        try await eventually { agent.isWaitingForWake }
+        agent.wake()
+        await waiting.value
+        #expect(clock.now - started < .seconds(10))
+        #expect(!agent.isWaitingForWake)
+    }
+
+    @Test func aWakeBeforeTheWaitSkipsOneWait() async {
+        let pauses = PauseRecorder()
+        let agent = MacAgentLoop(
+            api: FakeAgentAPI(tasks: [], steps: []),
+            frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { await pauses.record($0) })
+        agent.wake()
+        await agent.idlePause()
+        #expect(await pauses.values.isEmpty)
+        // Only once: the next wait runs normally.
+        await agent.idlePause()
+        #expect(await pauses.values == [agent.idleInterval])
+    }
+
+    @Test func aWakePollsForATaskImmediately() async throws {
+        let api = FakeAgentAPI(tasks: [], steps: [])
+        let agent = slowIdleLoop(api)
+        agent.start()
+        defer { agent.stop() }
+        try await eventually { agent.isWaitingForWake }
+        #expect(await api.polls == 1)
+        agent.wake()
+        try await eventually { await api.polls == 2 }
+    }
+
+    @Test func aWakeWhileWorkingOnATaskIsIgnored() async {
+        let pauses = PauseRecorder()
+        let api = FakeAgentAPI(
+            tasks: [.success(task())],
+            steps: [
+                .success(batch(1, [("a1", .type(text: "milk"))])),
+                .success(.finished(taskId: "tsk_1", step: 1, state: .succeeded, summary: "")),
+            ])
+        let agent = MacAgentLoop(
+            api: api, frames: { () async throws(AgentFrameError) -> AgentFrame in Self.frame },
+            performer: performer, store: store, pause: { await pauses.record($0) }, settle: { _ in })
+        performer.onPerform = { _ in agent.wake() }
+        await agent.cycle()
+        await agent.idlePause()
+        #expect(await pauses.values == [agent.idleInterval])
+    }
+
+    /// Waits up to five seconds for `condition`, yielding to the loop meanwhile.
+    func eventually(_ condition: @MainActor () async -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !(await condition()) {
+            guard ContinuousClock.now < deadline else {
+                Issue.record("Timed out waiting for a condition")
+                return
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
     }
 }
 

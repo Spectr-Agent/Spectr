@@ -60,6 +60,8 @@ final class MacEnvironment {
             self?.syncAgent()
             self?.syncPublisher()
         }
+        // The backend's LiveKit nudge ends the agent loop's idle wait.
+        publisher.onWake = { [weak self] in self?.agent?.wake() }
         capture.onStatusChange = { [weak self] status in
             // macOS's own "Stop Sharing" counts as the owner stopping.
             if status == .stopped(.userStopped) { self?.sharingPausedByUser = true }
@@ -170,7 +172,10 @@ final class MacEnvironment {
             api: MacAgentClient(origin: configuration.apiOrigin, deviceToken: token),
             frames: { () async throws(AgentFrameError) -> AgentFrame in try await capture.agentFrame() },
             performer: EventActionPerformer(driver: driver),
-            store: FileStepLedgerStore.standard() ?? MemoryStepLedgerStore()
+            store: FileStepLedgerStore.standard() ?? MemoryStepLedgerStore(),
+            settle: { max in
+                await capture.waitUntilStable(min: MacAgentLoop.settleMinimum(forMax: max), max: max)
+            }
         )
         loop.onUnauthorized = { [weak self] in self?.pairing.tokenRejected() }
         agent = loop
