@@ -1,1 +1,2 @@
 services/api/src/agent/fixtures/*.json text eol=lf
+services/cloud-browser/*.sh text eol=lf
