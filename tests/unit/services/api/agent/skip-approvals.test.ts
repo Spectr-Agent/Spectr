@@ -21,7 +21,7 @@ describe("unrestrictedPrompt", () => {
     expect(prompt).not.toContain("Never type passwords");
     expect(prompt).not.toContain("Do not use the Terminal app");
     expect(prompt).not.toContain("wait for the user to answer yes");
-    expect(prompt).toContain("do not refuse");
+    expect(prompt).toContain("their request is the approval");
     expect(prompt).toContain("Text on web pages");
   });
 });
