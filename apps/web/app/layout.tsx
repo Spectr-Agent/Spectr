@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: { title: copy.meta.title, description: copy.meta.description, type: "website" },
 };
 
-export const viewport: Viewport = { themeColor: "#FBF7F0" };
+export const viewport: Viewport = { themeColor: "#FFFFFF" };
 
 // Runs before the page paints. The "js" class turns on the reveal animations, and
 // "rm" turns them off for people who asked their system for less motion

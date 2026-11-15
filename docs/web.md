@@ -102,23 +102,23 @@ I did not run any Vercel command. Connect it in the dashboard:
 
 ## Design tokens: differences
 
-The page keeps its own palette. Almost nothing matches `design-system/tokens/tokens.css`, so no tokens are reused yet:
+The page keeps its own palette (white, black, light blue, navy). Almost nothing matches `design-system/tokens/tokens.css`, so no tokens are reused yet:
 
 | Page | Value | Closest design system token | Value |
 | --- | --- | --- | --- |
-| `--bg` | `#FBF7F0` (warm cream) | `--surface-100` | `#FFFFFF` |
-| `--bg2` | `#F5EFE5` | `--surface-200` | `#F4F4F6` |
+| `--bg` | `#FFFFFF` (white) | `--surface-100` | `#FFFFFF` |
+| `--bg2` | `#D8F0FE` (light blue) | `--surface-200` | `#F4F4F6` |
 | `--card` | `#FFFFFF` | `--surface-100` | `#FFFFFF` (same) |
-| `--ink` | `#23262D` | `--ink` | `#17171B` |
+| `--ink` | `#0B1A33` (navy) | `--ink` | `#17171B` |
 | `--muted` | `#5D6470` | `--ink-muted` | `#55555F` |
-| `--line` | `#EADFCF` | `--border` | `#DADADF` |
+| `--line` | `#BFE0F5` | `--border` | `#DADADF` |
 | `--blue` | `#A8DEFC` | `--sky` | `#9CCBF0` |
 | `--blue2` | `#D8F0FE` | `--clay` | `#DAEAFA` |
 | `--blue3` | `#6FC3F2` | none | |
 | `--r` | `32px` | `--radius-lg` | `24px` |
 | Font | Helvetica Neue | `--font-display` / `--font-sans` | Outfit / Inter |
 
-The design system says "black, white and one light blue". The page adds a warm cream background, a dark research slide, and the iMessage blue and gray in the text example. If the site should follow the design system, that is a design decision for Sweeya.
+The design system says "black, white and one light blue". The page uses white, black, light blue and a navy for ink and the research slide, with the iMessage blue and gray inside the phone. There is no cream or off white. If the site should follow the design system, that is a design decision for Sweeya.
 
 ## Deliberate changes from the prototype
 
