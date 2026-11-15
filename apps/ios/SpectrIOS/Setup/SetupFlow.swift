@@ -47,7 +47,7 @@ struct SetupFlow: View {
             .toolbar {
                 if !model.needsPairing {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Close", action: finish)
+                        Button("close", action: finish)
                     }
                 }
             }
@@ -408,7 +408,7 @@ private struct DoneStep: View {
             .font(.brand(.body))
             .foregroundStyle(Theme.ink)
             .card()
-            Button("Start", action: finish).buttonStyle(SolidButtonStyle(tint: Theme.accent))
+            Button("Start", action: finish).buttonStyle(SolidButtonStyle())
         }
     }
 }

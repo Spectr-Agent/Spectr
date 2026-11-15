@@ -107,7 +107,8 @@ struct AppModelTests {
         let model = AppModel(api: FakeAPI(homes: [.success(home(recent: [followUp, other, first]))]))
         await model.refresh()
         #expect(model.chats.map(\.id) == ["tsk_0", "tsk_1"])
-        #expect(model.chats.first?.title == "write milk in Notes")
+        #expect(model.chats.first?.title == "Notes shows milk.")
+        #expect(model.chats.first?.ask == "write milk in Notes")
         #expect(model.chats.first?.latest.taskId == "tsk_2")
     }
 

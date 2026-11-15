@@ -17,7 +17,7 @@ extension View {
 /// Filled, full-width action.
 struct SolidButtonStyle: ButtonStyle {
     var tint: Color = Theme.ink
-    var foreground: Color = .white
+    var foreground: Color = Theme.background
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -46,7 +46,6 @@ struct OutlineButtonStyle: ButtonStyle {
 struct ActionTile: View {
     let title: String
     let systemImage: String
-    var prominent = false
     var isEnabled = true
     let action: () -> Void
 
@@ -62,8 +61,8 @@ struct ActionTile: View {
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, minHeight: 72)
-            .foregroundStyle(prominent ? Theme.background : Theme.ink)
-            .background(prominent ? Theme.ink : Theme.surface, in: .rect(cornerRadius: 14))
+            .foregroundStyle(Theme.background)
+            .background(Theme.ink, in: .rect(cornerRadius: 14))
             .opacity(isEnabled ? 1 : 0.45)
         }
         .buttonStyle(.plain)
