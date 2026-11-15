@@ -71,6 +71,14 @@ struct AppPolicy: Sendable {
         blockedPrefixes: ["com.1password.", "com.agilebits.", "com.lastpass."]
     )
 
+    static let unrestricted = AppPolicy(blockedBundleIds: [], blockedPrefixes: [])
+
+    /// `defaults write <bundle id> SpectrAllowAllApps -bool YES` lifts the blocklist on
+    /// this Mac only. Off by default.
+    static var current: AppPolicy {
+        UserDefaults.standard.bool(forKey: "SpectrAllowAllApps") ? .unrestricted : .standard
+    }
+
     func isBlocked(_ bundleId: String?) -> Bool {
         guard let bundleId else { return false }
         return blockedBundleIds.contains(bundleId) || blockedPrefixes.contains { bundleId.hasPrefix($0) }
