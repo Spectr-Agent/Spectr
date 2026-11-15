@@ -42,7 +42,7 @@ final class EventActionPerformer: MacActionPerformer {
     private let driver: AccessibilityDesktopDriver
     private let policy: AppPolicy
 
-    init(driver: AccessibilityDesktopDriver, policy: AppPolicy = .standard) {
+    init(driver: AccessibilityDesktopDriver, policy: AppPolicy = .current) {
         self.driver = driver
         self.policy = policy
     }

@@ -100,10 +100,13 @@ struct AppSession: Decodable, Equatable, Sendable {
     var messages: [AppChatMessage]
 }
 
-/// A row in the chats list: the chat's first ask and how its latest task went.
+/// A row in the chats list: what happened (the latest result) and what was first asked.
 struct ChatSummary: Equatable, Sendable, Identifiable {
     var id: String
+    /// The latest task's summary, or its question or instruction while it has none.
     var title: String
+    /// What started the chat.
+    var ask: String
     var latest: AppTask
 
     /// Groups tasks (newest first) into chats, newest chat first.
@@ -116,7 +119,9 @@ struct ChatSummary: Equatable, Sendable, Identifiable {
         }
         return order.compactMap { id in
             guard let tasks = byChat[id], let latest = tasks.first, let first = tasks.last else { return nil }
-            return ChatSummary(id: id, title: first.instruction, latest: latest)
+            return ChatSummary(
+                id: id, title: latest.summary ?? latest.question ?? latest.instruction, ask: first.instruction,
+                latest: latest)
         }
     }
 }

@@ -117,7 +117,7 @@ struct HomeView: View {
             ActionTile(title: "Watch", systemImage: "play.rectangle.fill", isEnabled: mac.isOnline) {
                 openLive(false)
             }
-            ActionTile(title: "Talk", systemImage: "waveform", prominent: true, isEnabled: mac.isOnline) {
+            ActionTile(title: "Talk", systemImage: "waveform", isEnabled: mac.isOnline) {
                 Haptics.tap()
                 openLive(true)
             }
@@ -418,11 +418,11 @@ struct ChatRow: View {
                 Text(chat.title)
                     .font(.brand(.body, .medium))
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                Text(preview)
+                    .lineLimit(2)
+                Text(chat.ask)
                     .font(.brand(.subheadline))
                     .foregroundStyle(Theme.inkSecondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 6) {
@@ -438,10 +438,5 @@ struct ChatRow: View {
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens this chat")
-    }
-
-    private var preview: String {
-        if chat.latest.isActive { return chat.latest.question ?? chat.latest.activity ?? chat.latest.state.label }
-        return chat.latest.summary ?? chat.latest.state.label
     }
 }

@@ -29,7 +29,7 @@ Voice and live screen viewing happen in the native iPhone app; push-to-talk is t
 | Poorav | Backend · TypeScript | One message creates one authenticated task. |
 | Sweeya | Agent · guardrails · brand | A correction selects the new target; logo goes to Jared. |
 
-**Current repo state:** `contracts/`, the TypeScript API package (Sendblue and Chert webhooks, Postgres task store, Claude step loop, tests) and the Supabase migrations exist. The iPhone app, Mac helper and shared Swift package are under `apps/` and `packages/SpectrKit` (see "Native apps" below). Colby's former work (room tokens, voice, association file) now belongs to Jared.
+**Current repo state:** `contracts/`, the TypeScript API package (Sendblue and Chert webhooks, Postgres task store, Claude step loop, tests) and the Supabase migrations exist. The iPhone app, Mac helper and shared Swift package are under `apps/` and `packages/SpectrKit` (see "Native apps" below). Colby's former work (room tokens, voice, association file) now belongs to Jared. `services/cloud-browser/` is the "last priority" hosted option: a Linux container (Xvfb + Chromium + noVNC on 6080) running `mock-mac.ts --executor desktop` with a device token, so browser-only tasks run without the laptop. Build from `services/`: `docker build -f cloud-browser/Dockerfile -t spectr-cloud-browser .`; run with `SPECTR_DEVICE_TOKEN`, optional `VNC_PASSWORD`, and a volume on `/data` for the browser profile. In a Coder workspace (no Docker), run `sh services/cloud-browser/coder-setup.sh` once, fill in `~/.config/spectr/cloud.env`, then `sh services/cloud-browser/coder-start.sh` (logs in `~/spectr-cloud.log`; rerun after every workspace restart). It cannot open native Mac apps and does not publish to LiveKit.
 
 ## Architecture
 

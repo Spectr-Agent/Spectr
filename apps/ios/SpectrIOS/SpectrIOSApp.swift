@@ -14,6 +14,7 @@ struct SpectrIOSApp: App {
             RootView(environment: environment)
                 .tint(Theme.accent)
                 .font(.brand(.body))
+                .textCase(.lowercase)
         }
     }
 }
