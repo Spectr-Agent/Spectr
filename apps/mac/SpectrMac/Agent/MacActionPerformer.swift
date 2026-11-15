@@ -113,7 +113,9 @@ final class EventActionPerformer: MacActionPerformer {
             if let owner = frame.windowOwnerPID, front?.processIdentifier != owner {
                 throw .sharedWindowNotInFront
             }
-            if case .type = action, driver.isSecureField(nil) { throw .secureField }
+            if case .type = action, !policy.typesIntoSecureFields, driver.isSecureField(nil) {
+                throw .secureField
+            }
         }
     }
 

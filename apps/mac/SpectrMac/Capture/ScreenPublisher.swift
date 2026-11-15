@@ -46,9 +46,9 @@ final class ScreenPublisher {
         task = Task {
             do {
                 let grant = try await grant()
-                // Dynacast stops sending video while nobody is watching, so an always-on
-                // share costs almost no upload until the iPhone opens it.
-                let room = Room(roomOptions: RoomOptions(dynacast: true))
+                // Dynacast is off: it pauses the encoder while nobody watches, and the
+                // first seconds after a viewer joins were gray while it resumed.
+                let room = Room(roomOptions: RoomOptions(dynacast: false))
                 // Every session makes a new room (also after a reconnect), so each one
                 // gets its own listener, attached before connecting so no nudge is missed.
                 let listener = WakeListener { [weak self] in self?.onWake?() }
@@ -121,11 +121,11 @@ final class ScreenPublisher {
         state = .idle
     }
 
-    /// A screen is mostly text and barely moves: spend the bandwidth on sharpness. A high
-    /// bitrate at no more than 15 fps, and under congestion drop frames, never resolution.
+    /// Quality first: a high bitrate at up to 30 fps, and under congestion drop frames,
+    /// never resolution.
     static let publishOptions = VideoPublishOptions(
-        encoding: VideoEncoding(maxBitrate: 5_000_000, maxFps: 15),
-        screenShareEncoding: VideoEncoding(maxBitrate: 5_000_000, maxFps: 15),
+        encoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 30),
+        screenShareEncoding: VideoEncoding(maxBitrate: 8_000_000, maxFps: 30),
         simulcast: false,
         degradationPreference: .maintainResolution
     )
