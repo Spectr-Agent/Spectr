@@ -45,6 +45,8 @@ enum DriverError: Error, Equatable {
 struct AppPolicy: Sendable {
     var blockedBundleIds: Set<String>
     var blockedPrefixes: [String]
+    /// Whether Spectr may type into password fields. Their contents are never read back.
+    var typesIntoSecureFields = false
 
     static let standard = AppPolicy(
         blockedBundleIds: [
@@ -71,10 +73,10 @@ struct AppPolicy: Sendable {
         blockedPrefixes: ["com.1password.", "com.agilebits.", "com.lastpass."]
     )
 
-    static let unrestricted = AppPolicy(blockedBundleIds: [], blockedPrefixes: [])
+    static let unrestricted = AppPolicy(blockedBundleIds: [], blockedPrefixes: [], typesIntoSecureFields: true)
 
-    /// `defaults write <bundle id> SpectrAllowAllApps -bool YES` lifts the blocklist on
-    /// this Mac only. Off by default.
+    /// `defaults write <bundle id> SpectrAllowAllApps -bool YES` lifts the blocklist and
+    /// the password-field rule on this Mac only. Off by default.
     static var current: AppPolicy {
         UserDefaults.standard.bool(forKey: "SpectrAllowAllApps") ? .unrestricted : .standard
     }

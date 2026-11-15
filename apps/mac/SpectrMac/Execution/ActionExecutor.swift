@@ -128,7 +128,9 @@ actor ActionExecutor {
                 return (.appBlocked, "Spectr is not allowed to operate the app in front.")
             }
         }
-        if case .typeText(_, let target) = command.action, await driver.isSecureField(target) {
+        if case .typeText(_, let target) = command.action, !policy.typesIntoSecureFields,
+            await driver.isSecureField(target)
+        {
             return (.secureField, "Spectr never types into password fields.")
         }
         return nil

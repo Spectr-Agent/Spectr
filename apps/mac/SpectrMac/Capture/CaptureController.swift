@@ -119,7 +119,7 @@ final class CaptureController: NSObject {
         configuration.width = max(2, Int(pixels.width * fit))
         configuration.height = max(2, Int(pixels.height * fit))
         configuration.scalesToFit = true
-        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 15)
+        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
         configuration.showsCursor = true
         configuration.queueDepth = 5
