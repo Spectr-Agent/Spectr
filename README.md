@@ -13,30 +13,11 @@
 </p>
 
 <p align="center">
-  <img alt="imessage" src="https://img.shields.io/badge/imessage-text%20a%20task-0A84FF?style=flat-square&logo=apple&logoColor=white">
-  <img alt="phone and facetime" src="https://img.shields.io/badge/calls-phone%20%26%20facetime-34C759?style=flat-square&logo=facetime&logoColor=white">
-  <img alt="iphone app" src="https://img.shields.io/badge/iphone-live%20screen-111111?style=flat-square&logo=ios&logoColor=white">
-  <img alt="claude computer use" src="https://img.shields.io/badge/brain-claude%20computer%20use-D97757?style=flat-square&logo=anthropic&logoColor=white">
-</p>
-
-<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/mascot/composites/spectr_devpost_cover_dark_2400x1600.png">
     <img src="assets/mascot/composites/spectr_devpost_cover_light_2400x1600.png" alt="the spectr star between a laptop and a phone" width="720">
   </picture>
 </p>
-
-<p align="center">
-  <a href="#what-is-spectr">what is spectr</a> ·
-  <a href="#how-you-reach-it">how you reach it</a> ·
-  <a href="#where-it-runs">where it runs</a> ·
-  <a href="#how-it-works">how it works</a> ·
-  <a href="#safety">safety</a> ·
-  <a href="#who-its-for">who it's for</a> ·
-  <a href="#getting-started">getting started</a>
-</p>
-
----
 
 ## what is spectr
 
