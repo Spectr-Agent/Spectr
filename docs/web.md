@@ -63,7 +63,7 @@ The logo and the little star are the flat black and white versions from `assets/
 
 ## Look
 
-Sharp and flat, in the spirit of Waymo's layout with the page's own colors. Helvetica Neue (then Helvetica, then Arial) for text and the system monospace for tiny labels. Square corners everywhere except the phone and the call on it. No shadows, no gradients, no bouncy easing. `npm run check:style` fails the build if any of that comes back (it runs before `next build`, next to `check:copy`).
+Sharp and flat, in the spirit of Waymo's layout with the page's own colors. Helvetica Neue (then Helvetica, then Arial) for text and the system monospace for tiny labels. Square corners everywhere except the phone, the call on it and the text message example on the end slide. No shadows, no gradients, no bouncy easing. `npm run check:style` fails the build if any of that comes back (it runs before `next build`, next to `check:copy`).
 
 ## Copy rules
 
@@ -125,7 +125,7 @@ The design system says "black, white and one light blue". The page uses white, b
 - `.car { overflow-x: clip }`. The carousel's hidden cards sat off screen and made the page wider than a phone, which can let iOS Safari pan sideways. The edge mask already hid them, so nothing looks different.
 - **FaceTime redesign.** The prototype was built around texting. The page now leads with a FaceTime call, with the Mac's screen as the call video.
 - **Slides and lowercase.** Full screen slides and all copy lowercase.
-- **Sharp redesign.** Square corners, flat fills, Helvetica, line icons, black photo placeholders for the start and end backgrounds, and the flat star. The mascots stay.
+- **Sharp redesign.** Square corners (the phone and the text message example are the only round things), flat fills, Helvetica, line icons, black photo placeholders for the start and end backgrounds, and the flat star. The mascots stay.
 - The prototype's `.slide` class for the text size slider was renamed `.sizer`, because `.slide` now means a full screen slide.
 - Images come from `next/image`. Fonts are system fonts, so there is no font file to load.
 

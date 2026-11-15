@@ -1,4 +1,4 @@
-// Checks the stylesheet against the sharp look: no rounded corners outside the phone,
+// Checks the stylesheet against the sharp look: no rounded corners outside the phone and the text messages,
 // no shadows, no gradients (except the dotted link and the carousel edge fade), no bouncy easing.
 //   node scripts/check-style.mjs
 // The same check is exported for the tests.
@@ -6,8 +6,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-/** Selectors that belong to the phone and the call on it. Only these may be rounded. */
-export const PHONE_SELECTORS = [".phone", ".pscreen", ".isl", ".video", ".cap", ".fctl", ".sig", ".fscreen"];
+/** Selectors that belong to the phone, the call on it and the text message example. Only these may be rounded. */
+export const PHONE_SELECTORS = [".phone", ".pscreen", ".isl", ".video", ".cap", ".fctl", ".sig", ".fscreen", ".textopt"];
 
 /** Returns a list of problems found in the css text. */
 export function checkStyle(css) {

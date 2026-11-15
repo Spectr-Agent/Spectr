@@ -30,9 +30,11 @@ export function Closing() {
         <Reveal className="textopt">
           <p>{closing.textLine}</p>
           <div className="bubbles">
+            <div className="stamp">{closing.stamp}</div>
             <div className="msg me">
               <div className="bub">{closing.me}</div>
             </div>
+            <div className="delivered">{closing.delivered}</div>
             <div className="msg bot">
               <div className="bub">{closing.bot}</div>
             </div>

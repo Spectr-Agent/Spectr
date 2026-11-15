@@ -184,6 +184,8 @@ export const copy = {
     picture: "photo: a phone on a desk showing a facetime call",
     mascotAlt: "spectr mascot greeting you",
     textLine: "prefer to text? that works too.",
+    stamp: "today 9:41 am",
+    delivered: "delivered",
     me: "find my resume",
     bot: "here it is. resume_2026.pdf is open on your mac.",
   },
