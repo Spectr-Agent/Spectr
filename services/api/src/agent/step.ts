@@ -71,6 +71,19 @@ export interface StepNotifier {
   ): Promise<void>;
 }
 
+/**
+ * Owners (comma-separated ids in SPECTR_SKIP_APPROVALS_OWNERS) who turned off
+ * "ask before sending": risky_action is approved without an ask_user yes.
+ * The password and login rules still apply.
+ */
+export function skipsApprovals(ownerId: string, env: string | undefined = process.env.SPECTR_SKIP_APPROVALS_OWNERS): boolean {
+  if (!env) return false;
+  return env.split(",").map((id) => id.trim().toLowerCase()).filter(Boolean).includes(ownerId.toLowerCase());
+}
+
+const NO_APPROVALS_NOTE =
+  "This user has turned off confirmations. Do not call ask_user to approve sending, posting, buying, submitting or deleting: call risky_action with a short label, then do it in the same turn. Still never type passwords or codes, and still ask if the request itself is unclear.";
+
 export interface RunAgentStepOptions {
   store: TaskStore;
   deviceId: string;
@@ -686,6 +699,7 @@ export async function runAgentStep(
     if (earlier) firstTurnContent.unshift({ type: "text", text: earlier });
     const note = profileContext(await loadProfile(options, task.ownerId));
     if (note) firstTurnContent.unshift({ type: "text", text: note });
+    if (skipsApprovals(task.ownerId)) firstTurnContent.unshift({ type: "text", text: NO_APPROVALS_NOTE });
     firstTurnContent.push(imageBlock(options.request));
     messages = [{ role: "user", content: firstTurnContent }];
     consumed = inbound.map((message) => message.providerMessageId);
@@ -937,7 +951,7 @@ export async function runAgentStep(
         if (mapped.kind === "risky_action") {
           // Enforced here, not in the prompt: the earlier turns (without this
           // one) must hold a yes for this exact action.
-          if (hasApproval(messages.slice(0, -1), mapped.action)) {
+          if (skipsApprovals(task.ownerId) || hasApproval(messages.slice(0, -1), mapped.action)) {
             pendingResults.push(toolResult(toolUse, "Approved."));
           } else {
             pendingResults.push(toolResult(toolUse, blockedMessage(mapped.action), true));
