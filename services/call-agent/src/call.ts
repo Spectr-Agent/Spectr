@@ -51,7 +51,7 @@ export class CallSession {
     options: CallSessionOptions | number = {},
   ) {
     const resolved = typeof options === "number" ? { pollMs: options } : options;
-    this.pollMs = resolved.pollMs ?? 1_500;
+    this.pollMs = resolved.pollMs ?? 500;
     this.phrasing = resolved.phrasing ?? new Phrasing();
   }
 

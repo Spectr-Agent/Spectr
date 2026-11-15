@@ -21,8 +21,10 @@ import {
 import { startScreenRelay, type ScreenRelay } from "./screen-relay.js";
 import { bufferSpeech, createSpeaker, replaySpeech } from "./speech.js";
 import { PostgresTaskGateway, toE164, type Caller } from "./tasks.js";
+import { createMacWaker, type WakeMac } from "../../api/src/livekit/wake.js";
 
 let sql: postgres.Sql | undefined;
+let wake: WakeMac | undefined;
 const APP_JOIN_TIMEOUT_MS = 45_000;
 /** How long the greeting may keep FaceTime waiting for its audio once the bridge is ready. */
 const GREETING_PRELOAD_WAIT_MS = 2_500;
@@ -48,7 +50,13 @@ export default defineAgent({
   entry: async (ctx: JobContext) => {
     const env = loadEnv();
     sql ??= postgres(env.POSTGRES_URL, { prepare: false, max: 3 });
-    const gateway = new PostgresTaskGateway(sql);
+    // LiveKit Cloud gives every agent its project's URL and keys.
+    wake ??= createMacWaker({
+      url: process.env.LIVEKIT_URL,
+      apiKey: process.env.LIVEKIT_API_KEY,
+      apiSecret: process.env.LIVEKIT_API_SECRET,
+    });
+    const gateway = new PostgresTaskGateway(sql, wake);
     const chert = parseChertJob(ctx.job.metadata);
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);

@@ -21,6 +21,7 @@ import postgres from "postgres";
 import { z } from "zod";
 import type { TaskStore } from "../inbound.js";
 import { appLiveGrant, createLiveKitRooms, type LiveKitRooms } from "../livekit/app-token.js";
+import { createMacWaker, type WakeMac } from "../livekit/wake.js";
 import { PostgresTaskStore } from "../pg-store.js";
 import { createSupabaseUserVerifier, type AppUser, type VerifyUser } from "./auth.js";
 import { appError, appJson, bearer, missingEnv, readJson } from "./http.js";
@@ -36,6 +37,7 @@ export interface AppRouteOverrides {
   makeAppStore?: (sql: postgres.Sql, sealSecret: string) => AppStore;
   makeTaskStore?: (sql: postgres.Sql) => TaskStore;
   rooms?: LiveKitRooms | null;
+  wakeMac?: WakeMac;
   now?: () => Date;
 }
 
@@ -89,6 +91,7 @@ export function createAppApi(
   let sql: postgres.Sql | undefined;
   let verifier: VerifyUser | undefined;
   let rooms: LiveKitRooms | null | undefined = overrides.rooms;
+  let wakeMac: WakeMac | undefined = overrides.wakeMac;
   const now = () => overrides.now?.() ?? new Date();
 
   function context(env: RouteEnvironment) {
@@ -102,10 +105,11 @@ export function createAppApi(
           ? createLiveKitRooms({ url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET })
           : null;
     }
+    wakeMac ??= createMacWaker({ url: env.LIVEKIT_URL, apiKey: env.LIVEKIT_API_KEY, apiSecret: env.LIVEKIT_API_SECRET });
     const publicUrl = (env.SPECTR_PUBLIC_URL ?? "https://spectr-api.vercel.app").replace(/\/+$/u, "");
     const screenshotUrl = (taskId: string) =>
       `${publicUrl}/api/tasks/screenshot?task=${encodeURIComponent(taskId)}&sig=${createHmac("sha256", sealSecret).update(taskId).digest("hex")}`;
-    return { appStore, taskStore, rooms, screenshotUrl };
+    return { appStore, taskStore, rooms, wakeMac, screenshotUrl };
   }
 
   /** Wraps a handler with configuration checks, authentication and error mapping. */
@@ -202,7 +206,7 @@ export function createAppApi(
       now: now(),
       ...(input.sessionId ? { sessionId: input.sessionId } : {}),
     });
-    const row = await ctx.appStore.task(user.userId, routed.taskId);
+    const [row] = await Promise.all([ctx.appStore.task(user.userId, routed.taskId), ctx.wakeMac(input.deviceId)]);
     return appJson({ kind: routed.kind, created: routed.created, task: row ? view(ctx, row) : null });
   }
 

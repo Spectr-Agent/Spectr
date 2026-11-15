@@ -111,6 +111,7 @@ function setup() {
     },
   } as unknown as TaskStore;
   const dispatched: string[][] = [];
+  const woken: string[] = [];
   const rooms: LiveKitRooms = {
     async dispatchCallAgent(room, agent, identity) {
       dispatched.push([room, agent, identity]);
@@ -125,9 +126,12 @@ function setup() {
     makeAppStore: () => appStore,
     makeTaskStore: () => taskStore,
     rooms,
+    wakeMac: async (deviceId) => {
+      woken.push(deviceId);
+    },
     now: () => NOW,
   });
-  return { api, appStore, routed, dispatched };
+  return { api, appStore, routed, dispatched, woken };
 }
 
 const get = (path: string, token?: string) =>
@@ -186,6 +190,12 @@ describe("tasks", () => {
     const { api } = setup();
     expect((await api.task(get("/api/app/task?id=tsk_1", "other-token"))).status).toBe(404);
     expect((await api.task(get("/api/app/task?id=tsk_1", "owner-token"))).status).toBe(200);
+  });
+
+  it("wakes the Mac as soon as a message routes", async () => {
+    const { api, woken } = setup();
+    await api.message(send("POST", "/api/app/message", { text: "open notes", clientMessageId: "c-87654321" }));
+    expect(woken).toEqual(["mac-1"]);
   });
 
   it("routes a message through the shared pipeline with an idempotent id", async () => {
