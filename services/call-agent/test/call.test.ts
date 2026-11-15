@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import { CallSession } from "../src/call.js";
 import {
   acknowledgement,
+  afterthought,
   clip,
+  FIRST_WORDING,
   greeting,
+  likelyKind,
   narration,
   NOT_LINKED,
+  Phrasing,
   ROUTE_FAILED,
   type InboundKind,
   type TaskStatus,
@@ -50,9 +54,53 @@ function harness(gateway = new FakeGateway()) {
     hangUp: () => {
       hungUp = true;
     },
-  }, 0);
+  }, { pollMs: 0, phrasing: FIRST_WORDING });
   return { call, gateway, said, hungUp: () => hungUp };
 }
+
+describe("wordings", () => {
+  it("varies lines and never repeats the previous wording of the same line", () => {
+    let n = 0;
+    const phrasing = new Phrasing(() => [0.1, 0.1, 0.9, 0.9, 0.5][n++ % 5] as number);
+    const seen = new Set<string>();
+    let previous = "";
+    for (let i = 0; i < 10; i += 1) {
+      const line = acknowledgement("task", phrasing);
+      expect(line).not.toBe(previous);
+      previous = line;
+      seen.add(line);
+    }
+    expect(seen.size).toBeGreaterThan(2);
+    expect(greeting("facetime", { hour: 9, name: "Poorav" }, phrasing)).toMatch(/^\[warmly\] (Good m|M)orning, Poorav\./u);
+  });
+
+  it("keeps every wording in the house style: a mood tag, no exclamation marks", () => {
+    const phrasing = new Phrasing();
+    const lines = new Set<string>();
+    for (let i = 0; i < 200; i += 1) {
+      for (const kind of ["task", "correction", "answer", "stop"] as const) lines.add(acknowledgement(kind, phrasing));
+      lines.add(greeting("phone", { hour: 15 }, phrasing));
+      lines.add(greeting("app", { active: status("running") }, phrasing));
+    }
+    for (const line of lines) {
+      expect(line).toMatch(/^\[[a-z]+\] /u);
+      expect(line).not.toContain("!");
+    }
+  });
+
+  it("guesses what an utterance is from the call's own state, and speaks up only when the backend disagrees", () => {
+    expect(likelyKind("open Safari", null)).toBe("task");
+    expect(likelyKind("Stop.", status("running"))).toBe("stop");
+    expect(likelyKind("never mind spectr", status("running"))).toBe("stop");
+    expect(likelyKind("use Chrome instead", status("running"))).toBe("correction");
+    expect(likelyKind("yes", status("waitingForUser", { question: "Send it?" }))).toBe("answer");
+    expect(likelyKind("open Notes", status("succeeded"))).toBe("task");
+    expect(afterthought("task", "task")).toBeNull();
+    expect(afterthought("task", "answer")).toBeNull();
+    expect(afterthought("task", "stop")).toMatch(/^\[calmly\] Stopping/u);
+    expect(afterthought("task", "correction")).toBe("[calmly] Changing course.");
+  });
+});
 
 describe("utterances", () => {
   it("ignores noise and empty transcripts", () => {
@@ -147,11 +195,30 @@ describe("a call", () => {
     expect(gateway.routed.length).toBe(1);
   });
 
-  it("says so when the pipeline can't be reached, without claiming anything happened", async () => {
+  it("acknowledges before the round trip, and says so when the pipeline can't be reached", async () => {
     const { call, gateway, said } = harness();
     gateway.failRoute = true;
     await call.hear("open Safari");
-    expect(said.at(-1)).toBe(ROUTE_FAILED);
+    expect(said).toEqual([acknowledgement("task"), ROUTE_FAILED]);
+  });
+
+  it("adds a word when the backend saw the utterance differently from the instant guess", async () => {
+    const { call, gateway, said } = harness();
+    gateway.nextKind = "stop";
+    gateway.statuses.push(status("cancelled"));
+    await call.hear("open Safari");
+    expect(said).toEqual([acknowledgement("task"), afterthought("task", "stop")]);
+  });
+
+  it("can prepare the greeting ahead of time and then speaks it exactly once", async () => {
+    const { call, gateway, said } = harness();
+    gateway.active = status("waitingForUser", { question: "Send the email?" });
+    const line = await call.prepareGreeting({ hour: 20, name: "Poorav" });
+    expect(line).toContain("Send the email?");
+    expect(said).toEqual([]);
+    await call.begin({ hour: 20, name: "Poorav" });
+    expect(said).toEqual([line]);
+    expect(call.task?.state).toBe("waitingForUser");
   });
 
   it("hangs up on goodbye and ignores anything after", async () => {

@@ -22,6 +22,12 @@ const EnvSchema = z.object({
   SPECTR_FACETIME_OWNER_NAME: z.string().optional(),
   /** IANA time zone for "good morning" on calls; the owner's, since callers have no location. */
   SPECTR_OWNER_TIMEZONE: z.string().default("America/New_York"),
+  /**
+   * Endpointing: how long after the caller goes quiet the turn ends. The minimum applies
+   * when the end-of-turn model is confident they're done; the maximum when it isn't.
+   */
+  SPECTR_CALL_ENDPOINT_MIN_MS: z.coerce.number().int().min(0).default(300),
+  SPECTR_CALL_ENDPOINT_MAX_MS: z.coerce.number().int().min(0).default(1_800),
   /** Chert project credentials, to read a webhook-answered call until its bridge is ready. */
   CHERT_API_KEY: z.string().optional(),
   CHERT_PROJECT_ID: z.string().optional(),

@@ -67,3 +67,24 @@ describe("createSpeaker", () => {
     await expect(createSpeaker(tts)("Hi").getReader().read()).rejects.toThrow("ElevenLabs down");
   });
 });
+
+import { ReadableStream as NodeReadableStream } from "node:stream/web";
+import { AudioFrame as PcmFrame } from "@livekit/rtc-node";
+import { bufferSpeech, replaySpeech } from "../src/speech.js";
+
+describe("preloaded speech", () => {
+  it("buffers a line's frames and replays them unchanged, so the greeting can be made before the call is ready", async () => {
+    const frames = [1, 2, 3].map((n) => new PcmFrame(new Int16Array([n, n]), 24_000, 1, 2));
+    const source = new NodeReadableStream<PcmFrame>({
+      start(controller) {
+        for (const frame of frames) controller.enqueue(frame);
+        controller.close();
+      },
+    });
+    const buffered = await bufferSpeech(source);
+    expect(buffered).toHaveLength(3);
+    const replayed: PcmFrame[] = [];
+    for await (const frame of replaySpeech(buffered)) replayed.push(frame);
+    expect(replayed.map((f) => Array.from(f.data))).toEqual([[1, 1], [2, 2], [3, 3]]);
+  });
+});

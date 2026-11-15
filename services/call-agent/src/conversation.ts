@@ -4,6 +4,9 @@
 // The agent does not plan. A finished utterance is routed into the same inbound
 // pipeline the iMessage channel uses (new task, correction, answer or stop), and the
 // agent speaks short acknowledgements plus whatever the task loop reports back.
+//
+// Every fixed line comes in several wordings. A `Phrasing` picks one at random and never
+// repeats the previous pick for the same line, so a call doesn't sound like a recording.
 
 export type InboundKind = "task" | "correction" | "answer" | "stop";
 export type TaskState = "accepted" | "running" | "waitingForUser" | "succeeded" | "failed" | "cancelled";
@@ -37,6 +40,33 @@ export function withMood(mood: Mood, text: string): string {
   return `${MOOD[mood]} ${text}`;
 }
 
+/**
+ * Chooses among wordings of the same line. One per call: it remembers the last pick for
+ * each line so the same words are never heard twice in a row. `random` is injectable so
+ * tests are deterministic.
+ */
+export class Phrasing {
+  private readonly last = new Map<string, number>();
+
+  constructor(
+    private readonly random: () => number = Math.random,
+    private readonly vary = true,
+  ) {}
+
+  pick(key: string, options: readonly string[]): string {
+    if (options.length === 0) throw new Error(`No wordings for "${key}"`);
+    if (options.length === 1 || !this.vary) return options[0] as string;
+    const previous = this.last.get(key);
+    let index = Math.min(options.length - 1, Math.floor(this.random() * options.length));
+    if (index === previous) index = (index + 1) % options.length;
+    this.last.set(key, index);
+    return options[index] as string;
+  }
+}
+
+/** Always the first wording, with no memory: for callers that don't care about variety, and for tests. */
+export const FIRST_WORDING = new Phrasing(() => 0, false);
+
 export type UtteranceAction =
   | { type: "ignore" }
   | { type: "greeting" }
@@ -68,17 +98,70 @@ export function utteranceAction(transcript: string, hasActiveTask: boolean): Utt
   return { type: "route", text: text.slice(0, 2_000) };
 }
 
+const STOP_WORDS = /^(stop|stop it|stop that|stop now|please stop|cancel|cancel that|cancel it|never mind|nevermind|forget it|abort|halt)( spectr)?$/u;
+
+/**
+ * The backend decides what an utterance is, but the caller shouldn't wait for a round
+ * trip to hear anything. This guesses the kind from what the call already knows, so a
+ * fitting acknowledgement can be spoken at once; the backend's answer wins afterwards.
+ */
+export function likelyKind(text: string, active: TaskStatus | null): InboundKind {
+  if (STOP_WORDS.test(normalize(text))) return "stop";
+  if (!active || isTerminal(active.state)) return "task";
+  return active.state === "waitingForUser" ? "answer" : "correction";
+}
+
+const ACKNOWLEDGEMENTS: Readonly<Record<InboundKind, readonly string[]>> = Object.freeze({
+  task: [
+    withMood("cheerful", "Right away."),
+    withMood("cheerful", "Certainly."),
+    withMood("cheerful", "On it."),
+    withMood("cheerful", "Consider it done."),
+    withMood("calm", "Very good. One moment."),
+    withMood("cheerful", "Leave it with me."),
+  ],
+  correction: [
+    withMood("calm", "Understood, changing course."),
+    withMood("calm", "Noted. Adjusting now."),
+    withMood("calm", "Very well, I'll change tack."),
+    withMood("calm", "Understood. I'll take it from there."),
+  ],
+  answer: [
+    withMood("warm", "Thank you."),
+    withMood("warm", "Noted, thank you."),
+    withMood("warm", "Very good, carrying on."),
+    withMood("warm", "Much obliged. Continuing."),
+  ],
+  stop: [
+    withMood("calm", "Stopping."),
+    withMood("calm", "Stopping now."),
+    withMood("calm", "Very well, I'll stop there."),
+    withMood("calm", "Understood. Standing down."),
+  ],
+});
+
 /** Spoken right after an utterance is routed. Short: this is a phone call. */
-export function acknowledgement(kind: InboundKind): string {
-  switch (kind) {
-    case "task":
-      return withMood("cheerful", "Right away.");
-    case "correction":
-      return withMood("calm", "Understood, changing course.");
-    case "answer":
-      return withMood("warm", "Thank you.");
+export function acknowledgement(kind: InboundKind, phrasing: Phrasing = FIRST_WORDING): string {
+  return phrasing.pick(`ack:${kind}`, ACKNOWLEDGEMENTS[kind]);
+}
+
+/** When the backend saw the utterance differently from the guess spoken at once. */
+export function afterthought(guessed: InboundKind, actual: InboundKind, phrasing: Phrasing = FIRST_WORDING): string | null {
+  if (guessed === actual) return null;
+  switch (actual) {
     case "stop":
-      return withMood("calm", "Stopping.");
+      return phrasing.pick("after:stop", [
+        withMood("calm", "Stopping, then."),
+        withMood("calm", "Very well, stopping."),
+      ]);
+    case "correction":
+      return phrasing.pick("after:correction", [
+        withMood("calm", "Changing course."),
+        withMood("calm", "Adjusting."),
+      ]);
+    case "answer":
+    case "task":
+      return null;
   }
 }
 
@@ -104,43 +187,102 @@ export function localHour(timeZone: string | undefined, now = new Date()): numbe
   }
 }
 
-function hello(hour: number | undefined, name: string | null | undefined): string {
+function hello(hour: number | undefined, name: string | null | undefined, phrasing: Phrasing): string {
   const who = name?.trim() ? `, ${name.trim()}` : "";
-  if (hour === undefined) return `Hello${who}.`;
+  if (hour === undefined) return phrasing.pick("hello", [`Hello${who}.`, `Good to hear from you${who}.`, `Hello there${who}.`]);
   const part = hour < 5 ? "evening" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-  return `Good ${part}${who}.`;
+  return phrasing.pick(`hello:${part}`, [
+    `Good ${part}${who}.`,
+    `Good ${part}${who}. Good to hear from you.`,
+    `${part[0]?.toUpperCase()}${part.slice(1)}${who}.`,
+  ]);
 }
+
+const WHERE: Readonly<Record<CallMedium, readonly string[]>> = Object.freeze({
+  facetime: [
+    "Spectr here. You're looking at your Mac, live.",
+    "Spectr here, with your Mac on screen.",
+    "Spectr here. That's your Mac you're seeing, live.",
+  ],
+  app: [
+    "Spectr here, on your Mac with you.",
+    "Spectr here, at your Mac.",
+    "Spectr here, right here on your Mac.",
+  ],
+  phone: ["Spectr here, on your Mac.", "Spectr here, at your Mac.", "Spectr here, standing by at your Mac."],
+});
+
+const ALL_QUIET: readonly string[] = [
+  "Everything's in order. What may I do for you?",
+  "All quiet here. What can I do for you?",
+  "Nothing's running at the moment. What shall I take care of?",
+  "Everything's in order. How may I help?",
+  "All's well here. What would you like done?",
+];
+
+const STILL_BUSY: readonly string[] = [
+  "I'm still working on your last task. Say stop, or give me something new.",
+  "Your last task is still under way. Say stop, or tell me what's next.",
+  "I'm still on your last request. Say stop, or let me know what else you need.",
+];
+
+const PAUSED_ON: readonly string[] = ["I'm paused on a question for you:", "I'm waiting on one thing from you:", "I have a question before I carry on:"];
+
+const LINKED: readonly string[] = [
+  "You're all set, this number is now linked to Spectr.",
+  "This number is now linked to Spectr. You're all set.",
+];
 
 /**
  * How Spectr opens a call: a greeting, where it is, and whether it is already busy, so
  * the caller knows the state of their Mac before saying anything.
  */
-export function greeting(medium: CallMedium, options: GreetingOptions = {}): string {
-  const where =
-    medium === "facetime"
-      ? "Spectr here. You're looking at your Mac, live."
-      : medium === "app"
-        ? "Spectr here, on your Mac with you."
-        : "Spectr here, on your Mac.";
+export function greeting(medium: CallMedium, options: GreetingOptions = {}, phrasing: Phrasing = FIRST_WORDING): string {
+  const where = phrasing.pick(`where:${medium}`, WHERE[medium]);
   const active = options.active && !isTerminal(options.active.state) ? options.active : null;
   const status = active
     ? active.state === "waitingForUser" && active.question
-      ? `I'm paused on a question for you: ${clip(active.question, 120)}`
-      : "I'm still working on your last task. Say stop, or give me something new."
-    : "Everything's in order. What may I do for you?";
-  const linked = options.justLinked ? "You're all set, this number is now linked to Spectr. " : "";
-  return withMood("warm", `${linked}${hello(options.hour, options.name)} ${where} ${status}`);
+      ? `${phrasing.pick("paused", PAUSED_ON)} ${clip(active.question, 120)}`
+      : phrasing.pick("busy", STILL_BUSY)
+    : phrasing.pick("quiet", ALL_QUIET);
+  const linked = options.justLinked ? `${phrasing.pick("linked", LINKED)} ` : "";
+  return withMood("warm", `${linked}${hello(options.hour, options.name, phrasing)} ${where} ${status}`);
 }
 
 /** When the caller says hello again mid-call. */
-export const STILL_HERE = withMood("warm", "Still here. What may I do for you?");
+export function stillHere(phrasing: Phrasing = FIRST_WORDING): string {
+  return phrasing.pick("still-here", [
+    withMood("warm", "Still here. What may I do for you?"),
+    withMood("warm", "Right here. What can I do for you?"),
+    withMood("warm", "I'm with you. What would you like?"),
+    withMood("warm", "Still here, and all ears."),
+  ]);
+}
+
+export function goodbye(phrasing: Phrasing = FIRST_WORDING): string {
+  return phrasing.pick("goodbye", [
+    withMood("warm", "Very good. Goodbye."),
+    withMood("warm", "Goodbye. I'll be here when you need me."),
+    withMood("warm", "Until next time. Goodbye."),
+    withMood("warm", "Very good. Take care."),
+  ]);
+}
+
+export function routeFailed(phrasing: Phrasing = FIRST_WORDING): string {
+  return phrasing.pick("route-failed", [
+    withMood("sorry", "I'm afraid I couldn't reach your Mac's task list. Please try again in a moment."),
+    withMood("sorry", "I'm afraid that didn't get through to your Mac. Would you say it once more?"),
+  ]);
+}
+
+export const STILL_HERE = stillHere();
+export const GOODBYE = goodbye();
+export const ROUTE_FAILED = routeFailed();
 
 export const NOT_LINKED = withMood(
   "sorry",
   "I'm afraid this number isn't linked to Spectr yet. In the Spectr app, open Setup, add this number, then call again. Goodbye.",
 );
-export const GOODBYE = withMood("warm", "Very good. Goodbye.");
-export const ROUTE_FAILED = withMood("sorry", "I'm afraid I couldn't reach your Mac's task list. Please try again in a moment.");
 
 /**
  * Speakable text is capped so a long summary never becomes a monologue. The default
