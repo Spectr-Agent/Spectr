@@ -11,6 +11,9 @@ import SpectrKit
 ///
 /// A step batch runs at most once, even if the step request is retried or Spectr
 /// restarts mid-batch (`StepLedger`, persisted before each action).
+///
+/// While idle it polls every `idleInterval`; `wake()` (a LiveKit nudge from the backend)
+/// ends that wait at once, so a new task starts without waiting for the next poll.
 @MainActor
 @Observable
 final class MacAgentLoop {
@@ -33,11 +36,20 @@ final class MacAgentLoop {
     private let performer: any MacActionPerformer
     private let store: any StepLedgerStore
     private let pause: @Sendable (Duration) async -> Void
+    /// Waits after a batch for the screen to show its result, for at most the duration
+    /// given.
+    private let settle: @Sendable (Duration) async -> Void
     private var ledger: StepLedger
     private var loopTask: Task<Void, Never>?
     /// The task revision the user stopped from this Mac. Its remaining actions are not
     /// run; a newer revision (a correction) runs normally.
     private var halted: (taskId: String, revision: Int)?
+    /// True while working through a task's steps; a wake then has nothing to cut short.
+    private var runningSteps = false
+    /// A wake that arrived while not waiting; the next idle wait is skipped once.
+    private var wakePending = false
+    /// Resumes the current idle wait early.
+    private var wakeContinuation: CheckedContinuation<Void, Never>?
 
     private func isHalted(_ taskId: String, revision: Int) -> Bool {
         guard let halted else { return false }
@@ -54,13 +66,15 @@ final class MacAgentLoop {
         frames: @escaping @MainActor () async throws(AgentFrameError) -> AgentFrame,
         performer: any MacActionPerformer,
         store: any StepLedgerStore,
-        pause: @escaping @Sendable (Duration) async -> Void = { try? await Task.sleep(for: $0) }
+        pause: @escaping @Sendable (Duration) async -> Void = { try? await Task.sleep(for: $0) },
+        settle: (@Sendable (Duration) async -> Void)? = nil
     ) {
         self.api = api
         self.frames = frames
         self.performer = performer
         self.store = store
         self.pause = pause
+        self.settle = settle ?? pause
         self.ledger = store.load()
     }
 
@@ -73,7 +87,7 @@ final class MacAgentLoop {
             while let self, !Task.isCancelled {
                 let worked = await self.cycle()
                 if self.status == .unauthorized { return }
-                if !worked { await self.pause(self.idleInterval) }
+                if !worked { await self.idlePause() }
             }
         }
     }
@@ -81,7 +95,60 @@ final class MacAgentLoop {
     func stop() {
         loopTask?.cancel()
         loopTask = nil
+        wakePending = false
         status = .stopped
+    }
+
+    /// Polls now instead of at the end of the idle wait. Does nothing while a task is
+    /// being worked on. A wake that races with a poll is kept and skips the next wait,
+    /// so it is never lost. It carries no instruction: the poll decides what to do.
+    func wake() {
+        guard !runningSteps else { return }
+        if let continuation = wakeContinuation {
+            wakeContinuation = nil
+            continuation.resume()
+        } else {
+            wakePending = true
+        }
+    }
+
+    /// Waits `idleInterval` between polls, or less if `wake()` is called.
+    func idlePause() async {
+        if wakePending {
+            wakePending = false
+            return
+        }
+        let pause = self.pause
+        let interval = idleInterval
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await pause(interval) }
+            group.addTask { await self.waitForWake() }
+            await group.next()
+            group.cancelAll()
+        }
+    }
+
+    /// True while an idle wait can be ended by `wake()`.
+    var isWaitingForWake: Bool { wakeContinuation != nil }
+
+    private func waitForWake() async {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                if wakePending || Task.isCancelled {
+                    wakePending = false
+                    continuation.resume()
+                } else {
+                    wakeContinuation = continuation
+                }
+            }
+        } onCancel: {
+            Task { @MainActor in self.endWaitForWake() }
+        }
+    }
+
+    private func endWaitForWake() {
+        wakeContinuation?.resume()
+        wakeContinuation = nil
     }
 
     /// Stops running the current task on this Mac. The backend task itself is stopped
@@ -129,6 +196,8 @@ final class MacAgentLoop {
             status = .idle
             return false
         case .accepted, .running:
+            runningSteps = true
+            defer { runningSteps = false }
             await runSteps(task)
             return true
         }
@@ -177,8 +246,10 @@ final class MacAgentLoop {
                     actions, taskId: task.taskId, revision: revision, step: step, frame: frame)
                 afterStep = step
                 // Let pages load and windows appear before the next screenshot, so the
-                // model judges the result rather than the moment before it.
-                await pause(Self.settleTime(after: actions))
+                // model judges the result rather than the moment before it. `settle`
+                // returns as soon as the screen stops changing; this is the most it waits.
+                let settleTime = Self.settleTime(after: actions)
+                if settleTime > .zero { await settle(settleTime) }
             case .waiting(_, _, _):
                 activity?.phase = .waitingForUser
                 status = .idle
@@ -285,8 +356,9 @@ final class MacAgentLoop {
         try? store.save(ledger)
     }
 
-    /// How long to wait after a batch before capturing the screen the model will judge.
-    /// Opening a URL or an app takes the longest to show; input events settle quickly.
+    /// The longest to wait after a batch before capturing the screen the model will
+    /// judge. Opening a URL or an app takes the longest to show; input events settle
+    /// quickly.
     static func settleTime(after actions: [MacStepAction]) -> Duration {
         actions.map { item -> Duration in
             switch item.action {

@@ -7,6 +7,9 @@ import SpectrKit
 /// (`spectr-mac-<deviceId>`), where the iPhone app watches it and the call agent relays
 /// it onto FaceTime. Uses a short-lived grant from `GET /api/mac/livekit`; the Mac never
 /// holds a LiveKit secret.
+///
+/// The same room carries the backend's wake nudge (`WakeListener`), so a new task starts
+/// at once instead of on the agent loop's next poll.
 @MainActor
 @Observable
 final class ScreenPublisher {
@@ -18,9 +21,13 @@ final class ScreenPublisher {
     }
 
     private(set) var state: State = .idle
+    /// Called on the main actor when the backend nudges this Mac to poll for a task.
+    @ObservationIgnored var onWake: (@MainActor () -> Void)?
 
     private let sink: FrameSink
     private var room: Room?
+    /// The current room's wake delegate. Rooms hold delegates weakly, so this keeps it.
+    @ObservationIgnored private var wakeListener: WakeListener?
     private var task: Task<Void, Never>?
     /// Increments per session so a late connect from an old session is discarded.
     private var generation = 0
@@ -42,6 +49,11 @@ final class ScreenPublisher {
                 // Dynacast stops sending video while nobody is watching, so an always-on
                 // share costs almost no upload until the iPhone opens it.
                 let room = Room(roomOptions: RoomOptions(dynacast: true))
+                // Every session makes a new room (also after a reconnect), so each one
+                // gets its own listener, attached before connecting so no nudge is missed.
+                let listener = WakeListener { [weak self] in self?.onWake?() }
+                room.add(delegate: listener)
+                if session == self.generation { self.wakeListener = listener }
                 try await room.connect(url: grant.url, token: grant.token)
                 let track = await LocalVideoTrack.createBufferTrack(name: "spectr-screen", source: .screenShareVideo)
                 guard session == self.generation, let capturer = track.capturer as? BufferCapturer else {
@@ -105,6 +117,7 @@ final class ScreenPublisher {
             Task { await room.disconnect() }
         }
         room = nil
+        wakeListener = nil
         state = .idle
     }
 
@@ -124,5 +137,30 @@ final class ScreenPublisher {
         case .unavailable(let detail), .invalidRequest(let detail): "Streaming isn't available: \(detail)"
         case .staleStep, .notFound: "Streaming isn't available right now."
         }
+    }
+}
+
+/// Turns the backend's wake message into a poll. The backend sends it with LiveKit's
+/// server API (`sendData`, topic `spectr.wake`) to this Mac's identity, so it arrives
+/// with no sending participant. Only the topic is checked: the message carries no
+/// instruction and its payload is ignored, so the worst a forged one can do is make the
+/// Mac poll early.
+final class WakeListener: NSObject, RoomDelegate, Sendable {
+    static let topic = "spectr.wake"
+
+    private let onWake: @MainActor @Sendable () -> Void
+
+    init(onWake: @escaping @MainActor @Sendable () -> Void) {
+        self.onWake = onWake
+    }
+
+    func room(
+        _ room: Room, participant: RemoteParticipant?, didReceiveData data: Data, forTopic topic: String,
+        encryptionType: EncryptionType
+    ) {
+        guard topic == Self.topic else { return }
+        // LiveKit calls delegates off the main actor.
+        let onWake = self.onWake
+        Task { @MainActor in onWake() }
     }
 }

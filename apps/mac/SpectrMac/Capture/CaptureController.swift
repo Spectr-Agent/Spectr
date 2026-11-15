@@ -275,6 +275,69 @@ final class CaptureController: NSObject {
         )
     }
 
+    /// Returns once the shared content stops changing, so the agent's next screenshot
+    /// shows the result of its actions: two small frames in a row differ by less than
+    /// `ScreenStability.stableThreshold` and at least `min` has passed. Always returns by
+    /// `max`. Without a share, or if a capture fails, it simply waits until `max`.
+    func waitUntilStable(min: Duration, max: Duration) async {
+        let clock = ContinuousClock()
+        let start = clock.now
+        let deadline = start + max
+        guard status == .sharing, let filter else {
+            try? await Task.sleep(until: deadline, clock: clock)
+            return
+        }
+        // A thumbnail is enough to see a page load or a window appear, and cheap to
+        // capture several times a second. The cursor is left out: it is not a result.
+        let width = Self.stabilityWidth
+        let aspect = filter.contentRect.height / Swift.max(filter.contentRect.width, 1)
+        let height = Swift.max(2, Int((CGFloat(width) * aspect).rounded()))
+        let configuration = SCStreamConfiguration()
+        configuration.width = width
+        configuration.height = height
+        configuration.showsCursor = false
+        configuration.scalesToFit = true
+
+        var previous: [UInt8]?
+        while clock.now < deadline, !Task.isCancelled {
+            let frameStart = clock.now
+            guard status == .sharing, self.filter === filter,
+                let image = try? await SCScreenshotManager.captureImage(
+                    contentFilter: filter, configuration: configuration),
+                let pixels = Self.rgbaPixels(image, width: width, height: height)
+            else { break }
+            if let previous, clock.now - start >= min,
+                ScreenStability.changedFraction(previous, pixels) < ScreenStability.stableThreshold
+            {
+                return
+            }
+            previous = pixels
+            try? await Task.sleep(until: Swift.min(frameStart + Self.stabilityInterval, deadline), clock: clock)
+        }
+        try? await Task.sleep(until: deadline, clock: clock)
+    }
+
+    private static let stabilityWidth = 256
+    private static let stabilityInterval: Duration = .milliseconds(120)
+
+    /// Draws `image` into a `width` x `height` RGBA buffer, so every frame compared has
+    /// the same size even if the shared content was resized in between.
+    private static func rgbaPixels(_ image: CGImage, width: Int, height: Int) -> [UInt8]? {
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard
+                let context = CGContext(
+                    data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                    bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { return false }
+            context.interpolationQuality = .low
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        return drawn ? pixels : nil
+    }
+
     private static func jpegData(_ image: CGImage) -> Data? {
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, "public.jpeg" as CFString, 1, nil) else {
